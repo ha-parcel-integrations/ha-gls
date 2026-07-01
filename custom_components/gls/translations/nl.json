@@ -1,0 +1,138 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "GLS instellen",
+        "description": "Voer de postcode in waar je pakketten meestal bezorgd worden. Pakketten voeg je toe na het instellen.",
+        "data": {
+          "postal_code": "Postcode"
+        },
+        "data_description": {
+          "postal_code": "Bijv. 1234AB. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "GLS is niet bereikbaar. Controleer je netwerk.",
+      "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer (alleen cijfers).",
+      "invalid_postcode": "Voer een geldige Nederlandse postcode in, bijv. 1234AB."
+    },
+    "abort": {
+      "already_configured": "GLS is al ingesteld. Voeg meer pakketten toe via de opties."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS-opties",
+        "sections": {
+          "parcels": {
+            "name": "Pakketten",
+            "data": {
+              "add": "Pakket toevoegen",
+              "remove": "Pakketten verwijderen"
+            },
+            "data_description": {
+              "add": "Voer een GLS-trackingnummer (alleen cijfers) in om het te volgen. Gebruikt de hub-postcode."
+            }
+          },
+          "history": {
+            "name": "Statusgeschiedenis",
+            "data": {
+              "include_history": "Statusgeschiedenis toevoegen"
+            },
+            "data_description": {
+              "include_history": "Voegt per pakket een history-attribuut toe met elke statusupdate (tijdstip, status, originele omschrijving). Standaard uit."
+            }
+          },
+          "polling": {
+            "name": "Verversen",
+            "data": {
+              "refresh_interval": "Ververs elke"
+            },
+            "data_description": {
+              "refresh_interval": "Hoe vaak de integratie GLS controleert op updates. Een langzamer interval is vriendelijker voor de servers van GLS; de standaard van 30 minuten is ruim voldoende voor de meeste pakketten."
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer (alleen cijfers).",
+      "already_tracked": "Dit pakket wordt al gevolgd."
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Pakket volgen",
+      "description": "Begin met het volgen van een GLS-pakket op nummer.",
+      "fields": {
+        "parcel_no": {
+          "name": "Pakketnummer",
+          "description": "Het GLS-trackingnummer (alleen cijfers)."
+        },
+        "postal_code": {
+          "name": "Postcode",
+          "description": "Bezorgpostcode. Standaard de hub-postcode als je 'm weglaat."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Pakket niet meer volgen",
+      "description": "Stop met het volgen van een GLS-pakket op nummer.",
+      "fields": {
+        "parcel_no": {
+          "name": "Pakketnummer",
+          "description": "Het GLS-trackingnummer dat je niet meer wilt volgen."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Een pakket is geregistreerd",
+      "parcel_status_changed": "De status van een pakket is gewijzigd",
+      "parcel_delivery_time_changed": "De verwachte bezorgtijd van een pakket is gewijzigd"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Verversen"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Bezorgingen"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Inkomende pakketten",
+        "unit_of_measurement": "pakketten"
+      },
+      "next_delivery": {
+        "name": "Volgende bezorging"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Onderweg naar ParcelShop",
+        "unit_of_measurement": "pakketten"
+      },
+      "awaiting_pickup": {
+        "name": "Klaar voor afhalen",
+        "unit_of_measurement": "pakketten"
+      },
+      "delivered_parcels": {
+        "name": "Bezorgde pakketten",
+        "unit_of_measurement": "pakketten"
+      },
+      "last_update": {
+        "name": "Laatste succesvolle update"
+      },
+      "parcel": {
+        "name": "Pakket {barcode}"
+      }
+    }
+  }
+}

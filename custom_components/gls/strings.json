@@ -1,0 +1,138 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up GLS",
+        "description": "Enter the postal code your parcels are usually delivered to. You add parcels after setup.",
+        "data": {
+          "postal_code": "Postal code"
+        },
+        "data_description": {
+          "postal_code": "e.g. 1234AB. Used as the default delivery address for parcels you add."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to reach GLS. Check your network.",
+      "invalid_parcel_no": "That does not look like a GLS parcel number (digits only).",
+      "invalid_postcode": "Enter a valid Dutch postal code, e.g. 1234AB."
+    },
+    "abort": {
+      "already_configured": "GLS is already set up. Add more parcels from its options."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS options",
+        "sections": {
+          "parcels": {
+            "name": "Parcels",
+            "data": {
+              "add": "Add a parcel",
+              "remove": "Remove parcels"
+            },
+            "data_description": {
+              "add": "Enter a GLS tracking number (digits only) to start tracking it. It uses the hub postal code."
+            }
+          },
+          "history": {
+            "name": "Parcel history",
+            "data": {
+              "include_history": "Include status history"
+            },
+            "data_description": {
+              "include_history": "Add a per-parcel history attribute listing each status update (timestamp, status, original description). Off by default."
+            }
+          },
+          "polling": {
+            "name": "Polling",
+            "data": {
+              "refresh_interval": "Refresh every"
+            },
+            "data_description": {
+              "refresh_interval": "How often the integration checks GLS for updates. A slower interval is gentler on GLS' servers; the default of 30 minutes is plenty for most parcels."
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "That does not look like a GLS parcel number (digits only).",
+      "already_tracked": "That parcel is already being tracked."
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Track parcel",
+      "description": "Start tracking a GLS parcel by its number.",
+      "fields": {
+        "parcel_no": {
+          "name": "Parcel number",
+          "description": "The GLS tracking number (digits only)."
+        },
+        "postal_code": {
+          "name": "Postal code",
+          "description": "Delivery postal code. Defaults to the hub postal code if omitted."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Untrack parcel",
+      "description": "Stop tracking a GLS parcel by its number.",
+      "fields": {
+        "parcel_no": {
+          "name": "Parcel number",
+          "description": "The GLS tracking number to stop tracking."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "A parcel was registered",
+      "parcel_status_changed": "A parcel's status changed",
+      "parcel_delivery_time_changed": "A parcel's expected delivery time changed"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Deliveries"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Incoming parcels",
+        "unit_of_measurement": "parcels"
+      },
+      "next_delivery": {
+        "name": "Next delivery"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "En route to ParcelShop",
+        "unit_of_measurement": "parcels"
+      },
+      "awaiting_pickup": {
+        "name": "Awaiting pickup",
+        "unit_of_measurement": "parcels"
+      },
+      "delivered_parcels": {
+        "name": "Delivered parcels",
+        "unit_of_measurement": "parcels"
+      },
+      "last_update": {
+        "name": "Last successful update"
+      },
+      "parcel": {
+        "name": "Parcel {barcode}"
+      }
+    }
+  }
+}

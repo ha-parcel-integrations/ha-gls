@@ -1,0 +1,24 @@
+# Notify when a GLS parcel goes out for delivery.
+
+alias: "GLS: out for delivery"
+description: Notify when a tracked GLS parcel is loaded for delivery today.
+mode: queued
+max: 10
+
+triggers:
+  - trigger: event
+    event_type: gls_parcel_status_changed
+
+conditions:
+  - condition: template
+    value_template: "{{ trigger.event.data.new_status == 'out_for_delivery' }}"
+
+actions:
+  - action: notify.mobile_app
+    data:
+      title: "GLS onderweg"
+      message: >-
+        {{ trigger.event.data.sender or trigger.event.data.barcode }}
+        wordt vandaag bezorgd.
+      data:
+        clickAction: "{{ trigger.event.data.url }}"

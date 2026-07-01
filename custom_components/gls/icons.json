@@ -1,0 +1,37 @@
+{
+  "entity": {
+    "button": {
+      "refresh": {
+        "default": "mdi:refresh"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "default": "mdi:truck-delivery-outline"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "default": "mdi:package-variant-closed"
+      },
+      "next_delivery": {
+        "default": "mdi:clock-fast"
+      },
+      "en_route_to_parcel_shop": {
+        "default": "mdi:truck-delivery"
+      },
+      "awaiting_pickup": {
+        "default": "mdi:store-clock"
+      },
+      "delivered_parcels": {
+        "default": "mdi:package-variant"
+      },
+      "last_update": {
+        "default": "mdi:clock-check-outline"
+      },
+      "parcel": {
+        "default": "mdi:package-variant-closed"
+      }
+    }
+  }
+}

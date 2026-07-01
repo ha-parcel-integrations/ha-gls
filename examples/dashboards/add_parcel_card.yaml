@@ -1,0 +1,53 @@
+# Add a GLS parcel straight from a dashboard — no diving into the options.
+#
+# The integration exposes two services:
+#   - gls.track_parcel   (parcel_no, optional postal_code)
+#   - gls.untrack_parcel (parcel_no)
+#
+# This example wires a text field + a button on a Lovelace card to
+# gls.track_parcel. It needs one helper and one script (below), then the card.
+
+# ---------------------------------------------------------------------------
+# 1) Helper — Settings → Devices & Services → Helpers → Create → Text,
+#    or in configuration.yaml:
+# ---------------------------------------------------------------------------
+input_text:
+  gls_new_parcel:
+    name: New GLS parcel number
+    max: 20
+
+# ---------------------------------------------------------------------------
+# 2) Script — reads the text field, tracks the parcel, then clears the field.
+#    Add to scripts.yaml (or Settings → Automations & Scenes → Scripts).
+# ---------------------------------------------------------------------------
+gls_track_new_parcel:
+  alias: "GLS: track the parcel in the input box"
+  sequence:
+    - condition: template
+      value_template: "{{ states('input_text.gls_new_parcel') | trim != '' }}"
+    - action: gls.track_parcel
+      data:
+        parcel_no: "{{ states('input_text.gls_new_parcel') | trim }}"
+        # Omit postal_code to use the hub default, or set your own:
+        # postal_code: "1234AB"
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.gls_new_parcel
+      data:
+        value: ""
+
+# ---------------------------------------------------------------------------
+# 3) Lovelace card — paste into a dashboard (Edit → raw config, or add a
+#    manual card). Type the number, press the button.
+# ---------------------------------------------------------------------------
+# type: entities
+# title: Track a GLS parcel
+# entities:
+#   - entity: input_text.gls_new_parcel
+#   - type: button
+#     name: Track
+#     icon: mdi:package-variant-plus
+#     action_name: Add
+#     tap_action:
+#       action: perform-action
+#       perform_action: script.gls_track_new_parcel
