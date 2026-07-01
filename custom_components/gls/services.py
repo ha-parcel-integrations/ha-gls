@@ -78,3 +78,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_UNTRACK_PARCEL, _untrack, schema=_UNTRACK_SCHEMA
     )
+
+
+def async_unload_services(hass: HomeAssistant) -> None:
+    """Remove the GLS services (single-entry integration, so on unload)."""
+    for service in (SERVICE_TRACK_PARCEL, SERVICE_UNTRACK_PARCEL):
+        if hass.services.has_service(DOMAIN, service):
+            hass.services.async_remove(DOMAIN, service)

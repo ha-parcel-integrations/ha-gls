@@ -11,7 +11,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import GlsApiClient
 from .const import PLATFORMS
 from .coordinator import GlsCoordinator, _refresh_interval
-from .services import async_setup_services
+from .services import async_setup_services, async_unload_services
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,4 +57,9 @@ async def _async_options_updated(hass: HomeAssistant, entry: GlsConfigEntry) -> 
 
 async def async_unload_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Unload a GLS config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        # Single-entry integration: no other entry can still need the
+        # services, so remove them alongside the entry.
+        async_unload_services(hass)
+        return True
+    return False

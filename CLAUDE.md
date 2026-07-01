@@ -28,8 +28,11 @@ enters tracking codes themselves, so:
   `entry.options[CONF_POSTAL_CODE]`; the entry starts with an empty
   `CONF_PARCELS` list. Setup does **not** hit the API (the endpoint needs a
   parcel number to say anything).
-- **Single-instance hub.** `unique_id = DOMAIN`, second entry aborts. One
-  **GLS** device holds every tracked parcel.
+- **Single-instance hub.** `single_config_entry: true` in the manifest (HA
+  blocks a second flow before the form), with `unique_id = DOMAIN` +
+  `_abort_if_unique_id_configured` kept as belt-and-braces. One **GLS**
+  device holds every tracked parcel. The services are removed again in
+  `async_unload_entry` (single entry, so nothing else needs them).
 - **Tracked parcels live in `entry.options[CONF_PARCELS]`** as a list of
   `{parcel_no, postal_code}` dicts. Added three ways, all validated the same
   (`valid_parcel_no` / `normalize_postcode` in `config_flow.py`): the
@@ -71,7 +74,9 @@ enters tracking codes themselves, so:
 
 ## Coordinator (mirror DHL, adapted)
 
-- Polls **each** tracked parcel individually and merges them into one list;
+- Polls **each** tracked parcel and merges them into one list —
+  concurrently via one `asyncio.gather` (the endpoint is per-parcel, so
+  serial polling scales badly with many tracked codes);
   `coordinator.data` is the active (not-delivered) parcels, `self.delivered`
   the delivered ones. **Multiple parcels are aggregated in the sensors** —
   the summary sensors count/list across all tracked codes, one per-parcel
@@ -81,7 +86,12 @@ enters tracking codes themselves, so:
   on a blip. A first-ever `204` yields a pending placeholder
   (`{"parcelNo": no, "state": None}`) → status `unknown`, so the tracked
   parcel is still visible. `UpdateFailed` only when **every** tracked parcel
-  errored and nothing is cached.
+  errored and nothing is cached. The cache is pruned to the currently
+  tracked numbers at the start of every update, so untracking also frees
+  the cached payload.
+- **`_dimensions` only formats `text` when all three sides are known** —
+  a partial payload keeps the known values but `text: None` (never
+  `"30 x None x None cm"`), mirroring DPD's `_augment_dimensions`.
 - **`state` → `ParcelStatus`** via `_STATE_MAP` (numeric): `0` registered,
   `1`/`2` in_transit, `3` out_for_delivery, `4` delivered. The same map
   drives history (`map_event_status`). Unmapped non-null state → `unknown`
@@ -101,8 +111,10 @@ enters tracking codes themselves, so:
   `_delivery_time_changed`) fire exactly as DHL's, including the cached
   `device_id` on every payload, first-refresh suppression, and the silent
   `value → null` ETA transition.
-- `last_success_time` stamped at the end of every successful update, backing
-  the diagnostic sensor.
+- `last_success_time` is only stamped when **at least one fetch actually
+  succeeded** (or nothing is tracked). A poll served entirely from
+  `_raw_cache` is not a success — the diagnostic sensor exists precisely
+  to reveal that situation.
 
 ## Entities (same set as DHL, entry-scoped)
 
