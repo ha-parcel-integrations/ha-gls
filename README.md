@@ -76,8 +76,9 @@ manual refresh needed:
 - **Dashboard** — a text field + button that calls the service. See
   [`examples/dashboards/add_parcel_card.yaml`](examples/dashboards/add_parcel_card.yaml).
 
-Parcel numbers are digits only — find them in the GLS track & trace mail/SMS
-or on gls-info.nl.
+You can use either identifier GLS gives out: the long parcel number
+(e.g. `13290054100304`) or the short tracking ID (e.g. `00L1B3BX`). Find
+them in the GLS track & trace mail/SMS or on gls-info.nl.
 
 ## Options
 

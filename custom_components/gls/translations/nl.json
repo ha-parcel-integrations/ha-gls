@@ -15,7 +15,7 @@
     },
     "error": {
       "cannot_connect": "GLS is niet bereikbaar. Controleer je netwerk.",
-      "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer (alleen cijfers).",
+      "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer of tracking-ID.",
       "invalid_postcode": "Voer een geldige Nederlandse postcode in, bijv. 1234AB."
     },
     "abort": {
@@ -35,7 +35,7 @@
               "remove": "Pakketten verwijderen"
             },
             "data_description": {
-              "add": "Voer een GLS-trackingnummer (alleen cijfers) in om het te volgen. Gebruikt de hub-postcode."
+              "add": "Voer een GLS-pakketnummer of tracking-ID in om het te volgen. Gebruikt de hub-postcode."
             }
           },
           "history": {
@@ -60,7 +60,7 @@
       }
     },
     "error": {
-      "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer (alleen cijfers).",
+      "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer of tracking-ID.",
       "already_tracked": "Dit pakket wordt al gevolgd."
     }
   },
@@ -71,7 +71,7 @@
       "fields": {
         "parcel_no": {
           "name": "Pakketnummer",
-          "description": "Het GLS-trackingnummer (alleen cijfers)."
+          "description": "Het GLS-pakketnummer of tracking-ID."
         },
         "postal_code": {
           "name": "Postcode",

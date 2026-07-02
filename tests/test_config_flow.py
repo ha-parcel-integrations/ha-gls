@@ -79,6 +79,20 @@ async def test_options_add_parcel_uses_hub_postcode(hass):
     ]
 
 
+async def test_options_add_alphanumeric_tracking_id(hass):
+    """The short alphanumeric uniqueNo is accepted and upper-cased."""
+    entry = _hub([])
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], _init_input(add="00l1b3bx")
+    )
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_PARCELS] == [
+        {CONF_PARCEL_NO: "00L1B3BX", CONF_POSTAL_CODE: "1000AA"}
+    ]
+
+
 async def test_options_add_invalid_parcel_no(hass):
     entry = _hub([])
     entry.add_to_hass(hass)

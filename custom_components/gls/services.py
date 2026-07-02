@@ -12,7 +12,12 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 
-from .config_flow import normalize_postcode, valid_parcel_no, valid_postcode
+from .config_flow import (
+    normalize_parcel_no,
+    normalize_postcode,
+    valid_parcel_no,
+    valid_postcode,
+)
 from .const import CONF_PARCEL_NO, CONF_PARCELS, CONF_POSTAL_CODE, DOMAIN
 
 SERVICE_TRACK_PARCEL = "track_parcel"
@@ -42,7 +47,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def _track(call: ServiceCall) -> None:
         entry = _get_entry(hass)
-        parcel_no = call.data[CONF_PARCEL_NO].strip()
+        parcel_no = normalize_parcel_no(call.data[CONF_PARCEL_NO])
         postal_code = normalize_postcode(
             call.data.get(CONF_POSTAL_CODE)
             or entry.options.get(CONF_POSTAL_CODE, "")
@@ -62,7 +67,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def _untrack(call: ServiceCall) -> None:
         entry = _get_entry(hass)
-        parcel_no = call.data[CONF_PARCEL_NO].strip()
+        parcel_no = normalize_parcel_no(call.data[CONF_PARCEL_NO])
         parcels = [
             p
             for p in entry.options.get(CONF_PARCELS, [])

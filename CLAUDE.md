@@ -61,6 +61,24 @@ enters tracking codes themselves, so:
   `entry.entry_id`, device identifier `(DOMAIN, entry.entry_id)`, device
   name just `"GLS"`.
 
+## Identifiers & privacy
+
+- **Two identifiers both resolve** on the endpoint: the long numeric
+  `parcelNo` (`13290054100304`) and the short alphanumeric tracking ID /
+  `uniqueNo` (`00L1B3BX`). So `valid_parcel_no` accepts `^[A-Z0-9]{6,20}$`
+  (not digits-only) and `normalize_parcel_no` upper-cases the input. The
+  per-parcel sensor's `barcode` always comes from the **response** `parcelNo`,
+  so tracking by `uniqueNo` still shows the real parcel number.
+- **Multi-collo:** one shipment can list several `parcels[]` (colli). We
+  track at **shipment level** — one sensor per tracked code, using the
+  top-level `state`/`scans`. Do not split colli into separate sensors.
+- **PII:** the payload's `deliveryPreference` block nests the recipient's
+  email (under `consignee.contactValues[].value`), address and preference
+  UUIDs. It is redacted in `diagnostics.py` (`deliveryPreference` /
+  `consignee` / `contactValues` / `houseNumber` in `TO_REDACT`). It still
+  rides along in the per-parcel `raw` attribute (the user's own data,
+  unrecorded) — do not surface it elsewhere.
+
 ## The API
 
 - Public GLS-NL endpoint (`PARCEL_DETAILS_URL` in `const.py`):

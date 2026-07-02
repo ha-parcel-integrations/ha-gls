@@ -15,7 +15,7 @@
     },
     "error": {
       "cannot_connect": "Unable to reach GLS. Check your network.",
-      "invalid_parcel_no": "That does not look like a GLS parcel number (digits only).",
+      "invalid_parcel_no": "That does not look like a GLS parcel number or tracking ID.",
       "invalid_postcode": "Enter a valid Dutch postal code, e.g. 1234AB."
     },
     "abort": {
@@ -35,7 +35,7 @@
               "remove": "Remove parcels"
             },
             "data_description": {
-              "add": "Enter a GLS tracking number (digits only) to start tracking it. It uses the hub postal code."
+              "add": "Enter a GLS parcel number or tracking ID to start tracking it. It uses the hub postal code."
             }
           },
           "history": {
@@ -60,7 +60,7 @@
       }
     },
     "error": {
-      "invalid_parcel_no": "That does not look like a GLS parcel number (digits only).",
+      "invalid_parcel_no": "That does not look like a GLS parcel number or tracking ID.",
       "already_tracked": "That parcel is already being tracked."
     }
   },
@@ -71,7 +71,7 @@
       "fields": {
         "parcel_no": {
           "name": "Parcel number",
-          "description": "The GLS tracking number (digits only)."
+          "description": "The GLS parcel number or tracking ID."
         },
         "postal_code": {
           "name": "Postal code",

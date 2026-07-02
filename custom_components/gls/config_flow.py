@@ -31,7 +31,11 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-_PARCEL_NO_RE = re.compile(r"^\d{7,14}$")
+# A parcel can be tracked by either identifier GLS gives out: the long
+# numeric parcel number (e.g. 13290054100304) or the short alphanumeric
+# tracking ID / uniqueNo (e.g. 00L1B3BX). Both resolve on the endpoint, so
+# accept letters and digits.
+_PARCEL_NO_RE = re.compile(r"^[A-Z0-9]{6,20}$")
 _POSTCODE_RE = re.compile(r"^\d{4}[A-Z]{2}$")
 
 # First-run form: only ask for the delivery postal code. It becomes the hub
@@ -44,8 +48,17 @@ def normalize_postcode(value: str) -> str:
     return value.replace(" ", "").upper()
 
 
+def normalize_parcel_no(value: str) -> str:
+    """Return the parcel number/tracking ID trimmed and upper-cased.
+
+    GLS tracking IDs are upper-case alphanumeric; upper-casing keeps the URL
+    and the duplicate check consistent regardless of how the user typed it.
+    """
+    return value.strip().upper()
+
+
 def valid_parcel_no(value: str) -> bool:
-    """Whether ``value`` looks like a GLS parcel number (digits only)."""
+    """Whether ``value`` looks like a GLS parcel number or tracking ID."""
     return bool(_PARCEL_NO_RE.match(value))
 
 
@@ -139,7 +152,7 @@ class GlsOptionsFlowHandler(OptionsFlow):
             to_remove = set(parcels_section.get("remove", []))
             parcels = [p for p in parcels if p[CONF_PARCEL_NO] not in to_remove]
 
-            add_no = (parcels_section.get("add") or "").strip()
+            add_no = normalize_parcel_no(parcels_section.get("add") or "")
             if add_no:
                 if not valid_parcel_no(add_no):
                     errors["base"] = "invalid_parcel_no"

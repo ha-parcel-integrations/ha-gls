@@ -29,6 +29,13 @@ TO_REDACT = {
     "name3",
     "email",
     "gpsLocation",
+    # deliveryPreference nests the recipient's email (under contactValues[].
+    # value), address and preference UUIDs — redact the whole block.
+    "deliveryPreference",
+    "consignee",
+    "contactValues",
+    "houseNumber",
+    "houseNumberAddition",
 }
 
 
