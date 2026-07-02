@@ -74,6 +74,14 @@
       "already_tracked": "That parcel is already being tracked."
     }
   },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Days",
+        "parcels": "Number of parcels"
+      }
+    }
+  },
   "services": {
     "track_parcel": {
       "name": "Track parcel",

@@ -74,6 +74,14 @@
       "already_tracked": "Dit pakket wordt al gevolgd."
     }
   },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dagen",
+        "parcels": "Aantal pakketten"
+      }
+    }
+  },
   "services": {
     "track_parcel": {
       "name": "Pakket volgen",
