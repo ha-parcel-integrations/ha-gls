@@ -85,3 +85,33 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
             )
             is None
         )
+
+
+async def test_legacy_unique_id_migrates_to_postcode(hass):
+    """Pre-multi-hub entries (unique_id == DOMAIN) migrate to their postcode,
+    so the flow's per-postcode duplicate guard also covers them."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=DOMAIN,
+        options={CONF_PARCELS: [], CONF_POSTAL_CODE: "1234AB"},
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        new=AsyncMock(return_value=_SAMPLE),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.unique_id == "1234AB"
+
+    # A second hub for the same postcode now aborts instead of duplicating.
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_POSTAL_CODE: "1234AB"}
+    )
+    assert result["type"] == "abort"
+    assert result["reason"] == "already_configured"

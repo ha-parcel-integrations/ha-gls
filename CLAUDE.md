@@ -38,7 +38,9 @@ enters tracking codes themselves, so:
   hubs, so that manifest flag is removed.) The `gls.*` services are shared
   across hubs, so `async_unload_entry` only calls `async_unload_services`
   when **no other hub is still loaded** — removing them on any unload would
-  break the remaining hubs.
+  break the remaining hubs. Entries from before the redesign carried
+  `unique_id = DOMAIN`; `async_setup_entry` migrates that to the entry's
+  postcode so the per-postcode duplicate guard also covers legacy installs.
 - **Tracked parcels live in `entry.options[CONF_PARCELS]`** as a list of
   `{parcel_no, postal_code}` dicts. Added three ways, all validated the same
   (`valid_parcel_no` / `normalize_postcode` in `config_flow.py`): the

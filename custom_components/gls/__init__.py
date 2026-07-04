@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import GlsApiClient
-from .const import DOMAIN, PLATFORMS
+from .const import CONF_POSTAL_CODE, DOMAIN, PLATFORMS
 from .coordinator import GlsCoordinator, _refresh_interval
 from .services import async_setup_services, async_unload_services
 
@@ -29,6 +29,14 @@ type GlsConfigEntry = ConfigEntry[GlsData]
 
 async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Set up GLS from a config entry."""
+    # Entries from before the multi-hub redesign carry ``unique_id = DOMAIN``;
+    # the config flow now dedupes hubs on their postcode, so migrate the
+    # legacy id or a second hub with the same postcode could be added.
+    if entry.unique_id == DOMAIN and (
+        postal_code := entry.options.get(CONF_POSTAL_CODE)
+    ):
+        hass.config_entries.async_update_entry(entry, unique_id=postal_code)
+
     # No auth: GLS-NL tracking is public, so the HA-managed session is fine.
     client = GlsApiClient(async_get_clientsession(hass))
     coordinator = GlsCoordinator(hass, client, entry)
