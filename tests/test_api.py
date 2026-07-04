@@ -19,32 +19,39 @@ def _session_returning(status: int, text: str = "") -> MagicMock:
     return session
 
 
+def _client(session: MagicMock) -> GlsApiClient:
+    """Build a client on the Dutch endpoint (host + culture from COUNTRIES)."""
+    return GlsApiClient(session, "apm.gls.nl", "nl-NL")
+
+
 async def test_get_parcel_returns_json_on_200():
     session = _session_returning(200, '{"parcelNo": "123", "state": 4}')
-    client = GlsApiClient(session)
+    client = _client(session)
     parcel = await client.async_get_parcel("123", "1234 AB")
     assert parcel["state"] == 4
-    # postcode is normalised (space stripped) into the URL
-    assert "1234AB" in session.get.call_args[0][0]
+    # host + normalised postcode (space stripped) end up in the URL
+    url = session.get.call_args[0][0]
+    assert "apm.gls.nl" in url
+    assert "1234AB" in url
 
 
 async def test_get_parcel_returns_none_on_204():
-    client = GlsApiClient(_session_returning(204))
+    client = _client(_session_returning(204))
     assert await client.async_get_parcel("123", "1234AB") is None
 
 
 async def test_get_parcel_returns_none_on_empty_body():
-    client = GlsApiClient(_session_returning(200, ""))
+    client = _client(_session_returning(200, ""))
     assert await client.async_get_parcel("123", "1234AB") is None
 
 
 async def test_get_parcel_returns_none_on_unparseable_body():
-    client = GlsApiClient(_session_returning(200, "not json"))
+    client = _client(_session_returning(200, "not json"))
     assert await client.async_get_parcel("123", "1234AB") is None
 
 
 async def test_get_parcel_raises_on_error_status():
-    client = GlsApiClient(_session_returning(500))
+    client = _client(_session_returning(500))
     with pytest.raises(GlsApiError):
         await client.async_get_parcel("123", "1234AB")
 
@@ -52,6 +59,6 @@ async def test_get_parcel_raises_on_error_status():
 async def test_get_parcel_propagates_network_error():
     session = MagicMock()
     session.get = MagicMock(side_effect=aiohttp.ClientError("boom"))
-    client = GlsApiClient(session)
+    client = _client(session)
     with pytest.raises(aiohttp.ClientError):
         await client.async_get_parcel("123", "1234AB")

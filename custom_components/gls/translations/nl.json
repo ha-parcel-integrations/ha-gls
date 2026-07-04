@@ -4,8 +4,9 @@
     "step": {
       "user": {
         "title": "GLS instellen",
-        "description": "Voer de postcode in waar je pakketten meestal bezorgd worden. Pakketten voeg je toe na het instellen.",
+        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nAlleen Nederland wordt op dit moment ondersteund — [vraag een ander land aan](https://github.com/peternijssen/ha-gls/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement).",
         "data": {
+          "country": "Land",
           "postal_code": "Postcode"
         },
         "data_description": {

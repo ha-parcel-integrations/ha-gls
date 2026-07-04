@@ -89,14 +89,25 @@ enters tracking codes themselves, so:
 
 ## The API
 
-- Public GLS-NL endpoint (`PARCEL_DETAILS_URL` in `const.py`):
-  `https://apm.gls.nl/api/tracktrace/v1/{parcel_no}/postalcode/{postal_code}/details/{culture}`
-  with `culture = nl-NL`. No auth. `200` → JSON (served `text/plain`, so
-  parse with `json.loads(await r.text())`), `204` → unknown / not-yet-scanned
-  parcel (returns `None`), any other status → `GlsApiError`.
-- **NL-only.** This is the GLS Netherlands system, keyed on an NL postcode.
-  The pan-European `gls-group.com/.../rstt001` REST is now gated behind API
-  registration, so it is not usable account-less. Do not switch to it.
+- Public GLS endpoint (`PARCEL_DETAILS_URL` in `const.py`):
+  `https://{host}/api/tracktrace/v1/{parcel_no}/postalcode/{postal_code}/details/{culture}`.
+  `host` + `culture` come from the hub's **country** (see below), not
+  hardcoded. No auth. `200` → JSON (served `text/plain`, so parse with
+  `json.loads(await r.text())`), `204` → unknown / not-yet-scanned parcel
+  (returns `None`), any other status → `GlsApiError`. `GlsApiClient` takes
+  `(session, host, culture)`; `__init__.py` resolves them from the country.
+- **Country model (`CONF_COUNTRY` / `COUNTRIES` in `const.py`).** Each hub
+  picks a country at setup; the country maps to `{label, host, culture,
+  postcode_regex}`. `valid_postcode(value, country)` validates against that
+  country's regex. **Only `NL` (`apm.gls.nl`, `nl-NL`) is in the map today**
+  — other GLS countries either expose no account-less endpoint or gate it
+  behind Cloudflare / API registration (the pan-European
+  `gls-group.com/.../rstt001` REST now redirects to `register-api-access`;
+  `gls-pakete.de` is Cloudflare-challenged). Adding a country = one entry in
+  `COUNTRIES` once a working account-less endpoint is confirmed. The setup
+  form links `NEW_COUNTRY_ISSUE_URL` so users can request theirs. Do **not**
+  switch to the registration-gated group REST. `unique_id` is still the bare
+  postcode (fine while NL-only); fold in the country once a second one lands.
 
 ## Coordinator (mirror DHL, adapted)
 

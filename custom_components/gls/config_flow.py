@@ -18,6 +18,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_COUNTRY,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
@@ -25,6 +26,8 @@ from .const import (
     CONF_PARCELS,
     CONF_POSTAL_CODE,
     CONF_REFRESH_INTERVAL,
+    COUNTRIES,
+    DEFAULT_COUNTRY,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
     DEFAULT_INCLUDE_HISTORY,
@@ -40,11 +43,26 @@ _LOGGER = logging.getLogger(__name__)
 # tracking ID / uniqueNo (e.g. 00L1B3BX). Both resolve on the endpoint, so
 # accept letters and digits.
 _PARCEL_NO_RE = re.compile(r"^[A-Z0-9]{6,20}$")
-_POSTCODE_RE = re.compile(r"^\d{4}[A-Z]{2}$")
 
-# First-run form: only ask for the delivery postal code. It becomes the hub
-# default, so adding a parcel later needs only its tracking number.
-_HUB_SCHEMA = vol.Schema({vol.Required(CONF_POSTAL_CODE): str})
+# First-run form: pick the delivery country and postcode. The postcode
+# becomes the hub default, so adding a parcel later needs only its tracking
+# number. Only the Netherlands is available today; the setup form links to a
+# GitHub issue for requesting another country (see NEW_COUNTRY_ISSUE_URL).
+_COUNTRY_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(value=code, label=cfg["label"])
+            for code, cfg in COUNTRIES.items()
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+_HUB_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_COUNTRY, default=DEFAULT_COUNTRY): _COUNTRY_SELECTOR,
+        vol.Required(CONF_POSTAL_CODE): str,
+    }
+)
 
 
 def normalize_postcode(value: str) -> str:
@@ -66,9 +84,12 @@ def valid_parcel_no(value: str) -> bool:
     return bool(_PARCEL_NO_RE.match(value))
 
 
-def valid_postcode(value: str) -> bool:
-    """Whether ``value`` is a Dutch postcode (``1234AB``)."""
-    return bool(_POSTCODE_RE.match(value))
+def valid_postcode(value: str, country: str) -> bool:
+    """Whether ``value`` is a valid postcode for the given country."""
+    cfg = COUNTRIES.get(country)
+    if cfg is None:
+        return False
+    return bool(re.match(cfg["postcode_regex"], value))
 
 
 def _current_parcels(entry: ConfigEntry) -> list[dict[str, str]]:
@@ -104,21 +125,26 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
         """Create a GLS hub — one per delivery postal code.
 
         Multiple hubs are allowed (e.g. home + work); each is keyed on its
-        postal code, so the same postcode can only be added once.
+        postal code, so the same postcode can only be added once. The country
+        picks the endpoint (host/culture) and the postcode format.
         """
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            country = user_input[CONF_COUNTRY]
             postal_code = normalize_postcode(user_input[CONF_POSTAL_CODE])
-            if not valid_postcode(postal_code):
+            if not valid_postcode(postal_code, country):
                 errors[CONF_POSTAL_CODE] = "invalid_postcode"
             else:
+                # unique_id is the postcode: fine while only NL is supported.
+                # Add the country here once a second country lands.
                 await self.async_set_unique_id(postal_code)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=f"GLS ({postal_code})",
                     data={},
                     options={
+                        CONF_COUNTRY: country,
                         CONF_PARCELS: [],
                         CONF_POSTAL_CODE: postal_code,
                         CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,

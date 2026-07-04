@@ -1,4 +1,4 @@
-"""GLS Netherlands public tracking API client."""
+"""GLS public tracking API client."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ from typing import Any
 
 import aiohttp
 
-from .const import CULTURE, PARCEL_DETAILS_URL
+from .const import PARCEL_DETAILS_URL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,15 +21,20 @@ class GlsApiError(Exception):
 
 
 class GlsApiClient:
-    """Client for the public GLS-NL parcel tracking endpoint.
+    """Client for the public GLS parcel tracking endpoint.
 
     No authentication: the endpoint is keyed on the parcel number + the
-    delivery postal code, exactly like the gls-info.nl consumer site.
+    delivery postal code, exactly like the GLS consumer site. The ``host``
+    and ``culture`` are the hub country's (see ``COUNTRIES``).
     """
 
-    def __init__(self, session: aiohttp.ClientSession) -> None:
-        """Initialise the client with an aiohttp session."""
+    def __init__(
+        self, session: aiohttp.ClientSession, host: str, culture: str
+    ) -> None:
+        """Initialise the client with an aiohttp session and country endpoint."""
         self._session = session
+        self._host = host
+        self._culture = culture
 
     async def async_get_parcel(
         self, parcel_no: str, postal_code: str
@@ -45,9 +50,10 @@ class GlsApiClient:
         parsed with ``json.loads`` rather than ``response.json()``.
         """
         url = PARCEL_DETAILS_URL.format(
+            host=self._host,
             parcel_no=parcel_no,
             postal_code=postal_code.replace(" ", ""),
-            culture=CULTURE,
+            culture=self._culture,
         )
         async with self._session.get(url) as response:
             if response.status == 204:

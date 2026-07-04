@@ -28,15 +28,41 @@ class ParcelStatus(StrEnum):
 
 PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 
-# Public GLS Netherlands tracking endpoint (no auth). Keyed on the parcel
-# number + the delivery postal code, so this only covers parcels delivered
-# to a Dutch address. Returns 200 + JSON for a known parcel, or HTTP 204
-# (no content) for an unknown / not-yet-scanned one.
+# Public GLS tracking endpoint (no auth). Keyed on the parcel number + the
+# delivery postal code, so it only covers parcels delivered to an address in
+# the selected country. Returns 200 + JSON for a known parcel, or HTTP 204
+# (no content) for an unknown / not-yet-scanned one. The ``{host}`` and
+# ``{culture}`` come from the hub's country (see ``COUNTRIES``).
 PARCEL_DETAILS_URL = (
-    "https://apm.gls.nl/api/tracktrace/v1/"
+    "https://{host}/api/tracktrace/v1/"
     "{parcel_no}/postalcode/{postal_code}/details/{culture}"
 )
-CULTURE = "nl-NL"
+
+# The delivery country of a hub, chosen at setup time. Only the Netherlands
+# exposes a public, postcode-keyed JSON endpoint today; other GLS countries
+# either do not expose one or gate it behind Cloudflare / API registration.
+# A country is added here once a working endpoint is confirmed — users
+# request theirs via the GitHub issue link shown in the setup form.
+CONF_COUNTRY = "country"
+DEFAULT_COUNTRY = "NL"
+
+# code -> {label, host, culture, postcode_regex}. ``postcode_regex`` matches
+# a normalised (space-stripped, upper-cased) postcode for that country.
+COUNTRIES: dict[str, dict[str, str]] = {
+    "NL": {
+        "label": "Netherlands",
+        "host": "apm.gls.nl",
+        "culture": "nl-NL",
+        "postcode_regex": r"^\d{4}[A-Z]{2}$",
+    },
+}
+
+# Pre-filled "add my country" GitHub issue, linked from the setup form so
+# users can report a working endpoint for their country.
+NEW_COUNTRY_ISSUE_URL = (
+    "https://github.com/peternijssen/ha-gls/issues/new"
+    "?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement"
+)
 
 # Consumer tracking deep-link, used to populate the parcel's ``url`` field.
 TRACKING_URL = "https://gls-group.com/GROUP/en/parcel-tracking?match={parcel_no}"

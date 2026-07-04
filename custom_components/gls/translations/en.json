@@ -4,8 +4,9 @@
     "step": {
       "user": {
         "title": "Set up GLS",
-        "description": "Enter the postal code your parcels are usually delivered to. You add parcels after setup.",
+        "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nOnly the Netherlands is supported for now — [request another country](https://github.com/peternijssen/ha-gls/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement).",
         "data": {
+          "country": "Country",
           "postal_code": "Postal code"
         },
         "data_description": {

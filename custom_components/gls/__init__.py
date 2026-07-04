@@ -9,7 +9,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import GlsApiClient
-from .const import CONF_POSTAL_CODE, DOMAIN, PLATFORMS
+from .const import (
+    CONF_COUNTRY,
+    CONF_POSTAL_CODE,
+    COUNTRIES,
+    DEFAULT_COUNTRY,
+    DOMAIN,
+    PLATFORMS,
+)
 from .coordinator import GlsCoordinator, _refresh_interval
 from .services import async_setup_services, async_unload_services
 
@@ -37,8 +44,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     ):
         hass.config_entries.async_update_entry(entry, unique_id=postal_code)
 
-    # No auth: GLS-NL tracking is public, so the HA-managed session is fine.
-    client = GlsApiClient(async_get_clientsession(hass))
+    # No auth: GLS tracking is public, so the HA-managed session is fine. The
+    # endpoint host + culture come from the hub country; entries created
+    # before the country option default to the Netherlands.
+    country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
+    country_cfg = COUNTRIES.get(country, COUNTRIES[DEFAULT_COUNTRY])
+    client = GlsApiClient(
+        async_get_clientsession(hass),
+        host=country_cfg["host"],
+        culture=country_cfg["culture"],
+    )
     coordinator = GlsCoordinator(hass, client, entry)
 
     entry.runtime_data = GlsData(client=client, coordinator=coordinator)

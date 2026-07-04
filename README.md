@@ -1,5 +1,10 @@
 # GLS Parcel Tracker
 
+[![Release](https://img.shields.io/github/v/release/peternijssen/ha-gls.svg)](https://github.com/peternijssen/ha-gls/releases)
+[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://img.shields.io/github/downloads/peternijssen/ha-gls/total.svg)](https://github.com/peternijssen/ha-gls/releases)
+
 A custom Home Assistant integration that tracks your GLS parcels in the
 Netherlands. No GLS account is needed — you enter the tracking number and
 delivery postal code yourself, just like the gls-info.nl website.
@@ -37,8 +42,9 @@ delivery postal code yourself, just like the gls-info.nl website.
 ## Requirements
 
 - Home Assistant 2024.7 or newer
-- A GLS parcel delivered to a **Dutch** address (this uses the GLS
-  Netherlands tracking service)
+- A GLS parcel delivered to a supported country. Only the **Netherlands**
+  is available today; the setup form links to a GitHub issue for
+  [requesting another country](https://github.com/peternijssen/ha-gls/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement)
 
 ## Installation
 
@@ -58,11 +64,13 @@ delivery postal code yourself, just like the gls-info.nl website.
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **GLS**
-3. Enter your **delivery postal code** (the one parcels usually go to)
+3. Pick your **country** (Netherlands for now) and enter your **delivery
+   postal code** (the one parcels usually go to)
 4. Click **Submit**
 
-That's it — setup only asks for the postal code. It becomes the default for
-parcels you add later, so adding a parcel usually only needs its number.
+That's it — setup only asks for the country and postal code. The postcode
+becomes the default for parcels you add later, so adding a parcel usually
+only needs its number.
 
 You can add **multiple hubs** — one per delivery postal code (e.g. home and
 work). Each hub is its own **GLS (postcode)** device with its own parcels.

@@ -18,7 +18,14 @@ from .config_flow import (
     valid_parcel_no,
     valid_postcode,
 )
-from .const import CONF_PARCEL_NO, CONF_PARCELS, CONF_POSTAL_CODE, DOMAIN
+from .const import (
+    CONF_COUNTRY,
+    CONF_PARCEL_NO,
+    CONF_PARCELS,
+    CONF_POSTAL_CODE,
+    DEFAULT_COUNTRY,
+    DOMAIN,
+)
 
 SERVICE_TRACK_PARCEL = "track_parcel"
 SERVICE_UNTRACK_PARCEL = "untrack_parcel"
@@ -68,7 +75,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
             call.data.get(CONF_POSTAL_CODE)
             or entry.options.get(CONF_POSTAL_CODE, "")
         )
-        if not valid_postcode(postal_code):
+        country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
+        if not valid_postcode(postal_code, country):
             raise ServiceValidationError(f"'{postal_code}' is not a valid postal code")
 
         parcels = [dict(p) for p in entry.options.get(CONF_PARCELS, [])]
