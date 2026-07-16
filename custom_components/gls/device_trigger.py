@@ -26,6 +26,7 @@ from .const import DOMAIN
 TRIGGER_EVENTS = {
     "parcel_registered": f"{DOMAIN}_parcel_registered",
     "parcel_status_changed": f"{DOMAIN}_parcel_status_changed",
+    "parcel_delivered": f"{DOMAIN}_parcel_delivered",
     "parcel_delivery_time_changed": f"{DOMAIN}_parcel_delivery_time_changed",
 }
 TRIGGER_TYPES = set(TRIGGER_EVENTS)

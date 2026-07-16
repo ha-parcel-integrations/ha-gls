@@ -417,13 +417,16 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         )
         normalized_active = sort_parcels_by_ts(active, "planned_from")
 
-        self._fire_change_events(normalized_active)
+        # Incoming = active + delivered, combined so the transition to
+        # delivered is visible in one set (mirrors the other suite carriers).
+        incoming = normalized_active + self.delivered
+        self._fire_change_events(incoming)
         self._known_state = {
-            p["barcode"]: p["status"] for p in normalized_active if p.get("barcode")
+            p["barcode"]: p["status"] for p in incoming if p.get("barcode")
         }
         self._known_delivery_times = {
             p["barcode"]: (p.get("planned_from"), p.get("planned_to"))
-            for p in normalized_active
+            for p in incoming
             if p.get("barcode")
         }
 
@@ -435,12 +438,17 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         return normalized_active
 
     def _fire_change_events(self, parcels: list[dict]) -> None:
-        """Fire registered / status-changed / delivery-time-changed events.
+        """Fire registered / status-changed / delivered / delivery-time events.
 
         Silent on the very first refresh — we cannot know which parcels are
         genuinely new vs. already present before HA started. Mirrors the other
         suite carriers, including the ``device_id`` on every payload and the
-        ``value → null`` ETA transitions staying intentionally silent.
+        ``value → null`` ETA transitions staying intentionally silent. The
+        parcels span active + delivered, so the terminal hop is visible: a
+        change **to** ``DELIVERED`` fires only ``gls_parcel_delivered``
+        (never also ``_status_changed``), a barcode first seen
+        already-delivered fires nothing, and ``registered`` only fires for
+        not-yet-delivered new barcodes.
         """
         if self._known_state is None:
             return
@@ -454,22 +462,29 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
                 continue
             new_status = parcel["status"]
             if barcode not in self._known_state:
-                self.hass.bus.async_fire(
-                    f"{DOMAIN}_parcel_registered",
-                    {**parcel, "device_id": device_id},
-                )
+                if new_status != ParcelStatus.DELIVERED:
+                    self.hass.bus.async_fire(
+                        f"{DOMAIN}_parcel_registered",
+                        {**parcel, "device_id": device_id},
+                    )
                 continue
 
             if self._known_state[barcode] != new_status:
-                self.hass.bus.async_fire(
-                    f"{DOMAIN}_parcel_status_changed",
-                    {
-                        **parcel,
-                        "device_id": device_id,
-                        "old_status": self._known_state[barcode],
-                        "new_status": new_status,
-                    },
-                )
+                if new_status == ParcelStatus.DELIVERED:
+                    self.hass.bus.async_fire(
+                        f"{DOMAIN}_parcel_delivered",
+                        {**parcel, "device_id": device_id},
+                    )
+                else:
+                    self.hass.bus.async_fire(
+                        f"{DOMAIN}_parcel_status_changed",
+                        {
+                            **parcel,
+                            "device_id": device_id,
+                            "old_status": self._known_state[barcode],
+                            "new_status": new_status,
+                        },
+                    )
 
             old_from, old_to = known_times.get(barcode, (None, None))
             new_from = parcel.get("planned_from")

@@ -358,6 +358,62 @@ async def test_update_fires_status_changed_event(hass):
     assert events[0].data["new_status"] == ParcelStatus.OUT_FOR_DELIVERY
 
 
+async def test_update_fires_delivered_event_not_status_changed(hass):
+    """The hop to delivered fires parcel_delivered — never status_changed."""
+    entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    delivered = []
+    changed = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_delivered", lambda e: delivered.append(e))
+    hass.bus.async_listen(f"{DOMAIN}_parcel_status_changed", lambda e: changed.append(e))
+
+    client.async_get_parcel.return_value = _active_sample("1111111111111")
+    await coordinator._async_update_data()
+    client.async_get_parcel.return_value = _delivered_sample("1111111111111")
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert changed == []
+    assert len(delivered) == 1
+    assert delivered[0].data["barcode"] == "1111111111111"
+    assert delivered[0].data["status"] == ParcelStatus.DELIVERED
+
+
+async def test_no_events_for_parcel_first_seen_delivered(hass):
+    """A parcel already delivered when first tracked fires neither registered nor delivered."""
+    entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.side_effect = lambda no, pc: (
+        _active_sample(no) if no == "1111111111111" else _delivered_sample(no)
+    )
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    fired = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_registered", lambda e: fired.append(e))
+    hass.bus.async_listen(f"{DOMAIN}_parcel_delivered", lambda e: fired.append(e))
+
+    await coordinator._async_update_data()  # first refresh: seeds state
+
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
+                {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+            ],
+        },
+    )
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert fired == []
+
+
 async def test_update_cached_only_poll_does_not_stamp_last_success(hass):
     """A poll served entirely from cache must not look like a success."""
     entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])

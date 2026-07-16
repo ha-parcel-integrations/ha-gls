@@ -150,10 +150,14 @@ enters tracking codes themselves, so:
 - **Delivery window** = `deliveryStatus.etaTimestampMin` / `etaTimestampMax`
   (only while not delivered).
 - **weight + dimensions are populated** (GLS provides them, unlike DHL).
-- **Events** (`gls_parcel_registered` / `_status_changed` /
+- **Events** (`gls_parcel_registered` / `_status_changed` / `_delivered` /
   `_delivery_time_changed`) fire exactly as DHL's, including the cached
   `device_id` on every payload, first-refresh suppression, and the silent
-  `value → null` ETA transition.
+  `value → null` ETA transition. They run over the **active + delivered**
+  set combined, so the terminal hop is visible: a change **to**
+  ``DELIVERED`` fires only `_delivered` (never also `_status_changed`), a
+  barcode first seen already-delivered fires nothing, and `registered`
+  only fires for not-yet-delivered new barcodes.
 - `last_success_time` is only stamped when **at least one fetch actually
   succeeded** (or nothing is tracked). A poll served entirely from
   `_raw_cache` is not a success — the diagnostic sensor exists precisely

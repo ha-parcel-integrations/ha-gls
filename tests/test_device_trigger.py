@@ -6,12 +6,13 @@ from custom_components.gls.device_trigger import (
 )
 
 
-async def test_get_triggers_returns_all_three(hass):
+async def test_get_triggers_returns_all_four(hass):
     triggers = await async_get_triggers(hass, "device123")
     types = {t["type"] for t in triggers}
     assert types == {
         "parcel_registered",
         "parcel_status_changed",
+        "parcel_delivered",
         "parcel_delivery_time_changed",
     }
     for trigger in triggers:
