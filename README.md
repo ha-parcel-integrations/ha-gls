@@ -1,6 +1,6 @@
 # GLS Parcel Tracker
 
-[![Release](https://img.shields.io/github/v/release/peternijssen/ha-gls.svg)](https://github.com/peternijssen/ha-gls/releases)
+[![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-gls.svg)](https://github.com/ha-parcel-integrations/ha-gls/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -43,7 +43,7 @@ A custom Home Assistant integration that tracks your GLS parcels in the Netherla
 - Home Assistant 2024.7 or newer
 - A GLS parcel delivered to a supported country. Only the **Netherlands**
   is available today; the setup form links to a GitHub issue for
-  [requesting another country](https://github.com/peternijssen/ha-gls/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement)
+  [requesting another country](https://github.com/ha-parcel-integrations/ha-gls/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement)
 
 ## Installation
 
@@ -222,10 +222,10 @@ Tracking parcels from other Dutch carriers:
 
 | Integration | Description |
 |---|---|
-| [ha-dhl-nl](https://github.com/peternijssen/ha-dhl-nl) | DHL eCommerce NL parcel tracker. |
-| [ha-dpd](https://github.com/peternijssen/ha-dpd) | DPD parcel tracker. |
-| [ha-postnl](https://github.com/peternijssen/ha-postnl) | PostNL parcel tracker. |
-| [ha-parcel-aggregator](https://github.com/peternijssen/ha-parcel-aggregator) | Rolls up counts and next-delivery timestamps from all installed carrier integrations into a single set of sensors. |
+| [ha-dhl-nl](https://github.com/ha-parcel-integrations/ha-dhl-nl) | DHL eCommerce NL parcel tracker. |
+| [ha-dpd](https://github.com/ha-parcel-integrations/ha-dpd) | DPD parcel tracker. |
+| [ha-postnl](https://github.com/ha-parcel-integrations/ha-postnl) | PostNL parcel tracker. |
+| [ha-parcel-aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) | Rolls up counts and next-delivery timestamps from all installed carrier integrations into a single set of sensors. |
 
 ## Disclaimer
 

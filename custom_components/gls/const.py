@@ -60,7 +60,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
 # Pre-filled "add my country" GitHub issue, linked from the setup form so
 # users can report a working endpoint for their country.
 NEW_COUNTRY_ISSUE_URL = (
-    "https://github.com/peternijssen/ha-gls/issues/new"
+    "https://github.com/ha-parcel-integrations/ha-gls/issues/new"
     "?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement"
 )
 

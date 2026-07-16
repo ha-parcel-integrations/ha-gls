@@ -43,7 +43,7 @@ _STATE_MAP: dict[int, ParcelStatus] = {
     4: ParcelStatus.DELIVERED,         # Afgeleverd
 }
 
-_NEW_ISSUE_URL = "https://github.com/peternijssen/ha-gls/issues/new"
+_NEW_ISSUE_URL = "https://github.com/ha-parcel-integrations/ha-gls/issues/new"
 
 # States we have already warned about, so each unmapped one is logged only
 # once per HA session.

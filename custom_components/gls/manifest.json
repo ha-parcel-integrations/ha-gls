@@ -3,10 +3,10 @@
   "name": "GLS",
   "codeowners": ["@peternijssen"],
   "config_flow": true,
-  "documentation": "https://github.com/peternijssen/ha-gls",
+  "documentation": "https://github.com/ha-parcel-integrations/ha-gls",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/peternijssen/ha-gls/issues",
+  "issue_tracker": "https://github.com/ha-parcel-integrations/ha-gls/issues",
   "quality_scale": "silver",
   "requirements": [],
   "version": "1.1.0"
