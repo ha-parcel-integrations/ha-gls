@@ -1,0 +1,116 @@
+# Extract GLS parcel numbers from incoming e-mail and register them with
+# `gls.track_parcel`, so parcels start tracking the moment the shipping
+# confirmation lands in your inbox — no manual entry.
+#
+# Requirements:
+#   - one or more core IMAP config entries with "text" enabled under
+#     "message data" and the max message size raised (carrier mails are
+#     long) — full setup guide and pitfalls: track_parcels_from_email.md
+#   - optional: an `ai_task` entity for the AI fallback branch; delete
+#     the whole `else:` block if you don't use one
+#
+# The regexes are deliberately written without backslashes (`(?<![0-9])`
+# instead of `\b`, `[0-9]` instead of `\d`): Jinja treats `\b` inside a
+# string literal as a backspace escape, so the pattern would silently
+# never match.
+
+alias: "GLS: track from e-mail"
+description: >-
+  Listens to imap_content events from all IMAP entries. Fast regex path for
+  GLS parcel numbers (11-14 digits, only in GLS mails); optional AI fallback
+  for mails whose layout the regex does not recognise.
+mode: queued
+max: 10
+
+triggers:
+  - trigger: event
+    event_type: imap_content
+
+variables:
+  sender: "{{ trigger.event.data.sender | default('') | lower }}"
+  subject: "{{ trigger.event.data.subject | default('') }}"
+  body: "{{ trigger.event.data.text | default('') }}"
+  content: "{{ subject ~ ' ' ~ body }}"
+  is_gls_mail: "{{ 'gls' in sender or 'gls' in (subject | lower) }}"
+  # 11-14 digit runs, only in GLS mails; drops Dutch phone numbers in
+  # international notation (31 + 9 digits) — adapt to your country code.
+  gls_codes: >-
+    {{ (content | regex_findall('(?<![0-9])[0-9]{11,14}(?![0-9])')
+        | unique | reject('match', '31[0-9]{9}$') | list) if is_gls_mail else [] }}
+  # Keyword gate for the AI fallback — localise to your language(s).
+  is_parcel_mail: >-
+    {{ content | lower is search('pakket|bezorg|track|verzonden|onderweg|zending|shipment|delivery|levering') }}
+
+conditions:
+  # initial=true means "new message"; false means a duplicate trigger of
+  # the SAME message (e.g. after a reconnect) — requiring it is free dedup.
+  - condition: template
+    value_template: "{{ trigger.event.data.initial | default(true) }}"
+  - condition: template
+    value_template: "{{ is_parcel_mail or gls_codes | count > 0 }}"
+
+actions:
+  - repeat:
+      for_each: "{{ gls_codes }}"
+      sequence:
+        - action: gls.track_parcel
+          data:
+            parcel_no: "{{ repeat.item }}"
+            # postal_code is optional — omit it and the integration falls
+            # back to the postcode configured on the GLS hub. Set it here
+            # only for parcels going to a different address.
+  - if:
+      - condition: template
+        value_template: "{{ gls_codes | count > 0 }}"
+    then:
+      - action: notify.mobile_app_your_phone
+        data:
+          title: "📦 GLS parcel picked up from mail"
+          message: >-
+            {{ gls_codes | join(', ') }} (mail from {{ sender }})
+    else:
+      # ---- Optional AI fallback — delete this block if you have no ai_task entity ----
+      - action: ai_task.generate_data
+        data:
+          task_name: gls-parcel-number-extraction
+          entity_id: ai_task.your_ai_task_entity
+          instructions: >-
+            Below is an e-mail. Determine whether it contains a GLS parcel
+            number. GLS parcel numbers are runs of 11-14 digits. Only
+            return a real track & trace number, never an order, customer,
+            invoice or phone number, and never a date. If the mail is from
+            a different carrier, answer 'other'. When in doubt: 'none'.
+
+            Sender: {{ sender }}
+            Subject: {{ subject }}
+            Body:
+            {{ body[:6000] }}
+          structure:
+            carrier:
+              description: Whether a GLS parcel number was found
+              required: true
+              selector:
+                select:
+                  options: ["gls", "other", "none"]
+            parcel_no:
+              description: The parcel number, or empty if none
+              required: false
+              selector:
+                text:
+        response_variable: ai_result
+      - choose:
+          - conditions: "{{ ai_result.data.carrier == 'gls' and (ai_result.data.parcel_no | default('') | trim) != '' }}"
+            sequence:
+              - action: gls.track_parcel
+                data:
+                  parcel_no: "{{ ai_result.data.parcel_no | trim }}"
+              - action: notify.mobile_app_your_phone
+                data:
+                  title: "📦 GLS parcel picked up from mail (AI)"
+                  message: "{{ ai_result.data.parcel_no | trim }} (mail from {{ sender }})"
+          - conditions: "{{ ai_result.data.carrier == 'other' and (ai_result.data.parcel_no | default('') | trim) != '' }}"
+            sequence:
+              - action: notify.mobile_app_your_phone
+                data:
+                  title: "📦 Tracking number found – not a GLS parcel"
+                  message: "{{ ai_result.data.parcel_no | trim }} (mail from {{ sender }}, subject: {{ subject }})"
