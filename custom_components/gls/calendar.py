@@ -15,22 +15,13 @@ from homeassistant.util import dt as dt_util
 from . import GlsConfigEntry
 from .const import CONF_POSTAL_CODE, DOMAIN
 from .coordinator import GlsCoordinator
+from .device import build_device_info
 
 PARALLEL_UPDATES = 0
 
 _DEFAULT_EVENT_DURATION = timedelta(hours=1)
 
 
-def _build_device_info(entry: ConfigEntry) -> DeviceInfo:
-    """Return the DeviceInfo shared with this hub's sensors."""
-    postal_code = entry.options.get(CONF_POSTAL_CODE, "")
-    return DeviceInfo(
-        identifiers={(DOMAIN, entry.entry_id)},
-        name=f"GLS ({postal_code})" if postal_code else "GLS",
-        manufacturer="GLS",
-        entry_type=DeviceEntryType.SERVICE,
-        configuration_url="https://gls-group.com",
-    )
 
 
 def _parse(value: str | None) -> datetime | None:
@@ -69,7 +60,7 @@ class GlsDeliveriesCalendar(CoordinatorEntity[GlsCoordinator], CalendarEntity):
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_deliveries"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     def _events(self) -> list[CalendarEvent]:
         events: list[CalendarEvent] = []

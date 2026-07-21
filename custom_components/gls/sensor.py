@@ -22,6 +22,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import GlsConfigEntry
 from .const import CONF_POSTAL_CODE, DOMAIN, ParcelStatus
 from .coordinator import GlsCoordinator
+from .device import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,21 +31,6 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
-def _build_device_info(entry: ConfigEntry) -> DeviceInfo:
-    """Return the DeviceInfo shared by every entity for this GLS hub.
-
-    The postal code is part of the device name so multiple hubs (e.g. home
-    and work) stay distinguishable — mirroring the account-in-name pattern
-    of the other carriers.
-    """
-    postal_code = entry.options.get(CONF_POSTAL_CODE, "")
-    return DeviceInfo(
-        identifiers={(DOMAIN, entry.entry_id)},
-        name=f"GLS ({postal_code})" if postal_code else "GLS",
-        manufacturer="GLS",
-        entry_type=DeviceEntryType.SERVICE,
-        configuration_url="https://gls-group.com",
-    )
 
 
 async def async_setup_entry(
@@ -127,7 +113,7 @@ class GlsIncomingParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         self._entry = entry
         self._async_add_entities = async_add_entities
         self._attr_unique_id = f"{entry.entry_id}_incoming_parcels"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
         self._known_barcodes: set[str] = known_barcodes or set()
 
     @property
@@ -180,7 +166,7 @@ class GlsParcelSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         self._barcode = barcode
         self._attr_unique_id = f"{entry.entry_id}_{barcode}"
         self._attr_translation_placeholders = {"barcode": barcode}
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     def _get_parcel(self) -> dict[str, Any] | None:
         for parcel in self.coordinator.data or []:
@@ -210,7 +196,7 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_next_delivery"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     def _delivery_moments(self) -> list[tuple[datetime, dict]]:
         result: list[tuple[datetime, dict]] = []
@@ -257,7 +243,7 @@ class GlsEnRouteToParcelShopSensor(CoordinatorEntity[GlsCoordinator], SensorEnti
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_en_route_to_parcel_shop"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     def _parcels(self) -> list[dict]:
         return [
@@ -286,7 +272,7 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_awaiting_pickup"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     def _parcels(self) -> list[dict]:
         return [
@@ -315,7 +301,7 @@ class GlsDeliveredParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity)
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_delivered_parcels"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     @property
     def native_value(self) -> int:
@@ -338,7 +324,7 @@ class GlsLastUpdateSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_last_update"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     @property
     def native_value(self) -> datetime | None:

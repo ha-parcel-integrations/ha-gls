@@ -10,22 +10,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import GlsConfigEntry
 from .const import CONF_POSTAL_CODE, DOMAIN
+from .device import build_device_info
 
 # A manual refresh is a single API round-trip per tracked parcel; HA's
 # per-entity throttling adds nothing here.
 PARALLEL_UPDATES = 0
 
 
-def _build_device_info(entry: ConfigEntry) -> DeviceInfo:
-    """Return the DeviceInfo shared with this hub's sensors."""
-    postal_code = entry.options.get(CONF_POSTAL_CODE, "")
-    return DeviceInfo(
-        identifiers={(DOMAIN, entry.entry_id)},
-        name=f"GLS ({postal_code})" if postal_code else "GLS",
-        manufacturer="GLS",
-        entry_type=DeviceEntryType.SERVICE,
-        configuration_url="https://gls-group.com",
-    )
 
 
 async def async_setup_entry(
@@ -47,7 +38,7 @@ class GlsRefreshButton(ButtonEntity):
     def __init__(self, entry: GlsConfigEntry) -> None:
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_refresh"
-        self._attr_device_info = _build_device_info(entry)
+        self._attr_device_info = build_device_info(entry)
 
     async def async_press(self) -> None:
         """Trigger an immediate refresh of the coordinator."""
