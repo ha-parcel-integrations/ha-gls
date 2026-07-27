@@ -14,13 +14,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import GlsConfigEntry
-from .const import CONF_POSTAL_CODE, DOMAIN, ParcelStatus
+from .const import DOMAIN, ParcelStatus
 from .coordinator import GlsCoordinator
 from .device import build_device_info
 
@@ -109,6 +107,7 @@ class GlsIncomingParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         async_add_entities: AddEntitiesCallback,
         known_barcodes: set[str] | None = None,
     ) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self._entry = entry
         self._async_add_entities = async_add_entities
@@ -118,10 +117,12 @@ class GlsIncomingParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> int:
+        """Return the native value of the sensor."""
         return len(self.coordinator.data or [])
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the extra state attributes."""
         return {"parcels": self.coordinator.data or []}
 
     def _handle_coordinator_update(self) -> None:
@@ -161,6 +162,7 @@ class GlsParcelSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     def __init__(
         self, coordinator: GlsCoordinator, entry: ConfigEntry, barcode: str
     ) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self._entry = entry
         self._barcode = barcode
@@ -176,11 +178,13 @@ class GlsParcelSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> str | None:
+        """Return the native value of the sensor."""
         parcel = self._get_parcel()
         return parcel.get("status") if parcel else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the extra state attributes."""
         parcel = self._get_parcel()
         return dict(parcel) if parcel else {}
 
@@ -194,6 +198,7 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_attribution = "Data provided by GLS"
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_next_delivery"
         self._attr_device_info = build_device_info(entry)
@@ -215,11 +220,13 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> datetime | None:
+        """Return the native value of the sensor."""
         moments = self._delivery_moments()
         return min(dt for dt, _ in moments) if moments else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the extra state attributes."""
         moments = self._delivery_moments()
         if not moments:
             return {}
@@ -241,6 +248,7 @@ class GlsEnRouteToParcelShopSensor(CoordinatorEntity[GlsCoordinator], SensorEnti
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_en_route_to_parcel_shop"
         self._attr_device_info = build_device_info(entry)
@@ -253,10 +261,12 @@ class GlsEnRouteToParcelShopSensor(CoordinatorEntity[GlsCoordinator], SensorEnti
 
     @property
     def native_value(self) -> int:
+        """Return the native value of the sensor."""
         return len(self._parcels())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the extra state attributes."""
         return {"parcels": self._parcels()}
 
 
@@ -270,6 +280,7 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_awaiting_pickup"
         self._attr_device_info = build_device_info(entry)
@@ -282,10 +293,12 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> int:
+        """Return the native value of the sensor."""
         return len(self._parcels())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the extra state attributes."""
         return {"parcels": self._parcels()}
 
 
@@ -299,16 +312,19 @@ class GlsDeliveredParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity)
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_delivered_parcels"
         self._attr_device_info = build_device_info(entry)
 
     @property
     def native_value(self) -> int:
+        """Return the native value of the sensor."""
         return len(self.coordinator.delivered)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the extra state attributes."""
         return {"parcels": self.coordinator.delivered}
 
 
@@ -322,10 +338,12 @@ class GlsLastUpdateSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_attribution = "Data provided by GLS"
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_last_update"
         self._attr_device_info = build_device_info(entry)
 
     @property
     def native_value(self) -> datetime | None:
+        """Return the native value of the sensor."""
         return self.coordinator.last_success_time

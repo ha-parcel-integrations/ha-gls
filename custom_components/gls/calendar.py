@@ -6,14 +6,11 @@ from datetime import datetime, timedelta
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import GlsConfigEntry
-from .const import CONF_POSTAL_CODE, DOMAIN
 from .coordinator import GlsCoordinator
 from .device import build_device_info
 
@@ -58,6 +55,7 @@ class GlsDeliveriesCalendar(CoordinatorEntity[GlsCoordinator], CalendarEntity):
     _attr_attribution = "Data provided by GLS"
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the calendar."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_deliveries"
         self._attr_device_info = build_device_info(entry)
@@ -97,6 +95,7 @@ class GlsDeliveriesCalendar(CoordinatorEntity[GlsCoordinator], CalendarEntity):
 
     @property
     def event(self) -> CalendarEvent | None:
+        """Return the next upcoming calendar event."""
         now = dt_util.now()
         upcoming = [event for event in self._events() if event.end > now]
         return min(upcoming, key=lambda event: event.start) if upcoming else None
@@ -107,6 +106,7 @@ class GlsDeliveriesCalendar(CoordinatorEntity[GlsCoordinator], CalendarEntity):
         start_date: datetime,
         end_date: datetime,
     ) -> list[CalendarEvent]:
+        """Return calendar events within a datetime range."""
         return [
             event
             for event in self._events()

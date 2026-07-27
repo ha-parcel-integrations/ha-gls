@@ -6,7 +6,6 @@ import re
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -99,7 +98,7 @@ def _current_parcels(entry: ConfigEntry) -> list[dict[str, str]]:
 
 
 def _interval_selector() -> selector.SelectSelector:
-    """The refresh-interval dropdown selector (options translated via strings)."""
+    """Return the refresh-interval dropdown selector (options translated via strings)."""
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
             options=[str(m) for m in REFRESH_INTERVAL_OPTIONS],
