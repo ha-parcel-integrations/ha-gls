@@ -8,6 +8,9 @@
 #     long) — full setup guide and pitfalls: track_parcels_from_email.md
 #   - optional: an `ai_task` entity for the AI fallback branch; delete
 #     the whole `else:` block if you don't use one
+#   - PRIVACY: by default this fires on EVERY incoming mail and (with the
+#     AI branch) can send mail bodies to your AI Task. Scope the IMAP
+#     search to the carrier's sender first — see "Scope & privacy" in the .md.
 #
 # The regexes are deliberately written without backslashes (`(?<![0-9])`
 # instead of `\b`, `[0-9]` instead of `\d`): Jinja treats `\b` inside a

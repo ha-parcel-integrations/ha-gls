@@ -37,11 +37,42 @@ Then open the entry's **Configure** (options) and set:
 
 - **Message data to include in the event**: enable **text** (the automation needs the body!)
 - **Max message size**: raise it to `30000` — carrier mails are long and the default cuts them off before the parcel number appears.
-- Leave *search* on `UnSeen UnDeleted` and *push* enabled (IMAP IDLE → events arrive within seconds).
+- *search*: `UnSeen UnDeleted` works, but **scoping it to the carrier's sender is recommended** — see [Scope & privacy](#scope--privacy) below. Keep *push* enabled (IMAP IDLE → events arrive within seconds).
 
 **Multiple mailboxes / accounts:** each IMAP entry is one account × folder combination. Add the same account again with a different folder to watch labels (Gmail labels appear as IMAP folders). All entries fire the *same* `imap_content` event, so **one automation covers all of them**.
 
 **Gmail note:** since May 2025 Google blocks plain-password IMAP logins ("less secure apps"). Use an **app password** instead (requires 2-step verification): <https://myaccount.google.com/apppasswords>.
+
+## Scope & privacy
+
+By default this recipe is broad. The core IMAP integration fires an
+`imap_content` event — **including the full message body** — for *every* new
+mail its *search* matches, and the automation reacts to **all** of those events.
+With the default `search: UnSeen UnDeleted` that means every incoming e-mail
+runs through the automation's templates, and — if you keep the AI fallback —
+every mail passing the keyword gate has up to 6000 characters of its body sent
+to your AI Task, **possibly a cloud model**.
+
+None of that data leaves through *this* integration — it only exposes the
+`track_parcel` action. The mailbox access and the event stream belong to Home
+Assistant's **core IMAP integration**, using the username / app-password you
+gave it — which grants full read access to your **entire** mailbox, not just
+parcel mail. So it is worth narrowing what it ever sees.
+
+Narrow it at the source (most effective first):
+
+1. **Scope the IMAP `search` to the carrier's sender.** In the IMAP entry's
+   options, e.g. `search: FROM "noreply@thecarrier.example" UNSEEN` (chain
+   several with `OR`: `OR FROM "a@x" FROM "b@y" UNSEEN`). Only matching mail
+   ever becomes an event, so the automation — and the AI — never see the rest.
+2. **Or point the entry at a dedicated folder/label.** Add a server-side mail
+   rule that files shipping notifications into e.g. a `Parcels` label, and set
+   the IMAP entry's *Folder* to it. Same effect, and it survives sender changes
+   better.
+3. **Add a sender allowlist** as an extra automation `condition` — defense in
+   depth if you keep a broad search.
+4. **Drop the AI fallback** (delete the `else:` block) if you want *no* body
+   text to leave Home Assistant; the regex path is fully local.
 
 ## Step 2 — the automation
 
