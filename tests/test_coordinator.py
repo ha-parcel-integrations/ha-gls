@@ -17,6 +17,8 @@ from custom_components.gls.const import (
 )
 from custom_components.gls.coordinator import (
     GlsCoordinator,
+)
+from custom_components.gls.parcels import (
     build_history,
     map_event_status,
     map_parcel_status,
