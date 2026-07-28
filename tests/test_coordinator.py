@@ -202,6 +202,34 @@ def test_normalize_delivered_via_scan_flag_without_state():
     assert parcel["delivered"] is True  # deliveryScanInfo.isDelivered
 
 
+def test_tracking_url_nl_uses_country_site_with_postcode():
+    """NL parcels deep-link to gls-info.nl with the postcode (the generic
+    gls-group.com link intermittently returns 'package not found' for NL)."""
+    parcel = normalize_parcel(_delivered_sample(), postal_code="2841XC", country="NL")
+    assert parcel["url"] == (
+        "https://www.gls-info.nl/tracking?trackid=0085105093278&zipcode=2841XC"
+    )
+
+
+def test_tracking_url_other_uses_generic_link():
+    """The 'Other' country falls back to the generic gls-group.com link."""
+    parcel = normalize_parcel(
+        _delivered_sample(), postal_code="2841XC", country="OTHER"
+    )
+    assert parcel["url"] == (
+        "https://gls-group.com/GROUP/en/parcel-tracking?match=0085105093278"
+    )
+
+
+def test_tracking_url_falls_back_without_postcode():
+    """Without a postcode the NL country-site link cannot be built, so the
+    generic link is used."""
+    parcel = normalize_parcel(_delivered_sample(), country="NL")
+    assert parcel["url"] == (
+        "https://gls-group.com/GROUP/en/parcel-tracking?match=0085105093278"
+    )
+
+
 # ---------------------------------------------------------------------------
 # sort_parcels_by_ts
 # ---------------------------------------------------------------------------

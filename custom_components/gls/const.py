@@ -46,14 +46,34 @@ PARCEL_DETAILS_URL = (
 CONF_COUNTRY = "country"
 DEFAULT_COUNTRY = "NL"
 
-# code -> {label, host, culture, postcode_regex}. ``postcode_regex`` matches
-# a normalised (space-stripped, upper-cased) postcode for that country.
+# code -> {label, host, culture, postcode_regex, tracking_url}.
+# ``postcode_regex`` matches a normalised (space-stripped, upper-cased)
+# postcode for that country. ``tracking_url`` is the consumer deep-link for
+# the parcel's ``url`` field: the generic ``gls-group.com`` link intermittently
+# returns "package not found" for NL parcels, so NL points at the country site
+# ``gls-info.nl``, which needs the postcode as well as the parcel number.
+# Countries without a specific entry fall back to ``TRACKING_URL`` below.
 COUNTRIES: dict[str, dict[str, str]] = {
     "NL": {
         "label": "Netherlands",
         "host": "apm.gls.nl",
         "culture": "nl-NL",
         "postcode_regex": r"^\d{4}[A-Z]{2}$",
+        "tracking_url": (
+            "https://www.gls-info.nl/tracking"
+            "?trackid={parcel_no}&zipcode={postal_code}"
+        ),
+    },
+    # Catch-all for parcels outside NL: the generic ``gls-group.com`` deep-link
+    # (via the ``TRACKING_URL`` fallback, no per-country ``tracking_url`` here).
+    # The details fetch still goes through the NL ``apm.gls.nl`` endpoint, so
+    # non-NL parcel coverage is best-effort and unconfirmed. Postcodes vary by
+    # country, so the regex only requires a non-empty value.
+    "OTHER": {
+        "label": "Other",
+        "host": "apm.gls.nl",
+        "culture": "en-GB",
+        "postcode_regex": r"^.+$",
     },
 }
 
@@ -64,7 +84,9 @@ NEW_COUNTRY_ISSUE_URL = (
     "?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement"
 )
 
-# Consumer tracking deep-link, used to populate the parcel's ``url`` field.
+# Generic fallback tracking deep-link, used for countries without a specific
+# ``tracking_url`` in ``COUNTRIES`` (or when the postcode is unknown). Note this
+# link is unreliable for NL parcels — see the per-country ``tracking_url``.
 TRACKING_URL = "https://gls-group.com/GROUP/en/parcel-tracking?match={parcel_no}"
 
 # Tracked parcels live in the config entry options as a list of

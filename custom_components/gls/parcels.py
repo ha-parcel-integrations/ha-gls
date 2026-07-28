@@ -14,6 +14,8 @@ from homeassistant.config_entries import ConfigEntry
 from .const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
+    COUNTRIES,
+    DEFAULT_COUNTRY,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
     HISTORY_MAX_EVENTS,
@@ -138,10 +140,21 @@ def build_history(
     return ordered[-max_events:]
 
 
-def _tracking_url(parcel_no: str | None) -> str | None:
-    """Construct the consumer tracking deep-link for a parcel."""
+def _tracking_url(
+    parcel_no: str | None, postal_code: str | None, country: str
+) -> str | None:
+    """Construct the consumer tracking deep-link for a parcel.
+
+    Prefers the per-country deep-link (NL needs the postcode as well as the
+    parcel number — the generic ``gls-group.com`` link intermittently returns
+    "package not found" for NL parcels). Falls back to the generic link when
+    the country has no specific template or the postcode is unknown.
+    """
     if not parcel_no:
         return None
+    template = COUNTRIES.get(country, {}).get("tracking_url")
+    if template and postal_code:
+        return template.format(parcel_no=parcel_no, postal_code=postal_code)
     return TRACKING_URL.format(parcel_no=parcel_no)
 
 
@@ -179,7 +192,13 @@ def _pickup_point(raw: dict) -> str | None:
     return None
 
 
-def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
+def normalize_parcel(
+    raw: dict,
+    *,
+    postal_code: str | None = None,
+    country: str = DEFAULT_COUNTRY,
+    include_history: bool = False,
+) -> dict:
     """Return a carrier-agnostic parcel dict with the original GLS payload under ``raw``.
 
     GLS provides more than DHL: ``weight`` and ``dimensions`` are populated.
@@ -226,7 +245,7 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "planned_to": None if delivered else eta_max,
         "pickup": is_pickup,
         "pickup_point": _pickup_point(raw) if is_pickup else None,
-        "url": _tracking_url(raw.get("parcelNo")),
+        "url": _tracking_url(raw.get("parcelNo"), postal_code, country),
         "weight": weight,
         "dimensions": _dimensions(raw),
         "history": build_history(raw.get("scans")) if include_history else None,

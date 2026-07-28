@@ -13,11 +13,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import GlsApiClient, GlsApiError
 from .const import (
+    CONF_COUNTRY,
     CONF_INCLUDE_HISTORY,
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
     CONF_REFRESH_INTERVAL,
+    DEFAULT_COUNTRY,
     DEFAULT_INCLUDE_HISTORY,
     DEFAULT_REFRESH_INTERVAL,
     DOMAIN,
@@ -130,9 +132,11 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
             return_exceptions=True,
         )
 
-        raws: list[dict] = []
+        # Each raw payload is kept with its postcode so the tracking deep-link
+        # (NL needs the postcode) can be built per parcel.
+        raws: list[tuple[dict, str]] = []
         errors = 0
-        for (parcel_no, _), result in zip(pairs, results):
+        for (parcel_no, postal_code), result in zip(pairs, results):
             if isinstance(result, BaseException):
                 if not isinstance(result, (GlsApiError, aiohttp.ClientError)):
                     raise result
@@ -140,7 +144,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
                 _LOGGER.warning("GLS fetch failed for %s: %s", parcel_no, result)
                 cached = self._raw_cache.get(parcel_no)
                 if cached is not None:
-                    raws.append(cached)
+                    raws.append((cached, postal_code))
                 continue
 
             if result is None:
@@ -148,20 +152,30 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
                 # it, otherwise show a pending placeholder so the user still
                 # sees the tracked parcel.
                 raws.append(
-                    self._raw_cache.get(parcel_no)
-                    or {"parcelNo": parcel_no, "state": None}
+                    (
+                        self._raw_cache.get(parcel_no)
+                        or {"parcelNo": parcel_no, "state": None},
+                        postal_code,
+                    )
                 )
                 continue
 
             self._raw_cache[parcel_no] = result
-            raws.append(result)
+            raws.append((result, postal_code))
 
         if pairs and errors == len(pairs) and not raws:
             raise UpdateFailed("GLS unreachable for all tracked parcels")
 
+        country = self.config_entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
         include_history = self._include_history
         normalized = [
-            normalize_parcel(raw, include_history=include_history) for raw in raws
+            normalize_parcel(
+                raw,
+                postal_code=postal_code,
+                country=country,
+                include_history=include_history,
+            )
+            for raw, postal_code in raws
         ]
         active = [p for p in normalized if not p["delivered"]]
         delivered = [p for p in normalized if p["delivered"]]
