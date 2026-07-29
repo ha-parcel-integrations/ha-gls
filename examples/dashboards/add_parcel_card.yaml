@@ -1,8 +1,8 @@
 # Add a GLS parcel straight from a dashboard — no diving into the options.
 #
 # The integration exposes two services:
-#   - gls.track_parcel   (parcel_no, optional postal_code)
-#   - gls.untrack_parcel (parcel_no)
+#   - gls.track_parcel   (tracking_code, optional postal_code)
+#   - gls.untrack_parcel (tracking_code)
 #
 # This example wires a text field + a button on a Lovelace card to
 # gls.track_parcel. It needs one helper and one script (below), then the card.
@@ -27,7 +27,7 @@ gls_track_new_parcel:
       value_template: "{{ states('input_text.gls_new_parcel') | trim != '' }}"
     - action: gls.track_parcel
       data:
-        parcel_no: "{{ states('input_text.gls_new_parcel') | trim }}"
+        tracking_code: "{{ states('input_text.gls_new_parcel') | trim }}"
         # Omit postal_code to use the hub default, or set your own:
         # postal_code: "1234AB"
     - action: input_text.set_value

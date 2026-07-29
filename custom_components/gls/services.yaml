@@ -1,7 +1,12 @@
 track_parcel:
   fields:
-    parcel_no:
+    tracking_code:
       required: true
+      example: "0085105093278"
+      selector:
+        text:
+    parcel_no:
+      required: false
       example: "0085105093278"
       selector:
         text:
@@ -13,8 +18,13 @@ track_parcel:
 
 untrack_parcel:
   fields:
-    parcel_no:
+    tracking_code:
       required: true
+      example: "0085105093278"
+      selector:
+        text:
+    parcel_no:
+      required: false
       example: "0085105093278"
       selector:
         text:

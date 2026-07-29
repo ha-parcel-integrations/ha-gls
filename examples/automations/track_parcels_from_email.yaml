@@ -58,7 +58,7 @@ actions:
       sequence:
         - action: gls.track_parcel
           data:
-            parcel_no: "{{ repeat.item }}"
+            tracking_code: "{{ repeat.item }}"
             # postal_code is optional — omit it and the integration falls
             # back to the postcode configured on the GLS hub. Set it here
             # only for parcels going to a different address.
@@ -95,25 +95,25 @@ actions:
               selector:
                 select:
                   options: ["gls", "other", "none"]
-            parcel_no:
+            tracking_code:
               description: The parcel number, or empty if none
               required: false
               selector:
                 text:
         response_variable: ai_result
       - choose:
-          - conditions: "{{ ai_result.data.carrier == 'gls' and (ai_result.data.parcel_no | default('') | trim) != '' }}"
+          - conditions: "{{ ai_result.data.carrier == 'gls' and (ai_result.data.tracking_code | default('') | trim) != '' }}"
             sequence:
               - action: gls.track_parcel
                 data:
-                  parcel_no: "{{ ai_result.data.parcel_no | trim }}"
+                  tracking_code: "{{ ai_result.data.tracking_code | trim }}"
               - action: notify.mobile_app_your_phone
                 data:
                   title: "📦 GLS parcel picked up from mail (AI)"
-                  message: "{{ ai_result.data.parcel_no | trim }} (mail from {{ sender }})"
-          - conditions: "{{ ai_result.data.carrier == 'other' and (ai_result.data.parcel_no | default('') | trim) != '' }}"
+                  message: "{{ ai_result.data.tracking_code | trim }} (mail from {{ sender }})"
+          - conditions: "{{ ai_result.data.carrier == 'other' and (ai_result.data.tracking_code | default('') | trim) != '' }}"
             sequence:
               - action: notify.mobile_app_your_phone
                 data:
                   title: "📦 Tracking number found – not a GLS parcel"
-                  message: "{{ ai_result.data.parcel_no | trim }} (mail from {{ sender }}, subject: {{ subject }})"
+                  message: "{{ ai_result.data.tracking_code | trim }} (mail from {{ sender }}, subject: {{ subject }})"

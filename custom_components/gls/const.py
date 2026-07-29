@@ -95,6 +95,10 @@ TRACKING_URL = "https://gls-group.com/GROUP/en/parcel-tracking?match={parcel_no}
 CONF_PARCELS = "parcels"
 CONF_PARCEL_NO = "parcel_no"
 CONF_POSTAL_CODE = "postal_code"
+# Standard service field name shared by every parcel-suite carrier. GLS's
+# services accept ``tracking_code``; the old ``parcel_no`` field is a
+# deprecated alias (see services.py) kept working for now and removed soon.
+CONF_TRACKING_CODE = "tracking_code"
 
 # Delivered-parcels retention: keep delivered parcels visible for the last N
 # days, or keep only the N most recent — mirrors the other suite carriers.

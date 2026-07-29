@@ -49,6 +49,12 @@ enters tracking codes themselves, so:
   Adding a parcel takes only its number — the postcode is **always** the
   hub's (`CONF_POSTAL_CODE`); the add form has no postcode field. The service
   keeps an optional `postal_code` for the rare different-address case.
+- **Service field is `tracking_code`** (`CONF_TRACKING_CODE`), the suite-wide
+  standard shared by every carrier. The old **`parcel_no` field is a deprecated
+  alias** — `_resolve_code` in `services.py` accepts either, logs a one-shot
+  deprecation warning when `parcel_no` is used, and **is to be removed in a
+  future release**. Note the *stored* dict key stays `parcel_no`
+  (`CONF_PARCEL_NO`) — only the service field was renamed; do not conflate them.
 - **Options flow = one sectioned form** (`async_step_init` with
   `data_entry_flow.section`), mirroring the other carriers' section layout —
   here `parcels` (add/remove), `history` (`include_history`), `polling`

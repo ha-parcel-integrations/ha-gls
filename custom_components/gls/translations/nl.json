@@ -97,9 +97,13 @@
       "name": "Pakket volgen",
       "description": "Begin met het volgen van een GLS-pakket op nummer.",
       "fields": {
-        "parcel_no": {
-          "name": "Pakketnummer",
+        "tracking_code": {
+          "name": "Trackingcode",
           "description": "Het GLS-pakketnummer of tracking-ID."
+        },
+        "parcel_no": {
+          "name": "Pakketnummer (verouderd)",
+          "description": "Verouderd — gebruik 'Trackingcode'. Wordt in een volgende release verwijderd."
         },
         "postal_code": {
           "name": "Postcode",
@@ -111,9 +115,13 @@
       "name": "Pakket niet meer volgen",
       "description": "Stop met het volgen van een GLS-pakket op nummer.",
       "fields": {
-        "parcel_no": {
-          "name": "Pakketnummer",
+        "tracking_code": {
+          "name": "Trackingcode",
           "description": "Het GLS-trackingnummer dat je niet meer wilt volgen."
+        },
+        "parcel_no": {
+          "name": "Pakketnummer (verouderd)",
+          "description": "Verouderd — gebruik 'Trackingcode'. Wordt in een volgende release verwijderd."
         }
       }
     }

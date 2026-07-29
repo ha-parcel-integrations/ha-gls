@@ -15,8 +15,8 @@ All examples assume a single GLS hub. Adjust entity IDs to match yours.
 
 | Service | Description |
 |---|---|
-| `gls.track_parcel` | Start tracking a parcel (`parcel_no`, optional `postal_code`). |
-| `gls.untrack_parcel` | Stop tracking a parcel (`parcel_no`). |
+| `gls.track_parcel` | Start tracking a parcel (`tracking_code`, optional `postal_code`). |
+| `gls.untrack_parcel` | Stop tracking a parcel (`tracking_code`). |
 
 ## Events used in the examples
 

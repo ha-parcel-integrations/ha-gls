@@ -97,9 +97,13 @@
       "name": "Track parcel",
       "description": "Start tracking a GLS parcel by its number.",
       "fields": {
-        "parcel_no": {
-          "name": "Parcel number",
+        "tracking_code": {
+          "name": "Tracking code",
           "description": "The GLS parcel number or tracking ID."
+        },
+        "parcel_no": {
+          "name": "Parcel number (deprecated)",
+          "description": "Deprecated — use 'Tracking code' instead. Will be removed in a future release."
         },
         "postal_code": {
           "name": "Postal code",
@@ -111,9 +115,13 @@
       "name": "Untrack parcel",
       "description": "Stop tracking a GLS parcel by its number.",
       "fields": {
-        "parcel_no": {
-          "name": "Parcel number",
+        "tracking_code": {
+          "name": "Tracking code",
           "description": "The GLS tracking number to stop tracking."
+        },
+        "parcel_no": {
+          "name": "Parcel number (deprecated)",
+          "description": "Deprecated — use 'Tracking code' instead. Will be removed in a future release."
         }
       }
     }

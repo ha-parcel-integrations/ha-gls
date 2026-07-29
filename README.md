@@ -80,7 +80,7 @@ A **GLS** hub holds your tracked parcels. Add them any of three ways — new
 per-parcel sensors appear immediately, no restart or manual refresh needed:
 
 - **Options** — integration card → **Configure** → **Parcels** → **Add a parcel**.
-- **Service** — call `gls.track_parcel` with a `parcel_no` (and optional
+- **Service** — call `gls.track_parcel` with a `tracking_code` (and optional
   `postal_code`, which picks the hub when you run several). `gls.untrack_parcel`
   removes one.
 - **Dashboard** — a text field + button that calls the service. See
@@ -186,8 +186,10 @@ event-driven automations.
 
 | Service | Description |
 |---|---|
-| `gls.track_parcel` | Start tracking a parcel — `parcel_no` (required) and `postal_code` (optional, defaults to the hub postal code). |
-| `gls.untrack_parcel` | Stop tracking a parcel — `parcel_no`. |
+| `gls.track_parcel` | Start tracking a parcel — `tracking_code` (required) and `postal_code` (optional, defaults to the hub postal code). |
+| `gls.untrack_parcel` | Stop tracking a parcel — `tracking_code`. |
+
+> The field was renamed from `parcel_no` to `tracking_code` for consistency across the parcel-integration family. The old `parcel_no` field still works but is **deprecated** and will be removed in a future release — update your automations to `tracking_code`.
 
 ## Examples
 

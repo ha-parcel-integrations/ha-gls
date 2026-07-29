@@ -9,6 +9,7 @@ from custom_components.gls.const import (
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
+    CONF_TRACKING_CODE,
     DOMAIN,
 )
 
@@ -158,3 +159,30 @@ async def test_untrack_parcel_removes_from_options(hass):
         await hass.async_block_till_done()
 
     assert entry.options[CONF_PARCELS] == []
+
+
+# The tests above call the services with the deprecated ``parcel_no`` field,
+# which keeps working via the alias. The two below cover the new standard
+# ``tracking_code`` field and the "neither field given" error.
+
+
+async def test_track_parcel_accepts_tracking_code(hass):
+    entry = await _setup(hass)
+    with patch(
+        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        new=AsyncMock(return_value=_SAMPLE),
+    ):
+        await hass.services.async_call(
+            DOMAIN, "track_parcel", {CONF_TRACKING_CODE: "9999999999999"}, blocking=True
+        )
+        await hass.async_block_till_done()
+
+    assert entry.options[CONF_PARCELS] == [
+        {CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "1234AB"}
+    ]
+
+
+async def test_track_parcel_requires_a_code(hass):
+    await _setup(hass)
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(DOMAIN, "track_parcel", {}, blocking=True)

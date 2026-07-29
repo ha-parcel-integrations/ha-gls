@@ -16,7 +16,7 @@ new e-mail ──imap_content──▶ automation ──▶ regex match? ──�
 
 ## Prerequisites
 
-- This integration, with the `gls.track_parcel` action available (fields `parcel_no`, optional `postal_code`).
+- This integration, with the `gls.track_parcel` action available (fields `tracking_code`, optional `postal_code`).
 - The core **IMAP** integration (ships with Home Assistant, no HACS needed).
 - *(Optional but recommended)* an **AI Task** entity (e.g. Anthropic/Claude, Google, OpenAI) for the fallback path. Without it, simply delete the `else:` block — the regex path works standalone.
 
