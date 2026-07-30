@@ -64,17 +64,6 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "?trackid={parcel_no}&zipcode={postal_code}"
         ),
     },
-    # Catch-all for parcels outside NL: the generic ``gls-group.com`` deep-link
-    # (via the ``TRACKING_URL`` fallback, no per-country ``tracking_url`` here).
-    # The details fetch still goes through the NL ``apm.gls.nl`` endpoint, so
-    # non-NL parcel coverage is best-effort and unconfirmed. Postcodes vary by
-    # country, so the regex only requires a non-empty value.
-    "OTHER": {
-        "label": "Other",
-        "host": "apm.gls.nl",
-        "culture": "en-GB",
-        "postcode_regex": r"^.+$",
-    },
 }
 
 # Pre-filled "add my country" GitHub issue, linked from the setup form so
