@@ -13,15 +13,7 @@ from custom_components.gls.const import (
     DOMAIN,
 )
 
-_SAMPLE = {
-    "parcelNo": "0085105093278",
-    "state": 3,
-    "addressInfo": {"from": {"name": "Sender"}, "to": {"name": "R"}},
-    "deliveryScanInfo": {"isDelivered": False, "dateTime": None},
-    "deliveryStatus": {"etaTimestampMin": "2026-05-01T10:00:00Z", "etaTimestampMax": None},
-    "parcels": [{"lastStatus": "Onderweg"}],
-    "scans": [{"dateTime": "2026-04-30T10:00:00", "state": 1, "eventReasonDescr": "x"}],
-}
+from .payloads import minimal_sample
 
 
 async def test_setup_and_unload(hass):
@@ -34,7 +26,7 @@ async def test_setup_and_unload(hass):
 
     with patch(
         "custom_components.gls.api.GlsApiClient.async_get_parcel",
-        new=AsyncMock(return_value=_SAMPLE),
+        new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
@@ -83,7 +75,7 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
     )
     entry.add_to_hass(hass)
 
-    mock = AsyncMock(return_value=_SAMPLE)
+    mock = AsyncMock(return_value=minimal_sample())
     with patch("custom_components.gls.api.GlsApiClient.async_get_parcel", new=mock):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
@@ -95,7 +87,7 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
 
         # The next poll returns a different parcel number: the summary sensor
         # spawns a new per-parcel sensor and removes the stale one.
-        replaced = dict(_SAMPLE)
+        replaced = minimal_sample()
         replaced["parcelNo"] = "2222222222222"
         mock.return_value = replaced
         await entry.runtime_data.coordinator.async_request_refresh()
@@ -124,7 +116,7 @@ async def test_legacy_unique_id_migrates_to_postcode(hass):
 
     with patch(
         "custom_components.gls.api.GlsApiClient.async_get_parcel",
-        new=AsyncMock(return_value=_SAMPLE),
+        new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()

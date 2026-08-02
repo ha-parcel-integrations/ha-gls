@@ -26,55 +26,7 @@ from custom_components.gls.parcels import (
     sort_parcels_by_ts,
 )
 
-
-def _delivered_sample(parcel_no: str = "0085105093278") -> dict:
-    """A trimmed real GLS-NL details response for a delivered parcel."""
-    return {
-        "parcelNo": parcel_no,
-        "state": 4,
-        "suppliedWeight": 0.1,
-        "weighedWeight": None,
-        "width": 25,
-        "height": 5,
-        "length": 34,
-        "isPickup": False,
-        "addressInfo": {
-            "from": {"name": "get your goods GmbH"},
-            "to": {"name": "John Doe"},
-        },
-        "deliveryScanInfo": {
-            "isDelivered": True,
-            "dateTime": "2026-04-29T13:12:42",
-            "parcelShop": None,
-        },
-        "deliveryStatus": {
-            "etaTimestampMin": None,
-            "etaTimestampMax": None,
-        },
-        "deliveryListInfo": {"isParcelShop": False},
-        "parcels": [{"lastStatus": "Afgeleverd"}],
-        "scans": [
-            {"dateTime": "2026-04-24T10:38:50", "state": 0, "eventReasonDescr": "Aangekondigd bij GLS"},
-            {"dateTime": "2026-04-27T23:03:58", "state": 1, "eventReasonDescr": "Pakket ontvangen door GLS"},
-            {"dateTime": "2026-04-28T15:52:17", "state": 2, "eventReasonDescr": "Aangekomen op GLS depot"},
-            {"dateTime": "2026-04-29T08:46:00", "state": 3, "eventReasonDescr": "Onderweg - geladen voor aflevering"},
-            {"dateTime": "2026-04-29T13:12:42", "state": 4, "eventReasonDescr": "Afgeleverd"},
-        ],
-    }
-
-
-def _active_sample(parcel_no: str = "1111111111111") -> dict:
-    """An out-for-delivery parcel with an ETA window."""
-    sample = _delivered_sample(parcel_no)
-    sample["state"] = 3
-    sample["deliveryScanInfo"] = {"isDelivered": False, "dateTime": None, "parcelShop": None}
-    sample["deliveryStatus"] = {
-        "etaTimestampMin": "2026-04-29T13:00:00Z",
-        "etaTimestampMax": "2026-04-29T15:00:00Z",
-    }
-    sample["parcels"] = [{"lastStatus": "Onderweg"}]
-    return sample
-
+from .payloads import active_sample, delivered_sample
 
 # ---------------------------------------------------------------------------
 # map_parcel_status / map_event_status
@@ -121,7 +73,7 @@ def test_unmapped_state_warns_only_once():
 
 
 def test_build_history_maps_scans_oldest_to_newest():
-    history = build_history(_delivered_sample()["scans"])
+    history = build_history(delivered_sample()["scans"])
     assert len(history) == 5
     assert history[0]["raw_status"] == "Aangekondigd bij GLS"
     assert history[0]["status"] == ParcelStatus.REGISTERED
@@ -157,7 +109,7 @@ def test_build_history_keeps_unparseable_timestamp_last():
 
 
 def test_normalize_delivered_parcel():
-    parcel = normalize_parcel(_delivered_sample())
+    parcel = normalize_parcel(delivered_sample())
     assert parcel["carrier"] == "GLS"
     assert parcel["barcode"] == "0085105093278"
     assert parcel["sender"] == "get your goods GmbH"
@@ -173,13 +125,13 @@ def test_normalize_delivered_parcel():
 
 
 def test_normalize_history_opt_in():
-    parcel = normalize_parcel(_delivered_sample(), include_history=True)
+    parcel = normalize_parcel(delivered_sample(), include_history=True)
     assert len(parcel["history"]) == 5
     assert parcel["history"][0]["status"] == ParcelStatus.REGISTERED
 
 
 def test_normalize_active_parcel_has_window():
-    parcel = normalize_parcel(_active_sample())
+    parcel = normalize_parcel(active_sample())
     assert parcel["status"] == ParcelStatus.OUT_FOR_DELIVERY
     assert parcel["delivered"] is False
     assert parcel["planned_from"] == "2026-04-29T13:00:00Z"
@@ -196,7 +148,7 @@ def test_normalize_pending_placeholder():
 
 
 def test_normalize_delivered_via_scan_flag_without_state():
-    raw = _delivered_sample()
+    raw = delivered_sample()
     raw["state"] = None
     parcel = normalize_parcel(raw)
     assert parcel["delivered"] is True  # deliveryScanInfo.isDelivered
@@ -205,7 +157,7 @@ def test_normalize_delivered_via_scan_flag_without_state():
 def test_tracking_url_nl_uses_country_site_with_postcode():
     """NL parcels deep-link to gls-info.nl with the postcode (the generic
     gls-group.com link intermittently returns 'package not found' for NL)."""
-    parcel = normalize_parcel(_delivered_sample(), postal_code="2841XC", country="NL")
+    parcel = normalize_parcel(delivered_sample(), postal_code="2841XC", country="NL")
     assert parcel["url"] == (
         "https://www.gls-info.nl/tracking?trackid=0085105093278&zipcode=2841XC"
     )
@@ -214,7 +166,7 @@ def test_tracking_url_nl_uses_country_site_with_postcode():
 def test_tracking_url_falls_back_without_postcode():
     """Without a postcode the NL country-site link cannot be built, so the
     generic link is used."""
-    parcel = normalize_parcel(_delivered_sample(), country="NL")
+    parcel = normalize_parcel(delivered_sample(), country="NL")
     assert parcel["url"] == (
         "https://gls-group.com/GROUP/en/parcel-tracking?match=0085105093278"
     )
@@ -262,7 +214,7 @@ async def test_update_merges_multiple_parcels(hass):
     entry.add_to_hass(hass)
     client = AsyncMock()
     client.async_get_parcel.side_effect = lambda no, pc: (
-        _active_sample() if no == "1111111111111" else _delivered_sample()
+        active_sample() if no == "1111111111111" else delivered_sample()
     )
     coordinator = GlsCoordinator(hass, client, entry)
 
@@ -291,7 +243,7 @@ async def test_update_keeps_cached_on_error(hass):
     entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
     entry.add_to_hass(hass)
     client = AsyncMock()
-    client.async_get_parcel.return_value = _delivered_sample()
+    client.async_get_parcel.return_value = delivered_sample()
     coordinator = GlsCoordinator(hass, client, entry)
     await coordinator._async_update_data()  # populates cache
 
@@ -320,7 +272,7 @@ async def test_update_skips_items_missing_fields(hass):
     ])
     entry.add_to_hass(hass)
     client = AsyncMock()
-    client.async_get_parcel.return_value = _delivered_sample()
+    client.async_get_parcel.return_value = delivered_sample()
     coordinator = GlsCoordinator(hass, client, entry)
 
     await coordinator._async_update_data()
@@ -342,11 +294,11 @@ async def test_update_event_carries_device_id(hass):
     events = []
     hass.bus.async_listen(f"{DOMAIN}_parcel_status_changed", lambda e: events.append(e))
 
-    in_transit = _active_sample("1111111111111")
+    in_transit = active_sample("1111111111111")
     in_transit["state"] = 2
     client.async_get_parcel.return_value = in_transit
     await coordinator._async_update_data()
-    client.async_get_parcel.return_value = _active_sample("1111111111111")
+    client.async_get_parcel.return_value = active_sample("1111111111111")
     await coordinator._async_update_data()
     await hass.async_block_till_done()
 
@@ -357,20 +309,20 @@ async def test_update_fires_status_changed_event(hass):
     entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
     entry.add_to_hass(hass)
     client = AsyncMock()
-    client.async_get_parcel.return_value = _active_sample()
+    client.async_get_parcel.return_value = active_sample()
     coordinator = GlsCoordinator(hass, client, entry)
 
     events = []
     hass.bus.async_listen(f"{DOMAIN}_parcel_status_changed", lambda e: events.append(e))
 
     # First refresh: in_transit (state 2), events suppressed.
-    in_transit = _active_sample()
+    in_transit = active_sample()
     in_transit["state"] = 2
     client.async_get_parcel.return_value = in_transit
     await coordinator._async_update_data()
 
     # Second refresh: out_for_delivery (state 3) — still active, status changed.
-    client.async_get_parcel.return_value = _active_sample()
+    client.async_get_parcel.return_value = active_sample()
     await coordinator._async_update_data()
     await hass.async_block_till_done()
 
@@ -390,9 +342,9 @@ async def test_update_fires_delivered_event_not_status_changed(hass):
     hass.bus.async_listen(f"{DOMAIN}_parcel_delivered", lambda e: delivered.append(e))
     hass.bus.async_listen(f"{DOMAIN}_parcel_status_changed", lambda e: changed.append(e))
 
-    client.async_get_parcel.return_value = _active_sample("1111111111111")
+    client.async_get_parcel.return_value = active_sample("1111111111111")
     await coordinator._async_update_data()
-    client.async_get_parcel.return_value = _delivered_sample("1111111111111")
+    client.async_get_parcel.return_value = delivered_sample("1111111111111")
     await coordinator._async_update_data()
     await hass.async_block_till_done()
 
@@ -408,7 +360,7 @@ async def test_no_events_for_parcel_first_seen_delivered(hass):
     entry.add_to_hass(hass)
     client = AsyncMock()
     client.async_get_parcel.side_effect = lambda no, pc: (
-        _active_sample(no) if no == "1111111111111" else _delivered_sample(no)
+        active_sample(no) if no == "1111111111111" else delivered_sample(no)
     )
     coordinator = GlsCoordinator(hass, client, entry)
 
@@ -439,7 +391,7 @@ async def test_update_cached_only_poll_does_not_stamp_last_success(hass):
     entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
     entry.add_to_hass(hass)
     client = AsyncMock()
-    client.async_get_parcel.return_value = _delivered_sample()
+    client.async_get_parcel.return_value = delivered_sample()
     coordinator = GlsCoordinator(hass, client, entry)
     await coordinator._async_update_data()
     stamp = coordinator.last_success_time
@@ -490,7 +442,7 @@ async def test_update_prunes_cache_for_untracked_parcels(hass):
     entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
     entry.add_to_hass(hass)
     client = AsyncMock()
-    client.async_get_parcel.return_value = _delivered_sample()
+    client.async_get_parcel.return_value = delivered_sample()
     coordinator = GlsCoordinator(hass, client, entry)
     coordinator._raw_cache["gone"] = {"parcelNo": "gone", "state": 4}
 
@@ -518,7 +470,7 @@ async def test_update_fetches_parcels_concurrently(hass):
         peak = max(peak, in_flight)
         await asyncio.sleep(0)
         in_flight -= 1
-        return _active_sample(no)
+        return active_sample(no)
 
     client = AsyncMock()
     client.async_get_parcel.side_effect = _slow_fetch
@@ -530,7 +482,7 @@ async def test_update_fetches_parcels_concurrently(hass):
 
 def test_normalize_parcel_partial_dimensions_have_no_text():
     """A partial dimensions payload must not render 'None' into the text."""
-    sample = _active_sample()
+    sample = active_sample()
     sample["width"] = None
     sample["height"] = None
     parcel = normalize_parcel(sample)
@@ -539,7 +491,7 @@ def test_normalize_parcel_partial_dimensions_have_no_text():
 
 
 def test_normalize_parcel_no_dimensions_at_all():
-    sample = _active_sample()
+    sample = active_sample()
     sample["length"] = sample["width"] = sample["height"] = None
     parcel = normalize_parcel(sample)
     assert parcel["dimensions"] is None
