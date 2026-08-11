@@ -37,12 +37,13 @@ KNOWN_CAPABILITIES = frozenset(
 
 # Which optional contract fields this carrier's API actually populates — feeds
 # the comparison table on the docs site. Keep in lockstep with
-# normalize_parcel() in parcels.py (which dispatches per country): NL, the
-# default/fallback country wired up end-to-end, populates every field; DE's
-# normalize_parcel_de still lacks weight, dimensions and the delivery window.
-CAPABILITIES = frozenset(
-    {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
-)
+# normalize_parcel() in parcels.py (which dispatches per country): this is the
+# INTERSECTION across countries, not just the NL default — a field only
+# belongs here if every dispatched country populates it, so the table never
+# overclaims for a GLS DE user. NL populates weight, dimensions and the
+# delivery window; DE's normalize_parcel_de does not (still `None` there), so
+# those three stay out. Both countries populate pickup_point, url and history.
+CAPABILITIES = frozenset({"pickup_point", "url", "history"})
 
 
 class GlsApiError(Exception):
