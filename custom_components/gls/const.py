@@ -28,6 +28,22 @@ class ParcelStatus(StrEnum):
 
 PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 
+# Every optional key the parcel contract defines. CAPABILITIES below must be a
+# subset of this — it exists so a typo in CAPABILITIES fails a test instead of
+# silently dropping this carrier off a table on the docs site.
+KNOWN_CAPABILITIES = frozenset(
+    {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
+)
+
+# Which optional contract fields this carrier's API actually populates — feeds
+# the comparison table on the docs site. Keep in lockstep with
+# normalize_parcel() in parcels.py (which dispatches per country): NL, the
+# default/fallback country wired up end-to-end, populates every field; DE's
+# normalize_parcel_de still lacks weight, dimensions and the delivery window.
+CAPABILITIES = frozenset(
+    {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
+)
+
 
 class GlsApiError(Exception):
     """Raised when a GLS parcel-backend call returns an unexpected status.

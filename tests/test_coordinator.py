@@ -7,12 +7,14 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gls.api import GlsApiError
 from custom_components.gls.const import (
+    CAPABILITIES,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
     DOMAIN,
+    KNOWN_CAPABILITIES,
     ParcelStatus,
 )
 from custom_components.gls.coordinator import (
@@ -355,3 +357,8 @@ def test_normalize_parcel_no_dimensions_at_all():
     sample["length"] = sample["width"] = sample["height"] = None
     parcel = normalize_parcel(sample)
     assert parcel["dimensions"] is None
+
+
+def test_capabilities_are_known_values():
+    """A typo here would silently misreport this carrier on the docs site."""
+    assert CAPABILITIES <= KNOWN_CAPABILITIES
