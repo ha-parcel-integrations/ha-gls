@@ -5,6 +5,7 @@ import logging
 import re
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -15,9 +16,11 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_COUNTRY,
+    CONF_DE_APP_INSTANCE_ID,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
@@ -32,9 +35,10 @@ from .const import (
     DEFAULT_INCLUDE_HISTORY,
     DEFAULT_REFRESH_INTERVAL,
     DOMAIN,
-    NEW_COUNTRY_ISSUE_URL,
     REFRESH_INTERVAL_OPTIONS,
+    REQUEST_COUNTRY_URL,
 )
+from .countries.de.session import GlsDeSession, GlsDeSessionError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,8 +50,8 @@ _PARCEL_NO_RE = re.compile(r"^[A-Z0-9]{6,20}$")
 
 # First-run form: pick the delivery country and postcode. The postcode
 # becomes the hub default, so adding a parcel later needs only its tracking
-# number. Only the Netherlands is available today; the setup form links to a
-# GitHub issue for requesting another country (see NEW_COUNTRY_ISSUE_URL).
+# number. The setup form links to the organisation discussion for requesting
+# a country not yet in COUNTRIES (see REQUEST_COUNTRY_URL).
 _COUNTRY_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
         options=[
@@ -140,25 +144,47 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Add the country here once a second country lands.
                 await self.async_set_unique_id(postal_code)
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=f"GLS ({postal_code})",
-                    data={},
-                    options={
-                        CONF_COUNTRY: country,
-                        CONF_PARCELS: [],
-                        CONF_POSTAL_CODE: postal_code,
-                        CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
-                        CONF_DELIVERED_FILTER_AMOUNT: DEFAULT_DELIVERED_FILTER_AMOUNT,
-                        CONF_REFRESH_INTERVAL: DEFAULT_REFRESH_INTERVAL,
-                        CONF_INCLUDE_HISTORY: DEFAULT_INCLUDE_HISTORY,
-                    },
-                )
+
+                # DE has no keyless route — mint the anonymous app-instance
+                # identity now (guest-account, BUILD_PLAN_DE.md §3) so the
+                # hub can poll from the moment it's created. The id goes in
+                # entry.data, never entry.options: it isn't a user
+                # preference, options get rewritten on every parcel
+                # add/remove, and entry.data is what async_migrate_entry
+                # already knows how to move.
+                entry_data: dict[str, Any] = {}
+                if country == "DE":
+                    de_session = GlsDeSession(async_get_clientsession(self.hass))
+                    try:
+                        entry_data[CONF_DE_APP_INSTANCE_ID] = (
+                            await de_session.async_register()
+                        )
+                    except (GlsDeSessionError, aiohttp.ClientError) as err:
+                        _LOGGER.warning(
+                            "GLS DE registration failed during setup: %s", err
+                        )
+                        errors["base"] = "de_registration_failed"
+
+                if not errors:
+                    return self.async_create_entry(
+                        title=f"GLS ({postal_code})",
+                        data=entry_data,
+                        options={
+                            CONF_COUNTRY: country,
+                            CONF_PARCELS: [],
+                            CONF_POSTAL_CODE: postal_code,
+                            CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
+                            CONF_DELIVERED_FILTER_AMOUNT: DEFAULT_DELIVERED_FILTER_AMOUNT,
+                            CONF_REFRESH_INTERVAL: DEFAULT_REFRESH_INTERVAL,
+                            CONF_INCLUDE_HISTORY: DEFAULT_INCLUDE_HISTORY,
+                        },
+                    )
 
         return self.async_show_form(
             step_id="user",
             data_schema=_HUB_SCHEMA,
             errors=errors,
-            description_placeholders={"issue_url": NEW_COUNTRY_ISSUE_URL},
+            description_placeholders={"issue_url": REQUEST_COUNTRY_URL},
         )
 
 

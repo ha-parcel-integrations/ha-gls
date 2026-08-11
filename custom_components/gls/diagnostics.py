@@ -36,6 +36,22 @@ TO_REDACT = {
     "contactValues",
     "houseNumber",
     "houseNumberAddition",
+    # DE's persisted group parcelNumber (tuNo) — same identifier class as
+    # parcelNo/uniqueNo/gpNo above.
+    "de_parcel_number",
+    "parcelNumber",
+    # GLS Germany's guest-account identity (BUILD_PLAN_DE.md §3). Not a
+    # secret in the credential sense (anyone can mint one), but it's a
+    # stable per-install identifier — redact it anyway. It lives in
+    # entry.data (de_app_instance_id) and, defensively, under any of these
+    # key spellings in case a token or the id ever rides along in a raw
+    # payload. The session's live bearer token is never persisted to
+    # entry.data/entry.options at all, so it can't appear in "entry_data"
+    # below; these keys are a defensive net for "raw" all the same.
+    "de_app_instance_id",
+    "appInstanceId",
+    "accessToken",
+    "token",
 }
 
 
@@ -46,6 +62,7 @@ async def async_get_config_entry_diagnostics(
     coordinator = entry.runtime_data.coordinator
 
     return {
+        "entry_data": async_redact_data(dict(entry.data), TO_REDACT),
         "entry_options": async_redact_data(dict(entry.options), TO_REDACT),
         "counts": {
             "incoming_active": len(coordinator.data or []),

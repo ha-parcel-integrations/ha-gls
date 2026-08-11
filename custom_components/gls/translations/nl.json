@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "GLS instellen",
-        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nAlleen Nederland wordt op dit moment ondersteund — [vraag een ander land aan]({issue_url}).",
+        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nNederland en Duitsland worden op dit moment ondersteund — [vraag een ander land aan]({issue_url}).",
         "data": {
           "country": "Land",
           "postal_code": "Postcode"
@@ -17,7 +17,8 @@
     "error": {
       "cannot_connect": "Kan GLS niet bereiken. Controleer je netwerkverbinding.",
       "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer of tracking-ID.",
-      "invalid_postcode": "Voer een geldige Nederlandse postcode in, bijv. 1234AB."
+      "invalid_postcode": "Voer een geldige Nederlandse postcode in, bijv. 1234AB.",
+      "de_registration_failed": "Kon geen anonieme GLS Duitsland-sessie registreren. Controleer je netwerkverbinding en probeer het opnieuw."
     },
     "abort": {
       "already_configured": "Er is al een GLS-hub voor deze postcode ingesteld."

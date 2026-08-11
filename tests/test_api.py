@@ -1,5 +1,5 @@
 """Tests for the GLS API client."""
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
@@ -62,3 +62,32 @@ async def test_get_parcel_propagates_network_error():
     client = _client(session)
     with pytest.raises(aiohttp.ClientError):
         await client.async_get_parcel("123", "1234AB")
+
+
+# ---------------------------------------------------------------------------
+# Country dispatch — DE not wired end-to-end yet (no __init__.py/config_flow
+# construction path exists), but the dispatcher branch itself is unit-tested
+# directly here.
+# ---------------------------------------------------------------------------
+
+
+async def test_de_dispatch_without_a_session_is_a_configuration_error():
+    client = GlsApiClient(MagicMock(), "unused", "unused", country="DE")
+    with pytest.raises(RuntimeError):
+        await client.async_get_parcel("075624238061", "00000")
+
+
+async def test_de_dispatch_delegates_to_the_de_transport():
+    de_session = MagicMock()
+    client = GlsApiClient(
+        MagicMock(), "unused", "unused", country="DE", de_session=de_session
+    )
+    with patch(
+        "custom_components.gls.api.async_get_parcel_de",
+        new=AsyncMock(return_value={"parcelNumber": "YOXVB8CE"}),
+    ) as mock_transport:
+        result = await client.async_get_parcel("075624238061", "00000")
+    assert result == {"parcelNumber": "YOXVB8CE"}
+    mock_transport.assert_awaited_once_with(
+        client._session, de_session, "075624238061", "00000"
+    )

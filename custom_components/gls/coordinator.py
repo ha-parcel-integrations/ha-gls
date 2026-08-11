@@ -14,6 +14,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import GlsApiClient, GlsApiError
 from .const import (
     CONF_COUNTRY,
+    CONF_DE_APP_INSTANCE_ID,
+    CONF_DE_PARCEL_NUMBER,
     CONF_INCLUDE_HISTORY,
     CONF_PARCEL_NO,
     CONF_PARCELS,
@@ -25,6 +27,8 @@ from .const import (
     DOMAIN,
     ParcelStatus,
 )
+from .countries.de import _known_parcel_numbers as _de_known_parcel_numbers
+from .countries.de.session import GlsDeSession, GlsDeSessionError
 from .parcels import (
     _apply_delivered_filter,
     normalize_parcel,
@@ -50,9 +54,20 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
     """
 
     def __init__(
-        self, hass: HomeAssistant, client: GlsApiClient, entry: ConfigEntry
+        self,
+        hass: HomeAssistant,
+        client: GlsApiClient,
+        entry: ConfigEntry,
+        *,
+        de_session: GlsDeSession | None = None,
     ) -> None:
-        """Initialise the coordinator."""
+        """Initialise the coordinator.
+
+        ``de_session`` is only set for a DE hub (``__init__.py`` constructs
+        one alongside the DE-aware ``client``) — every DE-specific branch
+        below is gated on it being not ``None``, so an NL hub's behaviour is
+        completely untouched.
+        """
         super().__init__(
             hass,
             _LOGGER,
@@ -61,6 +76,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
             update_interval=_refresh_interval(entry),
         )
         self._client = client
+        self._de_session = de_session
         self.delivered: list[dict] = []
         # parcel_no -> last successful raw payload, so a transient fetch
         # failure or a 204 keeps the parcel visible instead of dropping its
@@ -109,8 +125,81 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         """Trim the delivered list per the configured retention option."""
         return _apply_delivered_filter(parcels, self.config_entry)
 
+    def _prepare_de_poll(self, tracked: list[dict]) -> None:
+        """Seed the DE transport's per-process ``parcelNumber`` cache before polling.
+
+        Without this, a fresh process (HA restart) has no way to resolve an
+        already-tracked DE parcel's ``parcelNumber`` from a bare ``409`` —
+        see ``countries/de/__init__.py``'s module-cache note. This only
+        *reads* the persisted value and seeds the transport's own cache
+        (``setdefault``, never clobbering an in-process value already
+        learned this session); the cache itself is still owned and defined
+        by ``countries/de/__init__.py``.
+        """
+        for item in tracked:
+            tracking_ref = item.get(CONF_PARCEL_NO)
+            parcel_number = item.get(CONF_DE_PARCEL_NUMBER)
+            if tracking_ref and parcel_number:
+                _de_known_parcel_numbers.setdefault(tracking_ref, parcel_number)
+
+    def _persist_de_state(self, tracked: list[dict]) -> None:
+        """Persist a newly-learned ``parcelNumber``, and recover from a session reregister.
+
+        Runs after the poll, so ``self._raw_cache`` already reflects
+        anything freshly fetched this round. A change here goes through
+        ``async_update_entry``, which — once the entry's update listener is
+        registered (i.e. after the very first refresh) — triggers one extra
+        refresh, same as any other option edit; not during first setup,
+        where the listener isn't registered yet.
+        """
+        assert self._de_session is not None
+        new_tracked = list(tracked)
+        parcels_changed = False
+        for index, item in enumerate(new_tracked):
+            tracking_ref = item.get(CONF_PARCEL_NO)
+            raw = self._raw_cache.get(tracking_ref) if tracking_ref else None
+            parcel_number = raw.get("parcelNumber") if raw else None
+            if parcel_number and item.get(CONF_DE_PARCEL_NUMBER) != parcel_number:
+                new_tracked[index] = {**item, CONF_DE_PARCEL_NUMBER: parcel_number}
+                parcels_changed = True
+
+        reregistered = self._de_session.pop_reregistered()
+        if reregistered:
+            # The carrier-side tracked list was reset under a new
+            # appInstanceId — every previously learned parcelNumber is
+            # stale until re-POSTed, so drop it from both the in-process
+            # transport cache and the persisted state.
+            for item in new_tracked:
+                tracking_ref = item.get(CONF_PARCEL_NO)
+                if tracking_ref:
+                    _de_known_parcel_numbers.pop(tracking_ref, None)
+            new_tracked = [
+                {k: v for k, v in item.items() if k != CONF_DE_PARCEL_NUMBER}
+                for item in new_tracked
+            ]
+            parcels_changed = True
+            _LOGGER.warning(
+                "GLS DE app instance was reregistered — every tracked "
+                "parcel will be re-added on the next poll."
+            )
+
+        new_data = dict(self.config_entry.data)
+        data_changed = (
+            new_data.get(CONF_DE_APP_INSTANCE_ID) != self._de_session.app_instance_id
+        )
+        if data_changed:
+            new_data[CONF_DE_APP_INSTANCE_ID] = self._de_session.app_instance_id
+
+        if parcels_changed or data_changed:
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                data=new_data,
+                options={**self.config_entry.options, CONF_PARCELS: new_tracked},
+            )
+
     async def _async_update_data(self) -> list[dict]:
         tracked = self._tracked()
+        country = self.config_entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
         pairs = [
             (item[CONF_PARCEL_NO], item[CONF_POSTAL_CODE])
             for item in tracked
@@ -123,6 +212,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         self._raw_cache = {
             k: v for k, v in self._raw_cache.items() if k in tracked_numbers
         }
+
+        if country == "DE" and self._de_session is not None:
+            self._prepare_de_poll(tracked)
 
         results = await asyncio.gather(
             *(
@@ -138,6 +230,11 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         errors = 0
         for (parcel_no, postal_code), result in zip(pairs, results):
             if isinstance(result, BaseException):
+                if isinstance(result, GlsDeSessionError):
+                    # A token-refresh/identity failure is not one parcel's
+                    # problem — the whole poll can't authenticate, so fail it
+                    # outright rather than caching a per-parcel error.
+                    raise UpdateFailed(f"GLS DE session error: {result}") from result
                 if not isinstance(result, (GlsApiError, aiohttp.ClientError)):
                     raise result
                 errors += 1
@@ -166,7 +263,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         if pairs and errors == len(pairs) and not raws:
             raise UpdateFailed("GLS unreachable for all tracked parcels")
 
-        country = self.config_entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
+        if country == "DE" and self._de_session is not None:
+            self._persist_de_state(tracked)
+
         include_history = self._include_history
         normalized = [
             normalize_parcel(

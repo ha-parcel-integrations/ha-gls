@@ -76,6 +76,19 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
   the setup form links `NEW_COUNTRY_ISSUE_URL`. **Do not switch to the
   registration-gated group REST.** `unique_id` stays the bare postcode (fine while
   NL-only); fold in the country once a second lands.
+- **Per-country code lives in `custom_components/gls/countries/<code>.py`**
+  (transport, `normalize_parcel_<code>`, `map_parcel_status_<code>`; a nested
+  `countries/<code>/` package where a country needs its own lifecycle module,
+  e.g. DE's session/token handling). Concern-level files — `coordinator.py`,
+  `config_flow.py`, `diagnostics.py`, `sensor.py`, etc. — stay top-level and
+  dispatch into the country module; they carry no per-country branching
+  themselves. **Trigger for a country getting its own module is structural
+  divergence from NL (auth model, transport, payload shape, status vocabulary),
+  not country count** — decided when DE (bearer-POST, session lifecycle, string
+  status enum, non-ISO timestamps) turned out to share almost nothing with NL's
+  keyless GET beyond the canonical output shape. This is the suite's first
+  multi-country carrier, so the pattern is new — DPD/DHL will likely follow it
+  when they expand, but check their own repos' `CLAUDE.md` rather than assuming.
 - **Two identifiers both resolve** (long numeric `parcelNo` and short `uniqueNo`)
   — `valid_parcel_no` accepts `^[A-Z0-9]{6,20}$` (not digits-only) and the
   per-parcel sensor's `barcode` always comes from the **response** `parcelNo`, so

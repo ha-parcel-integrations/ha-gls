@@ -7,6 +7,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gls.api import GlsApiError
 from custom_components.gls.const import (
+    CONF_COUNTRY,
+    CONF_DE_APP_INSTANCE_ID,
+    CONF_DE_PARCEL_NUMBER,
+    CONF_DELIVERED_FILTER_AMOUNT,
+    CONF_DELIVERED_FILTER_TYPE,
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
@@ -132,3 +137,64 @@ async def test_legacy_unique_id_migrates_to_postcode(hass):
     )
     assert result["type"] == "abort"
     assert result["reason"] == "already_configured"
+
+
+async def test_de_setup_wires_country_and_de_session_end_to_end(hass):
+    """The full country="DE" wiring (__init__.py -> api.py -> countries/de),
+    not just the isolated unit-level mocks in test_coordinator_de.py/
+    test_api.py — proves GlsApiClient/GlsCoordinator are actually
+    constructed with a live GlsDeSession for a DE hub.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="12345",
+        data={CONF_DE_APP_INSTANCE_ID: "existing-app-instance-id"},
+        options={
+            CONF_COUNTRY: "DE",
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "075624238061", CONF_POSTAL_CODE: "00000"}
+            ],
+            # Keep-most-recent-100 so the delivered-retention filter's
+            # default 7-day window can't trim the fixed-date sample below,
+            # independent of when this test actually runs.
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    de_payload = {
+        "trackingReference": "075624238061",
+        "parcelNumber": "YOXVB8CE",
+        "deliveredAt": "2026-05-31 15:39:01",
+        "latestStatusText": "",
+        "hasDeliveryAttemptFailed": False,
+        "deliveryEvents": [],
+    }
+    with patch(
+        "custom_components.gls.api.async_get_parcel_de",
+        new=AsyncMock(return_value=de_payload),
+    ) as mock_transport:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    # The DE transport was actually reached, with a real GlsDeSession (not
+    # None) built from the persisted appInstanceId.
+    mock_transport.assert_awaited_once()
+    de_session_arg = mock_transport.call_args.args[1]
+    assert de_session_arg.app_instance_id == "existing-app-instance-id"
+
+    incoming = hass.states.get("sensor.gls_incoming_parcels")
+    assert incoming is not None
+    assert incoming.state == "0"  # delivered, not active
+    delivered = hass.states.get("sensor.gls_delivered_parcels")
+    assert delivered is not None
+    assert delivered.state == "1"
+
+    # The learned parcelNumber was persisted (the cold-restart gap fix).
+    assert entry.options[CONF_PARCELS][0][CONF_DE_PARCEL_NUMBER] == "YOXVB8CE"
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.NOT_LOADED

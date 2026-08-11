@@ -1,7 +1,11 @@
 """Tests for the GLS config and options flow."""
+from unittest.mock import AsyncMock, patch
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gls.const import (
+    CONF_COUNTRY,
+    CONF_DE_APP_INSTANCE_ID,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
@@ -11,6 +15,7 @@ from custom_components.gls.const import (
     CONF_REFRESH_INTERVAL,
     DOMAIN,
 )
+from custom_components.gls.countries.de.session import GlsDeSessionError
 
 
 async def test_user_flow_creates_hub_with_postcode_only(hass):
@@ -60,6 +65,62 @@ async def test_second_hub_different_postcode_allowed(hass):
     )
     assert result["type"] == "create_entry"
     assert result["title"] == "GLS (5678CD)"
+
+
+# ---------------------------------------------------------------------------
+# DE registration step
+# ---------------------------------------------------------------------------
+
+
+async def test_de_user_flow_registers_and_stores_app_instance_id(hass):
+    with patch(
+        "custom_components.gls.config_flow.GlsDeSession.async_register",
+        new=AsyncMock(return_value="11111111-2222-3333-4444-555555555555"),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_COUNTRY: "DE", CONF_POSTAL_CODE: "12345"},
+        )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == "DE"
+    assert result["data"][CONF_DE_APP_INSTANCE_ID] == (
+        "11111111-2222-3333-4444-555555555555"
+    )
+
+
+async def test_de_user_flow_registration_failure_shows_error(hass):
+    with patch(
+        "custom_components.gls.config_flow.GlsDeSession.async_register",
+        new=AsyncMock(side_effect=GlsDeSessionError("boom")),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_COUNTRY: "DE", CONF_POSTAL_CODE: "12345"},
+        )
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "de_registration_failed"
+
+
+async def test_nl_user_flow_does_not_touch_de_session(hass):
+    """NL setup must never call the DE registration path at all."""
+    with patch(
+        "custom_components.gls.config_flow.GlsDeSession.async_register",
+        new=AsyncMock(side_effect=AssertionError("should not be called for NL")),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_COUNTRY: "NL", CONF_POSTAL_CODE: "1234AB"}
+        )
+    assert result["type"] == "create_entry"
+    assert result["data"] == {}
 
 
 def _hub(parcels: list[dict]) -> MockConfigEntry:

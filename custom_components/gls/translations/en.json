@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Set up GLS",
-        "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nOnly the Netherlands is supported for now — [request another country]({issue_url}).",
+        "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nThe Netherlands and Germany are supported today — [request another country]({issue_url}).",
         "data": {
           "country": "Country",
           "postal_code": "Postal code"
@@ -17,7 +17,8 @@
     "error": {
       "cannot_connect": "Unable to reach GLS. Check your network.",
       "invalid_parcel_no": "That does not look like a GLS parcel number or tracking ID.",
-      "invalid_postcode": "Enter a valid Dutch postal code, e.g. 1234AB."
+      "invalid_postcode": "Enter a valid Dutch postal code, e.g. 1234AB.",
+      "de_registration_failed": "Could not register an anonymous GLS Germany session. Check your network and try again."
     },
     "abort": {
       "already_configured": "A GLS hub for this postal code is already set up."

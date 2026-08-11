@@ -1,72 +1,78 @@
-"""GLS public tracking API client."""
+"""Thin per-country dispatcher for the GLS transport layer.
+
+``GlsApiClient`` is constructed once per config entry (in ``__init__.py``)
+and used by the coordinator without it needing to know which country it is
+talking to. All the actual HTTP mechanics live in ``countries/<code>.py``;
+this class only picks the right one and forwards ``async_get_parcel`` to it.
+
+``GlsApiError`` is defined in ``const.py`` (not here) so a country module can
+raise it without an import cycle back through this file — re-exported here so
+existing imports (``from .api import GlsApiClient, GlsApiError``) and test
+patch targets (``custom_components.gls.api.GlsApiClient.async_get_parcel``)
+keep working unchanged.
+"""
 from __future__ import annotations
 
-import json
-import logging
-from typing import Any
+from typing import TYPE_CHECKING
 
 import aiohttp
 
-from .const import PARCEL_DETAILS_URL
+from .const import DEFAULT_COUNTRY, GlsApiError
+from .countries.de import async_get_parcel_de
+from .countries.nl import async_get_parcel_nl
 
-_LOGGER = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from .countries.de.session import GlsDeSession
 
-
-class GlsApiError(Exception):
-    """Raised when a GLS API call returns an unexpected status."""
-
-    def __init__(self, status_code: int) -> None:
-        """Store the status code that triggered the error."""
-        super().__init__(f"GLS API request failed with status {status_code}")
-        self.status_code = status_code
+__all__ = ["GlsApiClient", "GlsApiError"]
 
 
 class GlsApiClient:
-    """Client for the public GLS parcel tracking endpoint.
+    """Dispatches ``async_get_parcel`` to the hub's country transport.
 
-    No authentication: the endpoint is keyed on the parcel number + the
-    delivery postal code, exactly like the GLS consumer site. The ``host``
-    and ``culture`` are the hub country's (see ``COUNTRIES``).
+    NL needs only the session, host and culture (a bare keyless ``GET``).
+    DE additionally needs a :class:`~.countries.de.session.GlsDeSession` for
+    its bearer token — pass it as ``de_session`` when ``country="DE"``.
+    Constructing a DE client without one is a configuration bug, not a
+    runtime API failure, so it raises ``RuntimeError`` rather than
+    ``GlsApiError``.
+
+    Wiring a real DE hub through end-to-end (``__init__.py`` constructing
+    this with ``country="DE"`` + a live ``GlsDeSession``, and
+    ``config_flow.py`` minting/persisting the ``appInstanceId`` that session
+    needs) is deliberately **not** part of this change — see
+    BUILD_PLAN_DE.md §1's file table for what still touches
+    ``coordinator.py``/``config_flow.py``.
     """
 
     def __init__(
-        self, session: aiohttp.ClientSession, host: str, culture: str
+        self,
+        session: aiohttp.ClientSession,
+        host: str,
+        culture: str,
+        *,
+        country: str = DEFAULT_COUNTRY,
+        de_session: "GlsDeSession | None" = None,
     ) -> None:
-        """Initialise the client with an aiohttp session and country endpoint."""
+        """Initialise the client for one hub's country."""
         self._session = session
         self._host = host
         self._culture = culture
+        self._country = country
+        self._de_session = de_session
 
     async def async_get_parcel(
         self, parcel_no: str, postal_code: str
-    ) -> dict[str, Any] | None:
-        """Fetch one parcel's tracking details.
-
-        Returns the parsed JSON dict for a known parcel, or ``None`` when the
-        endpoint answers ``204 No Content`` (unknown or not-yet-scanned
-        parcel). Any other non-2xx status raises :class:`GlsApiError`; network
-        errors propagate as ``aiohttp.ClientError``.
-
-        The response is served with a ``text/plain`` mimetype, so the body is
-        parsed with ``json.loads`` rather than ``response.json()``.
-        """
-        url = PARCEL_DETAILS_URL.format(
-            host=self._host,
-            parcel_no=parcel_no,
-            postal_code=postal_code.replace(" ", ""),
-            culture=self._culture,
+    ) -> dict | None:
+        """Fetch one parcel's tracking details via the hub's country transport."""
+        if self._country == "DE":
+            if self._de_session is None:
+                raise RuntimeError(
+                    "GlsApiClient built with country='DE' but no de_session"
+                )
+            return await async_get_parcel_de(
+                self._session, self._de_session, parcel_no, postal_code
+            )
+        return await async_get_parcel_nl(
+            self._session, self._host, self._culture, parcel_no, postal_code
         )
-        async with self._session.get(url) as response:
-            if response.status == 204:
-                return None
-            if response.status != 200:
-                raise GlsApiError(response.status)
-            text = await response.text()
-
-        if not text:
-            return None
-        try:
-            return json.loads(text)
-        except ValueError as err:
-            _LOGGER.warning("GLS returned an unparseable body for %s: %s", parcel_no, err)
-            return None

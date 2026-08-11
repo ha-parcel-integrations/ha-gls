@@ -28,6 +28,25 @@ class ParcelStatus(StrEnum):
 
 PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 
+
+class GlsApiError(Exception):
+    """Raised when a GLS parcel-backend call returns an unexpected status.
+
+    Shared across every country's transport (``countries/nl.py``,
+    ``countries/de.py``) so ``coordinator.py``'s single
+    ``except (GlsApiError, aiohttp.ClientError)`` branch keeps working
+    regardless of which country produced the failure. Lives here rather than
+    in ``api.py`` so a country module can raise it without importing
+    ``api.py`` (which itself imports the country modules — see
+    ``countries/__init__.py``).
+    """
+
+    def __init__(self, status_code: int) -> None:
+        """Store the status code that triggered the error."""
+        super().__init__(f"GLS API request failed with status {status_code}")
+        self.status_code = status_code
+
+
 # Public GLS tracking endpoint (no auth). Keyed on the parcel number + the
 # delivery postal code, so it only covers parcels delivered to an address in
 # the selected country. Returns 200 + JSON for a known parcel, or HTTP 204
@@ -36,6 +55,31 @@ PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 PARCEL_DETAILS_URL = (
     "https://{host}/api/tracktrace/v1/"
     "{parcel_no}/postalcode/{postal_code}/details/{culture}"
+)
+
+# GLS Germany has no keyless endpoint: every route on the national parcel
+# backend needs the anonymous bearer token ``countries/de/session.py`` mints
+# (``guest-account``, not ``auth: none`` — see
+# carrier-research/api/gls/germany.md). Two hosts: the parcel backend, and a
+# group-wide identity service with no country in its path.
+GLS_DE_TRACKINGS_HOST = "gls-pakete-de-backend-app.ooh.glsnxt.com"
+# Adds a parcel to the app instance *and* returns its full details in the
+# same response (200) — the route a code-based integration drives. A repeat
+# call for an already-tracked parcel answers 409 with no body.
+GLS_DE_TRACKINGS_ADD_URL = f"https://{GLS_DE_TRACKINGS_HOST}/api/v1/trackings"
+# Keyed on ``parcelNumber`` (the group ``tuNo``) or the ``id`` UUID — NOT the
+# ``trackingReference`` the user typed, which 404s here.
+GLS_DE_TRACKING_DETAIL_URL = (
+    f"https://{GLS_DE_TRACKINGS_HOST}/api/v1/trackings/{{parcel_number}}"
+)
+GLS_DE_IDENTITY_HOST = "api-backend.glsnxt.com"
+# The one hardcoded exception in the app's auth interceptor: neither of these
+# two routes ever carries an ``Authorization`` header.
+GLS_DE_REGISTER_URL = (
+    f"https://{GLS_DE_IDENTITY_HOST}/ecosystem/user-service/v1/users/register"
+)
+GLS_DE_VALIDATE_URL = (
+    f"https://{GLS_DE_IDENTITY_HOST}/ecosystem/user-service/v1/users/validate"
 )
 
 # The delivery country of a hub, chosen at setup time. Only the Netherlands
@@ -53,6 +97,15 @@ DEFAULT_COUNTRY = "NL"
 # returns "package not found" for NL parcels, so NL points at the country site
 # ``gls-info.nl``, which needs the postcode as well as the parcel number.
 # Countries without a specific entry fall back to ``TRACKING_URL`` below.
+#
+# DE's ``host``/``culture`` are carried here for schema consistency with NL,
+# but its transport (``countries/de.py``) does not build a URL from them the
+# way NL's ``{host}``/``{culture}`` PARCEL_DETAILS_URL does — DE is a bearer
+# POST against GLS_DE_TRACKINGS_ADD_URL, and ``culture`` only pins the
+# ``Accept-Language`` header (germany.md: the event text is localized by it,
+# and logic must never key off that text). DE has no ``tracking_url`` entry:
+# BUILD_PLAN_DE.md §4 says its ``url`` reuses the generic ``TRACKING_URL``
+# fallback below directly, keyed on ``parcelNumber``.
 COUNTRIES: dict[str, dict[str, str]] = {
     "NL": {
         "label": "Netherlands",
@@ -64,14 +117,19 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "?trackid={parcel_no}&zipcode={postal_code}"
         ),
     },
+    "DE": {
+        "label": "Germany",
+        "host": GLS_DE_TRACKINGS_HOST,
+        "culture": "de-DE",
+        "postcode_regex": r"^\d{5}$",
+    },
 }
 
-# Pre-filled "add my country" GitHub issue, linked from the setup form so
-# users can report a working endpoint for their country.
-NEW_COUNTRY_ISSUE_URL = (
-    "https://github.com/ha-parcel-integrations/ha-gls/issues/new"
-    "?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement"
-)
+# Linked from the setup form so users can ask for a country we don't cover
+# yet. Country/carrier requests go through the organisation discussion (the
+# suite's standard "how a carrier arrives" channel), never a direct issue —
+# same URL as this repo's own .github/ISSUE_TEMPLATE/config.yml contact link.
+REQUEST_COUNTRY_URL = "https://github.com/ha-parcel-integrations/.github/discussions/new/choose"
 
 # Generic fallback tracking deep-link, used for countries without a specific
 # ``tracking_url`` in ``COUNTRIES`` (or when the postcode is unknown). Note this
@@ -80,10 +138,26 @@ TRACKING_URL = "https://gls-group.com/GROUP/en/parcel-tracking?match={parcel_no}
 
 # Tracked parcels live in the config entry options as a list of
 # ``{parcel_no, postal_code}`` dicts — GLS has no account/feed, the user
-# enters the codes themselves.
+# enters the codes themselves. DE entries additionally carry an optional
+# ``de_parcel_number`` once learned (see below) — NL entries never have it.
 CONF_PARCELS = "parcels"
 CONF_PARCEL_NO = "parcel_no"
 CONF_POSTAL_CODE = "postal_code"
+
+# DE only. The group ``parcelNumber`` (``tuNo``) a tracked parcel resolved to
+# on its first successful ``POST`` add — persisted here (not just in
+# ``countries/de/__init__.py``'s in-process cache) so a later HA restart can
+# poll it by ``GET`` straight away instead of re-hitting the "already
+# tracked, no way to recover its id" 409 gap once more. Set by
+# ``coordinator.py``, read by ``coordinator.py`` to seed the transport's own
+# cache before polling.
+CONF_DE_PARCEL_NUMBER = "de_parcel_number"
+
+# DE only. The self-minted anonymous ``appInstanceId`` (BUILD_PLAN_DE.md §3)
+# lives in ``entry.data``, not ``entry.options`` — it is not a user
+# preference, options are rewritten on every parcel add/remove, and
+# ``entry.data`` is what ``async_migrate_entry`` already knows how to move.
+CONF_DE_APP_INSTANCE_ID = "de_app_instance_id"
 # Standard service field name shared by every parcel-suite carrier. GLS's
 # services accept ``tracking_code``; the old ``parcel_no`` field is a
 # deprecated alias (see services.py) kept working for now and removed soon.

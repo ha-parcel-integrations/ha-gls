@@ -41,9 +41,10 @@ A custom Home Assistant integration that tracks your GLS parcels in the Netherla
 ## Requirements
 
 - Home Assistant 2024.7 or newer
-- A GLS parcel delivered to a supported country. Only the **Netherlands**
-  is available today; the setup form links to a GitHub issue for
-  [requesting another country](https://github.com/ha-parcel-integrations/ha-gls/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement)
+- A GLS parcel delivered to a supported country. The **Netherlands** and
+  **Germany** are available today; the setup form links to the
+  [organisation discussion](https://github.com/ha-parcel-integrations/.github/discussions/new/choose)
+  for requesting another country
 
 ## Installation
 

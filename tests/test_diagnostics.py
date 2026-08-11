@@ -1,4 +1,5 @@
 """Tests for GLS diagnostics."""
+import json
 from unittest.mock import MagicMock
 
 from custom_components.gls.diagnostics import async_get_config_entry_diagnostics
@@ -6,6 +7,7 @@ from custom_components.gls.diagnostics import async_get_config_entry_diagnostics
 
 async def test_diagnostics_redacts_and_counts(hass):
     entry = MagicMock()
+    entry.data = {}
     entry.options = {"parcels": [{"parcel_no": "123", "postal_code": "1234AB"}]}
     entry.runtime_data.coordinator.data = [
         {"barcode": "123", "sender": "S", "raw": {"zipcode": "1234AB", "city": "Amsterdam"}}
@@ -18,3 +20,47 @@ async def test_diagnostics_redacts_and_counts(hass):
     # postal_code / parcel_no in the options are redacted
     assert result["entry_options"]["parcels"][0]["parcel_no"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["city"] == "**REDACTED**"
+
+
+async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
+    """No appInstanceId and no token string may appear anywhere in the output."""
+    app_instance_id = "11111111-2222-3333-4444-555555555555"
+    fake_token = "eyJhbGciOiJSUzI1NiJ9.super-secret-jwt-body.signature"
+
+    entry = MagicMock()
+    entry.data = {"de_app_instance_id": app_instance_id}
+    entry.options = {
+        "country": "DE",
+        "parcels": [
+            {
+                "parcel_no": "075624238061",
+                "postal_code": "00000",
+                "de_parcel_number": "YOXVB8CE",
+            }
+        ],
+    }
+    entry.runtime_data.coordinator.data = [
+        {
+            "barcode": "075624238061",
+            "sender": None,
+            "raw": {
+                "parcelNumber": "YOXVB8CE",
+                # defensive: even if a token or the id ever rode along in a
+                # raw payload, it must still be redacted.
+                "appInstanceId": app_instance_id,
+                "accessToken": fake_token,
+            },
+        }
+    ]
+    entry.runtime_data.coordinator.delivered = []
+
+    result = await async_get_config_entry_diagnostics(hass, entry)
+
+    dumped = json.dumps(result)
+    assert app_instance_id not in dumped
+    assert fake_token not in dumped
+    assert result["entry_data"]["de_app_instance_id"] == "**REDACTED**"
+    assert result["incoming"][0]["raw"]["appInstanceId"] == "**REDACTED**"
+    assert result["incoming"][0]["raw"]["accessToken"] == "**REDACTED**"
+    assert result["incoming"][0]["raw"]["parcelNumber"] == "**REDACTED**"
+    assert result["entry_options"]["parcels"][0]["de_parcel_number"] == "**REDACTED**"

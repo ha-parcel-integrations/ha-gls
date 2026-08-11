@@ -11,6 +11,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import GlsApiClient
 from .const import (
     CONF_COUNTRY,
+    CONF_DE_APP_INSTANCE_ID,
     CONF_POSTAL_CODE,
     COUNTRIES,
     DEFAULT_COUNTRY,
@@ -18,6 +19,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import GlsCoordinator, _refresh_interval
+from .countries.de.session import GlsDeSession
 from .services import async_setup_services, async_unload_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +31,7 @@ class GlsData:
 
     client: GlsApiClient
     coordinator: GlsCoordinator
+    de_session: GlsDeSession | None = None
 
 
 type GlsConfigEntry = ConfigEntry[GlsData]
@@ -44,17 +47,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     ):
         hass.config_entries.async_update_entry(entry, unique_id=postal_code)
 
-    # No auth: GLS tracking is public, so the HA-managed session is fine. The
-    # endpoint host + culture come from the hub country; entries created
-    # before the country option default to the Netherlands.
+    # The endpoint host + culture come from the hub country; entries created
+    # before the country option default to the Netherlands. NL is keyless
+    # (the HA-managed session is enough); DE needs its own anonymous
+    # guest-account session (BUILD_PLAN_DE.md §3) — self-minted, not shared,
+    # so it still clears the shared-secret refusal.
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     country_cfg = COUNTRIES.get(country, COUNTRIES[DEFAULT_COUNTRY])
+
+    de_session: GlsDeSession | None = None
+    if country == "DE":
+        de_session = GlsDeSession(
+            async_get_clientsession(hass),
+            app_instance_id=entry.data.get(CONF_DE_APP_INSTANCE_ID),
+        )
+
     client = GlsApiClient(
         async_get_clientsession(hass),
         host=country_cfg["host"],
         culture=country_cfg["culture"],
+        country=country,
+        de_session=de_session,
     )
-    coordinator = GlsCoordinator(hass, client, entry)
+    coordinator = GlsCoordinator(hass, client, entry, de_session=de_session)
 
     # Fetch initial data here, before forwarding to platforms. Raising
     # ConfigEntryNotReady from a forwarded platform is too late for HA to catch
@@ -63,7 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     # it with backoff.
     await coordinator.async_config_entry_first_refresh()
 
-    entry.runtime_data = GlsData(client=client, coordinator=coordinator)
+    entry.runtime_data = GlsData(client=client, coordinator=coordinator, de_session=de_session)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
