@@ -10,7 +10,14 @@ async def test_diagnostics_redacts_and_counts(hass):
     entry.data = {}
     entry.options = {"parcels": [{"parcel_no": "123", "postal_code": "1234AB"}]}
     entry.runtime_data.coordinator.data = [
-        {"barcode": "123", "sender": "S", "raw": {"zipcode": "1234AB", "city": "Amsterdam"}}
+        {
+            "barcode": "123",
+            "sender": "S",
+            "receiver": "R",
+            "pickup_point": "GLS ParcelShop Voorbeeldstraat",
+            "url": "https://www.gls-info.nl/tracking?trackid=123&zipcode=1234AB",
+            "raw": {"zipcode": "1234AB", "city": "Amsterdam"},
+        }
     ]
     entry.runtime_data.coordinator.delivered = []
 
@@ -20,6 +27,14 @@ async def test_diagnostics_redacts_and_counts(hass):
     # postal_code / parcel_no in the options are redacted
     assert result["entry_options"]["parcels"][0]["parcel_no"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["city"] == "**REDACTED**"
+    # canonical top-level fields — a parcel's own "url" embeds the tracking
+    # number and postal code as query params, which redaction can't scrub
+    # partially, so the whole field must be blanked.
+    assert result["incoming"][0]["barcode"] == "**REDACTED**"
+    assert result["incoming"][0]["sender"] == "**REDACTED**"
+    assert result["incoming"][0]["receiver"] == "**REDACTED**"
+    assert result["incoming"][0]["pickup_point"] == "**REDACTED**"
+    assert result["incoming"][0]["url"] == "**REDACTED**"
 
 
 async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
@@ -44,6 +59,8 @@ async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
             "barcode": "075624238061",
             "sender": None,
             "raw": {
+                "id": "11111111-aaaa-bbbb-cccc-222222222222",
+                "trackingReference": "075624238061",
                 "parcelNumber": "YOXVB8CE",
                 # defensive: even if a token or the id ever rode along in a
                 # raw payload, it must still be redacted.
@@ -63,4 +80,6 @@ async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
     assert result["incoming"][0]["raw"]["appInstanceId"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["accessToken"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["parcelNumber"] == "**REDACTED**"
+    assert result["incoming"][0]["raw"]["id"] == "**REDACTED**"
+    assert result["incoming"][0]["raw"]["trackingReference"] == "**REDACTED**"
     assert result["entry_options"]["parcels"][0]["de_parcel_number"] == "**REDACTED**"

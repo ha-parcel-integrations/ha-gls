@@ -17,6 +17,7 @@ TO_REDACT = {
     "gpNo",
     "uniqueNo",
     "reference",
+    "trackingReference",
     "zipcode",
     "zipCode",
     "postalCode",
@@ -40,6 +41,22 @@ TO_REDACT = {
     # parcelNo/uniqueNo/gpNo above.
     "de_parcel_number",
     "parcelNumber",
+    # DE's stable cross-app-instance parcel uuid (germany.md) — same
+    # identifier class as parcelNumber above.
+    "id",
+    # The *canonical* (normalize_parcel_*) top-level fields, not just the
+    # raw payload's own key spellings above. Without these, a parcel dict's
+    # "raw" sub-tree gets redacted but its own "barcode"/"sender"/"receiver"/
+    # "pickup_point"/"url" siblings don't — and "url" embeds the tracking
+    # number and postal code as literal query-string values (NL's
+    # gls-info.nl deep-link, DE/generic gls-group.com's), which
+    # async_redact_data can't partially scrub, so the whole field is
+    # redacted rather than left exposed.
+    "barcode",
+    "sender",
+    "receiver",
+    "pickup_point",
+    "url",
     # GLS Germany's guest-account identity (BUILD_PLAN_DE.md §3). Not a
     # secret in the credential sense (anyone can mint one), but it's a
     # stable per-install identifier — redact it anyway. It lives in
