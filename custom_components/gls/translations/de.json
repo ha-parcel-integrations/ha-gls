@@ -1,0 +1,177 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "GLS einrichten",
+        "description": "Wähle das Land, in das deine Pakete geliefert werden, und die Postleitzahl, an die sie normalerweise gehen. Pakete fügst du nach der Einrichtung hinzu.\n\nDie Niederlande und Deutschland werden aktuell unterstützt — [ein weiteres Land anfragen]({issue_url}).",
+        "data": {
+          "country": "Land",
+          "postal_code": "Postleitzahl"
+        },
+        "data_description": {
+          "postal_code": "z. B. 1234AB. Wird als Standard-Lieferadresse für Pakete verwendet, die du hinzufügst."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "GLS ist nicht erreichbar. Überprüfe deine Netzwerkverbindung.",
+      "invalid_parcel_no": "Das sieht nicht wie eine GLS-Paketnummer oder Sendungsverfolgungsnummer aus.",
+      "invalid_postcode": "Gib eine gültige niederländische Postleitzahl ein, z. B. 1234AB.",
+      "de_registration_failed": "Es konnte keine anonyme GLS-Deutschland-Sitzung registriert werden. Überprüfe deine Netzwerkverbindung und versuche es erneut."
+    },
+    "abort": {
+      "already_configured": "Für diese Postleitzahl ist bereits ein GLS-Hub eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS-Optionen",
+        "sections": {
+          "parcels": {
+            "name": "Pakete",
+            "data": {
+              "add": "Paket hinzufügen",
+              "remove": "Pakete entfernen"
+            },
+            "data_description": {
+              "add": "Gib eine GLS-Paketnummer oder Sendungsverfolgungsnummer ein, um sie zu verfolgen. Es wird die Postleitzahl des Hubs verwendet."
+            }
+          },
+          "delivered": {
+            "name": "Zugestellte Pakete",
+            "data": {
+              "delivered_filter_type": "Filtern nach",
+              "delivered_filter_amount": "Anzahl"
+            },
+            "data_description": {
+              "delivered_filter_type": "Zeige zugestellte Pakete der letzten X Tage oder beschränke auf die letzten X.",
+              "delivered_filter_amount": "Anzahl der Tage oder Pakete, die angezeigt werden sollen."
+            }
+          },
+          "history": {
+            "name": "Paketverlauf",
+            "data": {
+              "include_history": "Statusverlauf einbeziehen"
+            },
+            "data_description": {
+              "include_history": "Fügt ein Verlaufsattribut pro Paket hinzu, das jede Statusaktualisierung auflistet (Zeitstempel, Status, Originaltext). Standardmäßig aus."
+            }
+          },
+          "polling": {
+            "name": "Abfrageintervall",
+            "data": {
+              "refresh_interval": "Aktualisieren alle"
+            },
+            "data_description": {
+              "refresh_interval": "Wie oft die Integration bei GLS nach Paketaktualisierungen fragt. Ein längeres Intervall ist schonender für die GLS-API; der Standard von 30 Minuten reicht für die meisten Pakete aus."
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Das sieht nicht wie eine GLS-Paketnummer oder Sendungsverfolgungsnummer aus.",
+      "already_tracked": "Dieses Paket wird bereits verfolgt."
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 Minuten",
+        "30": "30 Minuten",
+        "60": "60 Minuten",
+        "120": "120 Minuten",
+        "240": "240 Minuten"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Tage",
+        "parcels": "Anzahl Pakete"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Paket verfolgen",
+      "description": "Beginnt, ein GLS-Paket anhand seiner Nummer zu verfolgen.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sendungsverfolgungsnummer",
+          "description": "Die GLS-Paketnummer oder Sendungsverfolgungsnummer."
+        },
+        "parcel_no": {
+          "name": "Paketnummer (veraltet)",
+          "description": "Veraltet — verwende stattdessen „Sendungsverfolgungsnummer“. Wird in einer zukünftigen Version entfernt."
+        },
+        "postal_code": {
+          "name": "Postleitzahl",
+          "description": "Postleitzahl der Lieferadresse. Wählt den Hub, wenn mehrere eingerichtet sind; andernfalls wird der einzige Hub verwendet."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Paketverfolgung beenden",
+      "description": "Beendet die Verfolgung eines GLS-Pakets anhand seiner Nummer.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sendungsverfolgungsnummer",
+          "description": "Die GLS-Sendungsverfolgungsnummer, deren Verfolgung beendet werden soll."
+        },
+        "parcel_no": {
+          "name": "Paketnummer (veraltet)",
+          "description": "Veraltet — verwende stattdessen „Sendungsverfolgungsnummer“. Wird in einer zukünftigen Version entfernt."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Ein Paket wurde registriert",
+      "parcel_status_changed": "Der Status eines Pakets hat sich geändert",
+      "parcel_delivered": "Ein Paket wurde zugestellt",
+      "parcel_delivery_time_changed": "Die voraussichtliche Zustellzeit eines Pakets hat sich geändert"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Aktualisieren"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Zustellungen"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Eingehende Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "next_delivery": {
+        "name": "Nächste Zustellung"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Unterwegs zum ParcelShop",
+        "unit_of_measurement": "Pakete"
+      },
+      "awaiting_pickup": {
+        "name": "Wartet auf Abholung",
+        "unit_of_measurement": "Pakete"
+      },
+      "delivered_parcels": {
+        "name": "Zugestellte Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "last_update": {
+        "name": "Letzte erfolgreiche Aktualisierung"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      }
+    }
+  }
+}
