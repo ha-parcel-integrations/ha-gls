@@ -123,11 +123,14 @@ async def test_nl_user_flow_does_not_touch_de_session(hass):
     assert result["data"] == {}
 
 
-def _hub(parcels: list[dict]) -> MockConfigEntry:
+def _hub(parcels: list[dict], *, country: str | None = None) -> MockConfigEntry:
+    options = {CONF_PARCELS: parcels, CONF_POSTAL_CODE: "1000AA"}
+    if country is not None:
+        options[CONF_COUNTRY] = country
     return MockConfigEntry(
         domain=DOMAIN,
         unique_id="1000AA",
-        options={CONF_PARCELS: parcels, CONF_POSTAL_CODE: "1000AA"},
+        options=options,
     )
 
 
@@ -163,6 +166,26 @@ async def test_options_add_parcel_uses_hub_postcode(hass):
     assert result["data"][CONF_PARCELS] == [
         {CONF_PARCEL_NO: "222222222", CONF_POSTAL_CODE: "1000AA"}
     ]
+
+
+async def test_options_flow_preserves_de_country(hass):
+    """Adding a parcel through the options flow must not reset the hub's country.
+
+    Regression test for ha-parcel-integrations/ha-gls#2: an options flow's
+    ``data`` replaces ``entry.options`` wholesale rather than merging into
+    it, so omitting CONF_COUNTRY here silently downgraded every DE hub to
+    NL the moment its first (mandatory, since CONF_PARCELS starts empty)
+    parcel was added.
+    """
+    entry = _hub([], country="DE")
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], _init_input(add="222222222")
+    )
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_COUNTRY] == "DE"
 
 
 async def test_options_add_alphanumeric_tracking_id(hass):

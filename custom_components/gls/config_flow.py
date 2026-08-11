@@ -231,6 +231,14 @@ class GlsOptionsFlowHandler(OptionsFlow):
                 return self.async_create_entry(
                     title="",
                     data={
+                        # An options flow's `data` replaces `entry.options`
+                        # wholesale rather than merging into it — omitting
+                        # the country here silently reset every hub back to
+                        # NL the first time a parcel was added
+                        # (ha-parcel-integrations/ha-gls#2).
+                        CONF_COUNTRY: self.config_entry.options.get(
+                            CONF_COUNTRY, DEFAULT_COUNTRY
+                        ),
                         CONF_POSTAL_CODE: hub_postcode,
                         CONF_PARCELS: parcels,
                         CONF_DELIVERED_FILTER_TYPE: delivered_section[
