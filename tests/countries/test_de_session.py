@@ -315,15 +315,18 @@ async def test_out_of_range_timestamp_falls_back_without_crashing():
 
 
 async def test_iso_timestamps_with_and_without_timezone_are_parsed():
+    now = datetime.now(timezone.utc)
+    issued = now - timedelta(hours=2)
+    expires = now + timedelta(hours=60)
     session = _session_with(
         _ctx(
             201,
             {
                 "accessToken": "tok1",
                 # naive (no offset) — must be treated as UTC
-                "issuedAt": "2026-08-10T00:00:00",
+                "issuedAt": issued.strftime("%Y-%m-%dT%H:%M:%S"),
                 # explicit Zulu suffix
-                "expiresAt": "2026-08-12T12:00:00Z",
+                "expiresAt": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),
             },
         )
     )
