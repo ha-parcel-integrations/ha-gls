@@ -178,9 +178,7 @@ CONF_DE_PARCEL_NUMBER = "de_parcel_number"
 # preference, options are rewritten on every parcel add/remove, and
 # ``entry.data`` is what ``async_migrate_entry`` already knows how to move.
 CONF_DE_APP_INSTANCE_ID = "de_app_instance_id"
-# Standard service field name shared by every parcel-suite carrier. GLS's
-# services accept ``tracking_code``; the old ``parcel_no`` field is a
-# deprecated alias (see services.py) kept working for now and removed soon.
+# Standard service field name shared by every parcel-suite carrier.
 CONF_TRACKING_CODE = "tracking_code"
 
 # Delivered-parcels retention: keep delivered parcels visible for the last N

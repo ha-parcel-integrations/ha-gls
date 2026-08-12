@@ -108,10 +108,6 @@
           "name": "Sendungsverfolgungsnummer",
           "description": "Die GLS-Paketnummer oder Sendungsverfolgungsnummer."
         },
-        "parcel_no": {
-          "name": "Paketnummer (veraltet)",
-          "description": "Veraltet — verwende stattdessen „Sendungsverfolgungsnummer“. Wird in einer zukünftigen Version entfernt."
-        },
         "postal_code": {
           "name": "Postleitzahl",
           "description": "Postleitzahl der Lieferadresse. Wählt den Hub, wenn mehrere eingerichtet sind; andernfalls wird der einzige Hub verwendet."
@@ -125,10 +121,6 @@
         "tracking_code": {
           "name": "Sendungsverfolgungsnummer",
           "description": "Die GLS-Sendungsverfolgungsnummer, deren Verfolgung beendet werden soll."
-        },
-        "parcel_no": {
-          "name": "Paketnummer (veraltet)",
-          "description": "Veraltet — verwende stattdessen „Sendungsverfolgungsnummer“. Wird in einer zukünftigen Version entfernt."
         }
       }
     }

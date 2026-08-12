@@ -190,8 +190,6 @@ event-driven automations.
 | `gls.track_parcel` | Start tracking a parcel — `tracking_code` (required) and `postal_code` (optional, defaults to the hub postal code). |
 | `gls.untrack_parcel` | Stop tracking a parcel — `tracking_code`. |
 
-> The field was renamed from `parcel_no` to `tracking_code` for consistency across the parcel-integration family. The old `parcel_no` field still works but is **deprecated** and will be removed in a future release — update your automations to `tracking_code`.
-
 ## Examples
 
 Ready-to-paste automations and dashboard snippets live in

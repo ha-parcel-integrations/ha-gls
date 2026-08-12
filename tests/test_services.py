@@ -2,6 +2,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import voluptuous as vol
 from homeassistant.exceptions import ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -39,7 +40,7 @@ async def test_track_parcel_adds_to_options(hass):
         new=AsyncMock(return_value=minimal_no_eta_sample()),
     ):
         await hass.services.async_call(
-            DOMAIN, "track_parcel", {CONF_PARCEL_NO: "9999999999999"}, blocking=True
+            DOMAIN, "track_parcel", {CONF_TRACKING_CODE: "9999999999999"}, blocking=True
         )
         await hass.async_block_till_done()
 
@@ -51,7 +52,7 @@ async def test_track_parcel_rejects_invalid_number(hass):
     await _setup(hass)
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
-            DOMAIN, "track_parcel", {CONF_PARCEL_NO: "abc"}, blocking=True
+            DOMAIN, "track_parcel", {CONF_TRACKING_CODE: "abc"}, blocking=True
         )
 
 
@@ -61,7 +62,7 @@ async def test_track_parcel_rejects_invalid_postcode(hass):
         await hass.services.async_call(
             DOMAIN,
             "track_parcel",
-            {CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "nope"},
+            {CONF_TRACKING_CODE: "9999999999999", CONF_POSTAL_CODE: "nope"},
             blocking=True,
         )
 
@@ -74,7 +75,10 @@ async def test_track_parcel_duplicate_is_noop(hass):
     ):
         for _ in range(2):
             await hass.services.async_call(
-                DOMAIN, "track_parcel", {CONF_PARCEL_NO: "9999999999999"}, blocking=True
+                DOMAIN,
+                "track_parcel",
+                {CONF_TRACKING_CODE: "9999999999999"},
+                blocking=True,
             )
             await hass.async_block_till_done()
 
@@ -108,7 +112,7 @@ async def test_track_parcel_routes_to_hub_by_postcode(hass):
         await hass.services.async_call(
             DOMAIN,
             "track_parcel",
-            {CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "2000BB"},
+            {CONF_TRACKING_CODE: "9999999999999", CONF_POSTAL_CODE: "2000BB"},
             blocking=True,
         )
         await hass.async_block_till_done()
@@ -124,7 +128,7 @@ async def test_track_parcel_ambiguous_without_postcode(hass):
     await _setup_hub(hass, "2000BB")
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
-            DOMAIN, "track_parcel", {CONF_PARCEL_NO: "9999999999999"}, blocking=True
+            DOMAIN, "track_parcel", {CONF_TRACKING_CODE: "9999999999999"}, blocking=True
         )
 
 
@@ -146,35 +150,14 @@ async def test_untrack_parcel_removes_from_options(hass):
         await hass.async_block_till_done()
 
         await hass.services.async_call(
-            DOMAIN, "untrack_parcel", {CONF_PARCEL_NO: "9999999999999"}, blocking=True
+            DOMAIN, "untrack_parcel", {CONF_TRACKING_CODE: "9999999999999"}, blocking=True
         )
         await hass.async_block_till_done()
 
     assert entry.options[CONF_PARCELS] == []
 
 
-# The tests above call the services with the deprecated ``parcel_no`` field,
-# which keeps working via the alias. The two below cover the new standard
-# ``tracking_code`` field and the "neither field given" error.
-
-
-async def test_track_parcel_accepts_tracking_code(hass):
-    entry = await _setup(hass)
-    with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
-        new=AsyncMock(return_value=minimal_no_eta_sample()),
-    ):
-        await hass.services.async_call(
-            DOMAIN, "track_parcel", {CONF_TRACKING_CODE: "9999999999999"}, blocking=True
-        )
-        await hass.async_block_till_done()
-
-    assert entry.options[CONF_PARCELS] == [
-        {CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "1234AB"}
-    ]
-
-
 async def test_track_parcel_requires_a_code(hass):
     await _setup(hass)
-    with pytest.raises(ServiceValidationError):
+    with pytest.raises(vol.Invalid):
         await hass.services.async_call(DOMAIN, "track_parcel", {}, blocking=True)

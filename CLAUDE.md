@@ -51,10 +51,11 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
   validated the same. Adding takes only the number — the postcode is **always** the
   hub's; the service keeps an optional `postal_code` for the rare
   different-address case.
-- **Service field is `tracking_code`** (suite-wide standard). The old `parcel_no`
-  field is a **deprecated alias** — `_resolve_code` accepts either, logs a one-shot
-  deprecation warning, **to be removed**. The *stored* dict key stays `parcel_no`
-  (`CONF_PARCEL_NO`) — only the service field was renamed; don't conflate them.
+- **Service field is `tracking_code`** (suite-wide standard); the deprecated
+  `parcel_no` alias has been removed from the services (ha-gls#3). The *stored*
+  dict key stays `parcel_no` (`CONF_PARCEL_NO`) — that's an internal options
+  key, not the service field, and was never part of the alias; don't conflate
+  them.
 - **Options flow = one sectioned form** (`parcels` / `history` / `polling`), not a
   menu. The `remove` multiselect is only in the schema when parcels exist; do
   remove-then-add so re-adding a just-removed number works.

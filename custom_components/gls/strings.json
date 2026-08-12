@@ -108,10 +108,6 @@
           "name": "Tracking code",
           "description": "The GLS parcel number or tracking ID."
         },
-        "parcel_no": {
-          "name": "Parcel number (deprecated)",
-          "description": "Deprecated — use 'Tracking code' instead. Will be removed in a future release."
-        },
         "postal_code": {
           "name": "Postal code",
           "description": "Delivery postal code. Picks the hub when several are set up; otherwise defaults to the only hub."
@@ -125,10 +121,6 @@
         "tracking_code": {
           "name": "Tracking code",
           "description": "The GLS tracking number to stop tracking."
-        },
-        "parcel_no": {
-          "name": "Parcel number (deprecated)",
-          "description": "Deprecated — use 'Tracking code' instead. Will be removed in a future release."
         }
       }
     }

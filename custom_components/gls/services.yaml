@@ -5,11 +5,6 @@ track_parcel:
       example: "0085105093278"
       selector:
         text:
-    parcel_no:
-      required: false
-      example: "0085105093278"
-      selector:
-        text:
     postal_code:
       required: false
       example: "1234AB"
@@ -20,11 +15,6 @@ untrack_parcel:
   fields:
     tracking_code:
       required: true
-      example: "0085105093278"
-      selector:
-        text:
-    parcel_no:
-      required: false
       example: "0085105093278"
       selector:
         text:

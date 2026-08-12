@@ -108,10 +108,6 @@
           "name": "Trackingcode",
           "description": "Het GLS-pakketnummer of tracking-ID."
         },
-        "parcel_no": {
-          "name": "Pakketnummer (verouderd)",
-          "description": "Verouderd — gebruik 'Trackingcode'. Wordt in een volgende release verwijderd."
-        },
         "postal_code": {
           "name": "Postcode",
           "description": "Bezorgpostcode. Kiest de hub als er meerdere zijn; anders standaard de enige hub."
@@ -125,10 +121,6 @@
         "tracking_code": {
           "name": "Trackingcode",
           "description": "Het GLS-trackingnummer dat je niet meer wilt volgen."
-        },
-        "parcel_no": {
-          "name": "Pakketnummer (verouderd)",
-          "description": "Verouderd — gebruik 'Trackingcode'. Wordt in een volgende release verwijderd."
         }
       }
     }

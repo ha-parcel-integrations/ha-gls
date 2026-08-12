@@ -34,51 +34,17 @@ _LOGGER = logging.getLogger(__name__)
 SERVICE_TRACK_PARCEL = "track_parcel"
 SERVICE_UNTRACK_PARCEL = "untrack_parcel"
 
-# ``tracking_code`` is the standard field across every parcel-suite carrier.
-# ``parcel_no`` is a deprecated alias kept working for backwards compatibility
-# and will be removed in a future release; both are optional at the schema
-# level and ``_resolve_code`` requires exactly one.
 _TRACK_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_TRACKING_CODE): cv.string,
-        vol.Optional(CONF_PARCEL_NO): cv.string,
+        vol.Required(CONF_TRACKING_CODE): cv.string,
         vol.Optional(CONF_POSTAL_CODE): cv.string,
     }
 )
 _UNTRACK_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_TRACKING_CODE): cv.string,
-        vol.Optional(CONF_PARCEL_NO): cv.string,
+        vol.Required(CONF_TRACKING_CODE): cv.string,
     }
 )
-
-# One-shot so the deprecation is logged once per HA session, not per call.
-_parcel_no_deprecation_logged = False
-
-
-def _resolve_code(call: ServiceCall) -> str:
-    """Return the tracking code from a service call.
-
-    Accepts the standard ``tracking_code`` field or the deprecated
-    ``parcel_no`` alias. Using ``parcel_no`` logs a one-shot deprecation
-    warning; passing neither raises.
-    """
-    global _parcel_no_deprecation_logged
-    code = call.data.get(CONF_TRACKING_CODE)
-    if code is None:
-        code = call.data.get(CONF_PARCEL_NO)
-        if code is not None and not _parcel_no_deprecation_logged:
-            _parcel_no_deprecation_logged = True
-            _LOGGER.warning(
-                "The '%s' field of the GLS %s service is deprecated and will "
-                "be removed in a future release — use '%s' instead.",
-                CONF_PARCEL_NO,
-                call.service,
-                CONF_TRACKING_CODE,
-            )
-    if code is None:
-        raise ServiceValidationError(f"'{CONF_TRACKING_CODE}' is required")
-    return code
 
 
 def _resolve_entry(hass: HomeAssistant, postal_code: str | None):
@@ -109,7 +75,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         return
 
     async def _track(call: ServiceCall) -> None:
-        parcel_no = normalize_parcel_no(_resolve_code(call))
+        parcel_no = normalize_parcel_no(call.data[CONF_TRACKING_CODE])
         if not valid_parcel_no(parcel_no):
             raise ServiceValidationError(f"'{parcel_no}' is not a valid parcel number")
         entry = _resolve_entry(hass, call.data.get(CONF_POSTAL_CODE))
@@ -130,7 +96,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         )
 
     async def _untrack(call: ServiceCall) -> None:
-        parcel_no = normalize_parcel_no(_resolve_code(call))
+        parcel_no = normalize_parcel_no(call.data[CONF_TRACKING_CODE])
         entries = hass.config_entries.async_entries(DOMAIN)
         if not entries:
             raise ServiceValidationError("GLS is not set up")
