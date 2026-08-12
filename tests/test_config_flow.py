@@ -53,12 +53,14 @@ async def test_user_flow_invalid_postcode_keeps_selected_country(hass):
         DOMAIN, context={"source": "user"}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_COUNTRY: "DE", CONF_POSTAL_CODE: "nope"}
+        result["flow_id"], {CONF_COUNTRY: "de", CONF_POSTAL_CODE: "nope"}
     )
     assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
     assert result["description_placeholders"]["postcode_example"] == "12345"
     country_key = next(k for k in result["data_schema"].schema if k == CONF_COUNTRY)
-    assert country_key.default() == "DE"
+    # The selector itself only accepts lower-case option values (hassfest
+    # translation-key rule); the stored/internal value stays upper-case.
+    assert country_key.default() == "de"
 
 
 async def test_same_postcode_hub_rejected(hass):
@@ -102,7 +104,7 @@ async def test_de_user_flow_registers_and_stores_app_instance_id(hass):
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {CONF_COUNTRY: "DE", CONF_POSTAL_CODE: "12345"},
+            {CONF_COUNTRY: "de", CONF_POSTAL_CODE: "12345"},
         )
     assert result["type"] == "create_entry"
     assert result["options"][CONF_COUNTRY] == "DE"
@@ -121,7 +123,7 @@ async def test_de_user_flow_registration_failure_shows_error(hass):
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {CONF_COUNTRY: "DE", CONF_POSTAL_CODE: "12345"},
+            {CONF_COUNTRY: "de", CONF_POSTAL_CODE: "12345"},
         )
     assert result["type"] == "form"
     assert result["errors"]["base"] == "de_registration_failed"
@@ -137,7 +139,7 @@ async def test_nl_user_flow_does_not_touch_de_session(hass):
             DOMAIN, context={"source": "user"}
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {CONF_COUNTRY: "NL", CONF_POSTAL_CODE: "1234AB"}
+            result["flow_id"], {CONF_COUNTRY: "nl", CONF_POSTAL_CODE: "1234AB"}
         )
     assert result["type"] == "create_entry"
     assert result["data"] == {}

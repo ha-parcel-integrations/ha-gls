@@ -79,8 +79,8 @@
   "selector": {
     "country": {
       "options": {
-        "NL": "Niederlande",
-        "DE": "Deutschland"
+        "nl": "Niederlande",
+        "de": "Deutschland"
       }
     },
     "refresh_interval": {

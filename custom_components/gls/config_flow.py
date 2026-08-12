@@ -54,7 +54,12 @@ _PARCEL_NO_RE = re.compile(r"^[A-Z0-9]{6,20}$")
 # a country not yet in COUNTRIES (see REQUEST_COUNTRY_URL).
 _COUNTRY_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
-        options=list(COUNTRIES),
+        # Selector option values double as hassfest translation keys, which
+        # must be lowercase — COUNTRIES/CONF_COUNTRY's actual stored value
+        # stays upper-case (DPD-style ``"NL"``/``"DE"``) everywhere else, so
+        # this list is a display-only lowercase mirror. async_step_user
+        # upper-cases the submitted value right back before using it.
+        options=[code.lower() for code in COUNTRIES],
         translation_key=CONF_COUNTRY,
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
@@ -66,11 +71,15 @@ def _hub_schema(country: str) -> vol.Schema:
     ``DEFAULT_COUNTRY`` when the form is re-shown after a validation error —
     the country the user picked would visibly reset to NL
     (ha-parcel-integrations/ha-gls#4). Rebuilding it per-request keeps the
-    selection sticky across errors.
+    selection sticky across errors. ``country`` is the upper-case stored
+    value; the selector itself only speaks lower-case (see
+    ``_COUNTRY_SELECTOR``), hence the ``.lower()`` on the default.
     """
     return vol.Schema(
         {
-            vol.Required(CONF_COUNTRY, default=country): _COUNTRY_SELECTOR,
+            vol.Required(
+                CONF_COUNTRY, default=country.lower()
+            ): _COUNTRY_SELECTOR,
             vol.Required(CONF_POSTAL_CODE): str,
         }
     )
@@ -143,7 +152,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
         country = DEFAULT_COUNTRY
 
         if user_input is not None:
-            country = user_input[CONF_COUNTRY]
+            country = user_input[CONF_COUNTRY].upper()
             postal_code = normalize_postcode(user_input[CONF_POSTAL_CODE])
             if not valid_postcode(postal_code, country):
                 errors[CONF_POSTAL_CODE] = "invalid_postcode"
