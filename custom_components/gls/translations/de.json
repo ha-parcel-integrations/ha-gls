@@ -10,14 +10,14 @@
           "postal_code": "Postleitzahl"
         },
         "data_description": {
-          "postal_code": "z. B. 1234AB. Wird als Standard-Lieferadresse für Pakete verwendet, die du hinzufügst."
+          "postal_code": "z. B. {postcode_example}. Wird als Standard-Lieferadresse für Pakete verwendet, die du hinzufügst."
         }
       }
     },
     "error": {
       "cannot_connect": "GLS ist nicht erreichbar. Überprüfe deine Netzwerkverbindung.",
       "invalid_parcel_no": "Das sieht nicht wie eine GLS-Paketnummer oder Sendungsverfolgungsnummer aus.",
-      "invalid_postcode": "Gib eine gültige niederländische Postleitzahl ein, z. B. 1234AB.",
+      "invalid_postcode": "Gib eine gültige Postleitzahl für das gewählte Land ein, z. B. {postcode_example}.",
       "de_registration_failed": "Es konnte keine anonyme GLS-Deutschland-Sitzung registriert werden. Überprüfe deine Netzwerkverbindung und versuche es erneut."
     },
     "abort": {

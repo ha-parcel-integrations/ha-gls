@@ -59,12 +59,21 @@ _COUNTRY_SELECTOR = selector.SelectSelector(
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
 )
-_HUB_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_COUNTRY, default=DEFAULT_COUNTRY): _COUNTRY_SELECTOR,
-        vol.Required(CONF_POSTAL_CODE): str,
-    }
-)
+def _hub_schema(country: str) -> vol.Schema:
+    """Build the setup schema, defaulting the country to the last-picked one.
+
+    A ``vol.Schema`` built once at import time would always default back to
+    ``DEFAULT_COUNTRY`` when the form is re-shown after a validation error —
+    the country the user picked would visibly reset to NL
+    (ha-parcel-integrations/ha-gls#4). Rebuilding it per-request keeps the
+    selection sticky across errors.
+    """
+    return vol.Schema(
+        {
+            vol.Required(CONF_COUNTRY, default=country): _COUNTRY_SELECTOR,
+            vol.Required(CONF_POSTAL_CODE): str,
+        }
+    )
 
 
 def normalize_postcode(value: str) -> str:
@@ -131,6 +140,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
         picks the endpoint (host/culture) and the postcode format.
         """
         errors: dict[str, str] = {}
+        country = DEFAULT_COUNTRY
 
         if user_input is not None:
             country = user_input[CONF_COUNTRY]
@@ -180,9 +190,12 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_HUB_SCHEMA,
+            data_schema=_hub_schema(country),
             errors=errors,
-            description_placeholders={"issue_url": REQUEST_COUNTRY_URL},
+            description_placeholders={
+                "issue_url": REQUEST_COUNTRY_URL,
+                "postcode_example": COUNTRIES[country]["postcode_example"],
+            },
         )
 
 

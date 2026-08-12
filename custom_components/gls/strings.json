@@ -10,14 +10,14 @@
           "postal_code": "Postal code"
         },
         "data_description": {
-          "postal_code": "e.g. 1234AB. Used as the default delivery address for parcels you add."
+          "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add."
         }
       }
     },
     "error": {
       "cannot_connect": "Unable to reach GLS. Check your network.",
       "invalid_parcel_no": "That does not look like a GLS parcel number or tracking ID.",
-      "invalid_postcode": "Enter a valid Dutch postal code, e.g. 1234AB.",
+      "invalid_postcode": "Enter a valid postal code for the selected country, e.g. {postcode_example}.",
       "de_registration_failed": "Could not register an anonymous GLS Germany session. Check your network and try again."
     },
     "abort": {

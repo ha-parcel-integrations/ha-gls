@@ -10,14 +10,14 @@
           "postal_code": "Postcode"
         },
         "data_description": {
-          "postal_code": "Bijv. 1234AB. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt."
+          "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt."
         }
       }
     },
     "error": {
       "cannot_connect": "Kan GLS niet bereiken. Controleer je netwerkverbinding.",
       "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer of tracking-ID.",
-      "invalid_postcode": "Voer een geldige Nederlandse postcode in, bijv. 1234AB.",
+      "invalid_postcode": "Voer een geldige postcode in voor het gekozen land, bijv. {postcode_example}.",
       "de_registration_failed": "Kon geen anonieme GLS Duitsland-sessie registreren. Controleer je netwerkverbinding en probeer het opnieuw."
     },
     "abort": {

@@ -107,9 +107,12 @@ GLS_DE_VALIDATE_URL = (
 CONF_COUNTRY = "country"
 DEFAULT_COUNTRY = "NL"
 
-# code -> {label, host, culture, postcode_regex, tracking_url}.
+# code -> {host, culture, postcode_regex, postcode_example, tracking_url}.
 # ``postcode_regex`` matches a normalised (space-stripped, upper-cased)
-# postcode for that country. ``tracking_url`` is the consumer deep-link for
+# postcode for that country. ``postcode_example`` is shown in the setup form's
+# help text and invalid-postcode error, so it must match the country actually
+# selected (ha-parcel-integrations/ha-gls#4: it used to be hard-coded to NL's
+# format regardless of country). ``tracking_url`` is the consumer deep-link for
 # the parcel's ``url`` field: the generic ``gls-group.com`` link intermittently
 # returns "package not found" for NL parcels, so NL points at the country site
 # ``gls-info.nl``, which needs the postcode as well as the parcel number.
@@ -128,6 +131,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "host": "apm.gls.nl",
         "culture": "nl-NL",
         "postcode_regex": r"^\d{4}[A-Z]{2}$",
+        "postcode_example": "1234AB",
         "tracking_url": (
             "https://www.gls-info.nl/tracking"
             "?trackid={parcel_no}&zipcode={postal_code}"
@@ -137,6 +141,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "host": GLS_DE_TRACKINGS_HOST,
         "culture": "de-DE",
         "postcode_regex": r"^\d{5}$",
+        "postcode_example": "12345",
     },
 }
 

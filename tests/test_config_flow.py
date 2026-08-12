@@ -39,6 +39,26 @@ async def test_user_flow_invalid_postcode(hass):
         result["flow_id"], {CONF_POSTAL_CODE: "nope"}
     )
     assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+    assert result["description_placeholders"]["postcode_example"] == "1234AB"
+
+
+async def test_user_flow_invalid_postcode_keeps_selected_country(hass):
+    """Regression test for ha-parcel-integrations/ha-gls#4.
+
+    An invalid postcode used to re-show the form defaulted back to NL,
+    even when the user had picked DE — and the error/help text always
+    referred to the Dutch postcode format regardless of country.
+    """
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "DE", CONF_POSTAL_CODE: "nope"}
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+    assert result["description_placeholders"]["postcode_example"] == "12345"
+    country_key = next(k for k in result["data_schema"].schema if k == CONF_COUNTRY)
+    assert country_key.default() == "DE"
 
 
 async def test_same_postcode_hub_rejected(hass):
