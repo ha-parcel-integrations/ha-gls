@@ -77,6 +77,12 @@
     }
   },
   "selector": {
+    "country": {
+      "options": {
+        "NL": "Nederland",
+        "DE": "Duitsland"
+      }
+    },
     "refresh_interval": {
       "options": {
         "15": "15 minuten",

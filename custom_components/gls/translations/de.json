@@ -77,6 +77,12 @@
     }
   },
   "selector": {
+    "country": {
+      "options": {
+        "NL": "Niederlande",
+        "DE": "Deutschland"
+      }
+    },
     "refresh_interval": {
       "options": {
         "15": "15 Minuten",

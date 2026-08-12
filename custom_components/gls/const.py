@@ -125,7 +125,6 @@ DEFAULT_COUNTRY = "NL"
 # fallback below directly, keyed on ``parcelNumber``.
 COUNTRIES: dict[str, dict[str, str]] = {
     "NL": {
-        "label": "Netherlands",
         "host": "apm.gls.nl",
         "culture": "nl-NL",
         "postcode_regex": r"^\d{4}[A-Z]{2}$",
@@ -135,7 +134,6 @@ COUNTRIES: dict[str, dict[str, str]] = {
         ),
     },
     "DE": {
-        "label": "Germany",
         "host": GLS_DE_TRACKINGS_HOST,
         "culture": "de-DE",
         "postcode_regex": r"^\d{5}$",

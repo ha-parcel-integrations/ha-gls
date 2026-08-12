@@ -54,10 +54,8 @@ _PARCEL_NO_RE = re.compile(r"^[A-Z0-9]{6,20}$")
 # a country not yet in COUNTRIES (see REQUEST_COUNTRY_URL).
 _COUNTRY_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
-        options=[
-            selector.SelectOptionDict(value=code, label=cfg["label"])
-            for code, cfg in COUNTRIES.items()
-        ],
+        options=list(COUNTRIES),
+        translation_key=CONF_COUNTRY,
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
 )
