@@ -423,6 +423,22 @@ def test_normalize_sender_receiver_best_effort():
     assert parcel["receiver"] == "Empfänger"
 
 
+def test_normalize_receiver_prefers_recipient_name_over_consignee_information():
+    raw = delivered_sample_de()
+    raw["recipientName"] = "J. Doe"
+    raw["consigneeInformation"] = {"name": "Empfänger"}
+    parcel = normalize_parcel_de(raw)
+    assert parcel["receiver"] == "J. Doe"
+
+
+def test_normalize_receiver_falls_back_when_recipient_name_is_null():
+    raw = delivered_sample_de()
+    raw["recipientName"] = None
+    raw["consigneeInformation"] = {"name": "Empfänger"}
+    parcel = normalize_parcel_de(raw)
+    assert parcel["receiver"] == "Empfänger"
+
+
 def test_normalize_pickup_shop_information():
     raw = delivered_sample_de()
     raw["shopInformation"] = {"name": "GLS ParcelShop Musterstraße"}

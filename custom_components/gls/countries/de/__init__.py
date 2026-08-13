@@ -314,11 +314,11 @@ _KNOWN_TOP_LEVEL_KEYS = {
     "consigneeInformation",
     "senderInformation",
     # Reported via this WARNING itself (ha-gls#2, 2026-08-11/13) — key names
-    # and types only, no captured values, so none of these are mapped into
-    # normalize_parcel_de yet (germany.md's "Fourth signal" note). Silenced
-    # here only to stop the per-restart noise on a known-real DE parcel;
+    # and types only, no captured values (germany.md's "Fourth signal" note).
     # `international` is the real name the dex guess `isInternational` above
-    # got wrong:
+    # got wrong. `recipientName` is mapped into `receiver` (see
+    # `_receiver_name`); the rest are silenced only to stop the per-restart
+    # noise on a known-real DE parcel, still unmapped:
     "failedDeliveryAttempt",
     "isEvDelivery",
     "recipientName",
@@ -468,7 +468,16 @@ def _sender_name(raw: dict) -> str | None:
 
 
 def _receiver_name(raw: dict) -> str | None:
-    """Best-effort receiver name — ``consigneeInformation``'s sub-shape is unverified (§4)."""
+    """Best-effort receiver name.
+
+    ``recipientName`` is a confirmed real top-level key (ha-gls#2,
+    2026-08-11/13 WARNING log) — only ever seen ``null`` so far, but a flat
+    string field. Prefer it over ``consigneeInformation``, whose nested shape
+    is still dex-only and has never once appeared on the wire (§4).
+    """
+    name = raw.get("recipientName")
+    if name:
+        return name
     info = raw.get("consigneeInformation")
     if isinstance(info, dict):
         return info.get("name")
