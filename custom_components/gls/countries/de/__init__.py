@@ -313,6 +313,17 @@ _KNOWN_TOP_LEVEL_KEYS = {
     "shopInformation",
     "consigneeInformation",
     "senderInformation",
+    # Reported via this WARNING itself (ha-gls#2, 2026-08-11/13) — key names
+    # and types only, no captured values, so none of these are mapped into
+    # normalize_parcel_de yet (germany.md's "Fourth signal" note). Silenced
+    # here only to stop the per-restart noise on a known-real DE parcel;
+    # `international` is the real name the dex guess `isInternational` above
+    # got wrong:
+    "failedDeliveryAttempt",
+    "isEvDelivery",
+    "recipientName",
+    "pickedUpFromDepot",
+    "international",
 }
 
 
