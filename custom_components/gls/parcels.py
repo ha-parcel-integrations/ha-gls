@@ -1,6 +1,6 @@
 """Per-country ``normalize_parcel`` dispatcher, plus generic list helpers.
 
-The mapping/status logic itself moved to ``countries/nl.py`` and
+The mapping/status logic itself moved to ``countries/nl/`` and
 ``countries/de/`` as part of the ``countries/`` restructure — this file picks
 the right one by ``country`` and carries no per-country branching beyond that
 one dispatch. ``sort_parcels_by_ts`` and the delivered-retention filter stay

@@ -3,8 +3,9 @@
 Moved out of the former ``api.py``/``parcels.py`` as part of the
 ``countries/`` restructure (BUILD_PLAN_DE.md's "structural decision") — pure
 relocation, no behaviour change. ``api.py`` and ``parcels.py`` now dispatch to
-this module by ``CONF_COUNTRY``; NL needs no nested package (no lifecycle
-module, unlike DE's ``countries/de/session.py``).
+this module by ``CONF_COUNTRY``. Packaged as ``countries/nl/`` for symmetry
+with ``countries/de/`` rather than because NL needs an extra submodule of its
+own — unlike DE, NL has no lifecycle module (no ``session.py`` here).
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from typing import Any
 
 import aiohttp
 
-from ..const import (
+from ...const import (
     COUNTRIES,
     DEFAULT_COUNTRY,
     HISTORY_MAX_EVENTS,
@@ -24,7 +25,7 @@ from ..const import (
     GlsApiError,
     ParcelStatus,
 )
-from ..timeutils import parse_iso as _parse_iso
+from ...timeutils import parse_iso as _parse_iso
 
 _LOGGER = logging.getLogger(__name__)
 

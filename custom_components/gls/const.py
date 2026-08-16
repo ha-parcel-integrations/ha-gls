@@ -49,8 +49,8 @@ CAPABILITIES = frozenset({"pickup_point", "url", "history"})
 class GlsApiError(Exception):
     """Raised when a GLS parcel-backend call returns an unexpected status.
 
-    Shared across every country's transport (``countries/nl.py``,
-    ``countries/de.py``) so ``coordinator.py``'s single
+    Shared across every country's transport (``countries/nl/``,
+    ``countries/de/``) so ``coordinator.py``'s single
     ``except (GlsApiError, aiohttp.ClientError)`` branch keeps working
     regardless of which country produced the failure. Lives here rather than
     in ``api.py`` so a country module can raise it without importing

@@ -77,13 +77,14 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
   the setup form links `NEW_COUNTRY_ISSUE_URL`. **Do not switch to the
   registration-gated group REST.** `unique_id` stays the bare postcode (fine while
   NL-only); fold in the country once a second lands.
-- **Per-country code lives in `custom_components/gls/countries/<code>.py`**
-  (transport, `normalize_parcel_<code>`, `map_parcel_status_<code>`; a nested
-  `countries/<code>/` package where a country needs its own lifecycle module,
-  e.g. DE's session/token handling). Concern-level files — `coordinator.py`,
+- **Per-country code lives in `custom_components/gls/countries/<code>/`** —
+  every country is its own package (`__init__.py` holding transport,
+  `normalize_parcel_<code>`, `map_parcel_status_<code>`), with an *extra*
+  submodule added only where a country needs its own lifecycle handling,
+  e.g. DE's `session.py`. Concern-level files — `coordinator.py`,
   `config_flow.py`, `diagnostics.py`, `sensor.py`, etc. — stay top-level and
-  dispatch into the country module; they carry no per-country branching
-  themselves. **Trigger for a country getting its own module is structural
+  dispatch into the country package; they carry no per-country branching
+  themselves. **Trigger for a country getting an extra submodule is structural
   divergence from NL (auth model, transport, payload shape, status vocabulary),
   not country count** — decided when DE (bearer-POST, session lifecycle, string
   status enum, non-ISO timestamps) turned out to share almost nothing with NL's
