@@ -463,6 +463,127 @@ def test_normalize_unparseable_delivered_at_falls_back_to_none():
     assert parcel["delivered"] is False
 
 
+def delivered_sample_de_full_lifecycle(
+    tracking_reference: str = "REDACTED_TRACKING_REF_2",
+) -> dict:
+    """A fifth real (redacted) captured body, 2026-08-16 — full payload.
+
+    Still delivered — the §0 in-transit gate stays open — but the richest
+    capture yet: nine ``deliveryEvents`` in German (``Accept-Language:
+    de-DE``, the production default), and real (falsy) values for four keys
+    the 2026-08-11 signal had only ever reported as ``key: type`` with no
+    value (``failedDeliveryAttempt``, ``isEvDelivery``, ``recipientName``,
+    ``pickedUpFromDepot``). Also the first sighting of ``changeDeliveryUrl``
+    and of ``isInternational`` co-occurring with ``international`` as its
+    own distinct key — see germany.md.
+    """
+    return {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "trackingReference": tracking_reference,
+        "parcelNumber": "REDACTED_PARCEL_NUMBER_2",
+        "name": None,
+        "parcelIcon": "PLAIN",
+        "deliveryDirection": "UNKNOWN",
+        "deliveredAt": "2026-08-10 14:46:27",
+        "latestStatusText": (
+            "Das Paket wurde erfolgreich zugestellt (abgestellt / eingeworfen)."
+        ),
+        "unlocked": False,
+        "archived": False,
+        "hasDeliveryAttemptFailed": False,
+        "updatedAt": "2026-08-11 21:23:43",
+        "depotInformation": None,
+        "shopInformation": None,
+        "consigneeInformation": None,
+        "senderInformation": None,
+        "changeDeliveryUrl": None,
+        "failedDeliveryAttempt": None,
+        "isEvDelivery": False,
+        "recipientName": None,
+        "pickedUpFromDepot": False,
+        "international": False,
+        "isInternational": False,
+        "addedAt": None,
+        "deliveryEvents": [
+            {
+                "description": (
+                    "Das Paket wurde erfolgreich zugestellt (abgestellt / "
+                    "eingeworfen)."
+                ),
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-10 14:46:27",
+            },
+            {
+                "description": (
+                    "Das Paket wird voraussichtlich im Laufe des Tages "
+                    "zugestellt."
+                ),
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-10 07:52:08",
+            },
+            {
+                "description": "Das Paket ist im Paketzentrum eingetroffen.",
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-10 07:46:37",
+            },
+            {
+                "description": "Das Paket hat das Paketzentrum verlassen.",
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-07 01:53:35",
+            },
+            {
+                "description": "Das Paket ist im Paketzentrum eingetroffen.",
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-07 01:52:40",
+            },
+            {
+                "description": "Das Paket hat das Paketzentrum verlassen.",
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-06 21:49:54",
+            },
+            {
+                "description": "Das Paket wurde durch GLS übernommen.",
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-06 21:44:02",
+            },
+            {
+                "description": "Das Paket hat das Paketzentrum verlassen.",
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-06 21:40:10",
+            },
+            {
+                "description": (
+                    "Die Paketdaten wurden im GLS IT-System erfasst; das "
+                    "Paket wurde noch nicht an GLS übergeben."
+                ),
+                "locationDetails": None,
+                "coordinates": None,
+                "occurrenceDateTime": "2026-08-05 15:01:08",
+            },
+        ],
+    }
+
+
+def test_normalize_full_lifecycle_capture_does_not_warn_on_known_keys(caplog):
+    """`changeDeliveryUrl` and the 2026-08-11-signal keys are all silenced."""
+    with caplog.at_level("WARNING"):
+        parcel = normalize_parcel_de(delivered_sample_de_full_lifecycle())
+    assert not any("unrecognised top-level" in m.lower() for m in caplog.messages)
+    assert parcel["status"] == ParcelStatus.DELIVERED
+    assert parcel["raw_status"] == (
+        "Das Paket wurde erfolgreich zugestellt (abgestellt / eingeworfen)."
+    )
+    assert parcel["receiver"] is None  # recipientName still null on this capture
+
+
 def test_normalize_history_skips_events_with_unparseable_timestamp():
     raw = delivered_sample_de()
     raw["deliveryEvents"].append(

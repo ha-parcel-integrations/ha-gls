@@ -303,8 +303,11 @@ _KNOWN_TOP_LEVEL_KEYS = {
     "updatedAt",
     "addedAt",
     "deliveryEvents",
-    # Dex-reconstructed, never captured — still "known" (expected once
-    # `unlocked`/in-transit, per germany.md), so these do not warn:
+    # Dex-reconstructed, mostly never captured — still "known" (expected once
+    # `unlocked`/in-transit, per germany.md), so these do not warn.
+    # `isInternational` is the exception: captured 2026-08-16 alongside
+    # `international` (both `false`) — a real key after all, just not the
+    # one the 2026-08-11 signal was about.
     "trackId",
     "isInternational",
     "additionalIds",
@@ -324,6 +327,13 @@ _KNOWN_TOP_LEVEL_KEYS = {
     "recipientName",
     "pickedUpFromDepot",
     "international",
+    # Fifth real capture, 2026-08-16 (a full delivered payload, not just a
+    # WARNING-log line): confirmed `isInternational` co-occurs with
+    # `international` as its own distinct key (both `false`) — the "wrong
+    # dex name" note above is corrected to "an *additional* real key", not a
+    # replacement. Also surfaced one genuinely new field, still only ever
+    # seen `null`:
+    "changeDeliveryUrl",
 }
 
 
