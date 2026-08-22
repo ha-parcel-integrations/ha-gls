@@ -19,7 +19,7 @@ you act in one of these areas:
 | consider "fixing" a lint/pattern the skill flags (poll interval, inline client) | *Deliberate skill divergences* — likely intentional, don't re-flag |
 | commit, bump, tag, release, or write release notes; add a feature without a test | *Workflow / Commits / Versioning / Testing* |
 
-**API mechanics live in `carrier-research/api/gls/` (private research repo)** — the tracktrace
+**API mechanics live in `carrier-research/gls/api/` (private research repo)** — the tracktrace
 endpoint, its `text/plain` body and 204 signalling, the numeric `state` → status
 map, the `scans[]` history and the two-identifier lookup. Do not duplicate them
 here.
@@ -127,4 +127,4 @@ python -m pytest tests/ --cov=custom_components.gls
 
 Coverage must stay **above 95%** (silver `test-coverage` rule). Run before
 committing. README stays lean/installer-first (device triggers folded into
-**Events**); this file documents integration decisions, `carrier-research/api/gls/` the API.
+**Events**); this file documents integration decisions, `carrier-research/gls/api/` the API.
