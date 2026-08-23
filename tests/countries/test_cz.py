@@ -19,6 +19,7 @@ from custom_components.gls.countries import cz as cz_module
 from custom_components.gls.countries.cz import (
     GlsGroupMaintenanceError,
     async_get_parcel_cz,
+    map_event_status_cz,
     map_parcel_status_cz,
     normalize_parcel_cz,
 )
@@ -33,6 +34,7 @@ def _reset_one_shot_state():
     cz_module._outage_warned = False
     cz_module._postcode_mismatch_warned.clear()
     cz_module._unmapped_status_logged.clear()
+    cz_module._unmapped_event_logged.clear()
     cz_module._unexpected_keys_logged.clear()
     cz_module._history_order_warned = False
     cz_module._unparseable_timestamp_warned = False
@@ -42,6 +44,7 @@ def _reset_one_shot_state():
     cz_module._outage_warned = False
     cz_module._postcode_mismatch_warned.clear()
     cz_module._unmapped_status_logged.clear()
+    cz_module._unmapped_event_logged.clear()
     cz_module._unexpected_keys_logged.clear()
     cz_module._history_order_warned = False
     cz_module._unparseable_timestamp_warned = False
@@ -196,6 +199,51 @@ def test_retour_flag_overrides_unmapped_without_warning(caplog):
 
 
 # ---------------------------------------------------------------------------
+# map_event_status_cz — per history[] entry, from evtNo
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("evt_no", "expected"),
+    [
+        ("0.100", ParcelStatus.REGISTERED),
+        ("0.0", ParcelStatus.IN_TRANSIT),
+        ("2.0", ParcelStatus.IN_TRANSIT),
+        ("11.0", ParcelStatus.OUT_FOR_DELIVERY),
+        ("3.0", ParcelStatus.DELIVERED),
+    ],
+)
+def test_map_event_status_known(evt_no, expected):
+    assert map_event_status_cz(evt_no) == expected
+
+
+def test_map_event_status_none_input_is_none_without_warning(caplog):
+    with caplog.at_level("WARNING"):
+        assert map_event_status_cz(None) is None
+    assert not caplog.messages
+
+
+def test_map_event_status_locker_deposit_is_deliberately_unmapped(caplog):
+    """3.896 (deposited into a ParcelLocker) is left out of the map on purpose —
+    the one capture that could show whether it means at_pickup_point or
+    something else was already collected (group-rest.md)."""
+    with caplog.at_level("WARNING"):
+        status = map_event_status_cz("3.896")
+    assert status is None
+    assert any("3.896" in m for m in caplog.messages)
+
+
+def test_map_event_status_unmapped_is_none_and_warns_once(caplog):
+    with caplog.at_level("WARNING"):
+        first = map_event_status_cz("9.999")
+        second = map_event_status_cz("9.999")
+    assert first is None
+    assert second is None
+    warnings = [m for m in caplog.messages if "9.999" in m]
+    assert len(warnings) == 1
+
+
+# ---------------------------------------------------------------------------
 # normalize_parcel_cz
 # ---------------------------------------------------------------------------
 
@@ -246,8 +294,19 @@ def test_normalize_history_opt_in_is_reversed_to_oldest_first():
     assert history[-1]["timestamp"] == "2026-06-25T13:38:31"
     assert "entered into the GLS IT system" in history[0]["raw_status"]
     assert history[-1]["raw_status"] == "The parcel has been delivered."
-    # §4: never derive a per-event status from evtNo.
-    assert all(event["status"] is None for event in history)
+    # Per-event status, mapped from evtNo (oldest -> newest, matching the
+    # reversed history): registered, handed over, twice at a parcel center,
+    # out for delivery, the deliberately-unmapped locker deposit (x2), delivered.
+    assert [event["status"] for event in history] == [
+        ParcelStatus.REGISTERED,
+        ParcelStatus.IN_TRANSIT,
+        ParcelStatus.IN_TRANSIT,
+        ParcelStatus.IN_TRANSIT,
+        ParcelStatus.OUT_FOR_DELIVERY,
+        None,
+        None,
+        ParcelStatus.DELIVERED,
+    ]
 
 
 def test_normalize_history_does_not_deduplicate_repeated_evtno():

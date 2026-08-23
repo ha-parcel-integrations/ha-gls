@@ -71,6 +71,7 @@ class GlsGroupMaintenanceError(GlsApiError):
 _outage_warned = False
 _postcode_mismatch_warned: set[str] = set()
 _unmapped_status_logged: set[str] = set()
+_unmapped_event_logged: set[str] = set()
 _unexpected_keys_logged: set[str] = set()
 _history_order_warned = False
 _unparseable_timestamp_warned = False
@@ -119,6 +120,20 @@ def _warn_unmapped_status_once(value: str) -> None:
         "'unknown'",
         _NEW_ISSUE_URL,
         value,
+    )
+
+
+def _warn_unmapped_event_once(evt_no: str) -> None:
+    """One-shot per distinct CZ ``history[].evtNo`` value outside ``_EVENT_STATUS_MAP``."""
+    if evt_no in _unmapped_event_logged:
+        return
+    _unmapped_event_logged.add(evt_no)
+    _LOGGER.warning(
+        "Unrecognised GLS Czech Republic history event code — help us map "
+        "it. Open an issue and paste this line: %s\n  evtNo=%s → reported "
+        "with no status",
+        _NEW_ISSUE_URL,
+        evt_no,
     )
 
 
@@ -358,6 +373,43 @@ def map_parcel_status_cz(
     return ParcelStatus.UNKNOWN
 
 
+# ``history[].evtNo`` — an observed subset, not a documented enum (nothing
+# published enumerates the full code space), so this maps only what's been
+# seen on a real capture and reports anything else with a one-shot warning,
+# the same convention DHL's ``map_event_status`` uses. ``3.896`` (deposited
+# into a ParcelLocker) is deliberately left out: the one capture that could
+# disambiguate it from a plain in-transit code was already collected by the
+# time it was pulled, so whether it means ``at_pickup_point`` or something
+# else is unprovable on current evidence — mapping it would be a guess, not a
+# reading (group-rest.md). It reports with no status like any other unmapped
+# code until a capture settles it.
+_EVENT_STATUS_MAP: dict[str, ParcelStatus] = {
+    "0.100": ParcelStatus.REGISTERED,    # parcel data entered, not yet handed over
+    "0.0": ParcelStatus.IN_TRANSIT,      # handed over to GLS
+    "2.0": ParcelStatus.IN_TRANSIT,      # reached a parcel center
+    "11.0": ParcelStatus.OUT_FOR_DELIVERY,
+    "3.0": ParcelStatus.DELIVERED,
+}
+
+
+def map_event_status_cz(evt_no: str | None) -> ParcelStatus | None:
+    """Map one ``history[].evtNo`` to a canonical status, or ``None`` if unmapped.
+
+    Unlike :func:`map_parcel_status_cz`, an unmapped code reports as ``None``
+    (the history entry keeps ``status: null``) rather than falling back to
+    ``ParcelStatus.UNKNOWN`` — mirroring DHL's per-event convention, since a
+    single parcel's status is a required field but any one history entry's
+    status is inherently optional.
+    """
+    if not evt_no:
+        return None
+    mapped = _EVENT_STATUS_MAP.get(evt_no)
+    if mapped is not None:
+        return mapped
+    _warn_unmapped_event_once(evt_no)
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Payload mapping (BUILD_PLAN_CZ.md §3)
 # ---------------------------------------------------------------------------
@@ -418,12 +470,11 @@ def _build_history_cz(
 ) -> list[dict]:
     """Build the canonical ``history`` from CZ's ``history[]`` (wire newest-first).
 
-    ``status`` is intentionally always ``None`` per event: BUILD_PLAN_CZ.md
-    §4 explicitly rules out deriving a per-event status from ``evtNo`` — the
-    one capture that looked like a locker deposit-then-collection pattern
-    turned out to be unprovable, since the parcel was already collected.
-    ``evtNo`` repeats across entries, so it is never used as a dedup key
-    either — every entry the wire sends is kept.
+    ``status`` is derived per event from ``evtNo`` via
+    :func:`map_event_status_cz` — the same "map what's been seen, warn on the
+    rest" convention DHL's history uses. ``evtNo`` repeats across entries, so
+    it is never used as a dedup key either — every entry the wire sends is
+    kept.
     """
     parsed_timestamps: list[str] = []
     canonical: list[dict] = []
@@ -435,7 +486,7 @@ def _build_history_cz(
         canonical.append(
             {
                 "timestamp": timestamp,
-                "status": None,
+                "status": map_event_status_cz(event.get("evtNo")),
                 "raw_status": html.unescape(raw_status) if raw_status else None,
             }
         )
@@ -557,6 +608,7 @@ def normalize_parcel_cz(
 __all__ = [
     "GlsGroupMaintenanceError",
     "async_get_parcel_cz",
+    "map_event_status_cz",
     "map_parcel_status_cz",
     "normalize_parcel_cz",
 ]
