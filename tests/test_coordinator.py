@@ -7,7 +7,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gls.api import GlsApiError
 from custom_components.gls.const import (
-    CAPABILITIES,
+    CAPABILITIES_BY_VARIANT,
     CONF_COUNTRY,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
@@ -362,7 +362,8 @@ def test_normalize_parcel_no_dimensions_at_all():
 
 def test_capabilities_are_known_values():
     """A typo here would silently misreport this carrier on the docs site."""
-    assert CAPABILITIES <= KNOWN_CAPABILITIES
+    for variant, fields in CAPABILITIES_BY_VARIANT.items():
+        assert fields <= KNOWN_CAPABILITIES, variant
 
 
 # ---------------------------------------------------------------------------

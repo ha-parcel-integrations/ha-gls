@@ -86,12 +86,15 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
   `group_locale` key rather than overloading `culture`. A country row
   without `culture` (CZ) falls back to `""` in `__init__.py` rather than
   `KeyError`.
-- **`CAPABILITIES` is the intersection across every mapped country**, not
-  just NL's. It shrank when CZ landed: CZ has no `pickup_point` (the
-  locker/shop is only unstructured text inside a history entry's address),
-  so `pickup_point` dropped out even though NL/DE still populate it — a
-  deliberate, user-visible change to the docs-site comparison table, not a
-  regression.
+- **`CAPABILITIES_BY_VARIANT` holds one frozenset per country** (`"Netherlands"`,
+  `"Germany"`, `"Other"` for CZ and any future group-leaf country), not a single
+  intersected `CAPABILITIES`. The docs site renders one row per entry. This
+  replaced the old intersection model (2026-08-23): under that model NL's full
+  field support became invisible on the site the moment a weaker country
+  landed — CZ landing shrank the global set even though NL/DE's own support
+  hadn't changed. Keep each entry in lockstep with its
+  `normalize_parcel_<cc>()`; `KNOWN_CAPABILITIES` is unchanged and every
+  entry must still be a subset of it.
 - **Per-country code lives in `custom_components/gls/countries/<code>/`** —
   every country is its own package (`__init__.py` holding transport,
   `normalize_parcel_<code>`, `map_parcel_status_<code>`), with an *extra*

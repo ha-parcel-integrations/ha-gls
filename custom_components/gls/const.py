@@ -35,20 +35,34 @@ KNOWN_CAPABILITIES = frozenset(
     {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
 )
 
-# Which optional contract fields this carrier's API actually populates — feeds
-# the comparison table on the docs site. Keep in lockstep with
-# normalize_parcel() in parcels.py (which dispatches per country): this is the
-# INTERSECTION across countries, not just the NL default — a field only
-# belongs here if every dispatched country populates it, so the table never
-# overclaims for a GLS CZ user. NL populates weight, dimensions and the
-# delivery window; DE's normalize_parcel_de does not (still `None` there).
-# CZ populates weight (BUILD_PLAN_CZ.md §3's rstt028 capture) but not
-# pickup_point — the locker/shop is only unstructured text inside
-# ``history[].address.city`` — so `pickup_point` dropped out of the
-# intersection when CZ landed (a deliberate, user-visible change called out
-# in the 1.5.0 release notes, not a regression). All three populate url and
-# history.
-CAPABILITIES = frozenset({"url", "history"})
+# Which optional contract fields each of this carrier's backends actually
+# populates — feeds the comparison table on the docs site, one row per
+# country. Keyed by the same label the country selector shows the user;
+# order here is display order. Keep each value in lockstep with its
+# normalize_parcel_<cc>() in countries/<cc>/__init__.py:
+#   Netherlands  — full support: weight, dimensions and the ETA delivery
+#                  window (deliveryStatus.etaTimestampMin/Max) all populate.
+#   Germany      — weight/dimensions are not in the DTO (confirmed absent by
+#                  capture) and there is no delivery-window field either;
+#                  pickup_point, url and history still populate.
+#   Other        — the pan-EU group-leaf backend (CZ is the first country
+#                  routed through it, BUILD_PLAN_CZ.md §3). Populates weight
+#                  (infos[] WEIGHT) and url/history, but not dimensions,
+#                  delivery_window or pickup_point — the leaf response has no
+#                  dimensions/ETA field, and a locker/shop name is only
+#                  unstructured text inside history[]'s address, not a
+#                  structured pickup_point.
+# This used to be a single CAPABILITIES = the intersection across countries,
+# which meant NL's full support was invisible on the docs site the moment a
+# second, weaker country landed. Per-variant rows fixed that (2026-08-23) —
+# see https://github.com/ha-parcel-integrations/ha-parcel-integrations.github.io.
+CAPABILITIES_BY_VARIANT = {
+    "Netherlands": frozenset(
+        {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
+    ),
+    "Germany": frozenset({"pickup_point", "url", "history"}),
+    "Other": frozenset({"weight", "url", "history"}),
+}
 
 
 class GlsApiError(Exception):
