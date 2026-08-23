@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.core import HomeAssistant
 
 from . import GlsConfigEntry
@@ -72,6 +72,31 @@ TO_REDACT = {
 }
 
 
+def _redact_cz_sensitive(data: Any) -> Any:
+    """Redact GLS CZ's ``references[].value`` (CUSTREF) and ``signature.value``.
+
+    Both live too deep/context-dependently for the flat ``TO_REDACT`` key set
+    above: a ``references[]`` entry is typed by a sibling ``type`` field, so
+    redacting every ``value`` key outright would also blank the harmless
+    UNITNO/WEIGHT ones; ``signature.value`` needs a nested, key-specific
+    match. Runs as its own recursive pass before ``async_redact_data`` so the
+    generic flat-key pass still handles ``postalCode``/``barcode``/``url``/…
+    untouched. A no-op for NL/DE data — neither ever carries a
+    ``references[]`` entry typed ``CUSTREF`` or a ``signature`` dict.
+    """
+    if isinstance(data, list):
+        return [_redact_cz_sensitive(item) for item in data]
+    if isinstance(data, dict):
+        redacted = dict(data)
+        if redacted.get("type") == "CUSTREF" and "value" in redacted:
+            redacted["value"] = REDACTED
+        signature = redacted.get("signature")
+        if isinstance(signature, dict) and "value" in signature:
+            redacted["signature"] = {**signature, "value": REDACTED}
+        return {key: _redact_cz_sensitive(value) for key, value in redacted.items()}
+    return data
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: GlsConfigEntry
 ) -> dict[str, Any]:
@@ -85,6 +110,10 @@ async def async_get_config_entry_diagnostics(
             "incoming_active": len(coordinator.data or []),
             "delivered": len(coordinator.delivered or []),
         },
-        "incoming": async_redact_data(coordinator.data or [], TO_REDACT),
-        "delivered": async_redact_data(coordinator.delivered or [], TO_REDACT),
+        "incoming": async_redact_data(
+            _redact_cz_sensitive(coordinator.data or []), TO_REDACT
+        ),
+        "delivered": async_redact_data(
+            _redact_cz_sensitive(coordinator.delivered or []), TO_REDACT
+        ),
     }

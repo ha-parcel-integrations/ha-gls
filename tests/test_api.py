@@ -91,3 +91,22 @@ async def test_de_dispatch_delegates_to_the_de_transport():
     mock_transport.assert_awaited_once_with(
         client._session, de_session, "075624238061", "00000"
     )
+
+
+async def test_cz_dispatch_delegates_to_the_cz_transport():
+    client = GlsApiClient(
+        MagicMock(),
+        "gls-group.com",
+        "unused",
+        country="CZ",
+        group_locale="CZ/en",
+    )
+    with patch(
+        "custom_components.gls.api.async_get_parcel_cz",
+        new=AsyncMock(return_value={"tuNo": "5036234901"}),
+    ) as mock_transport:
+        result = await client.async_get_parcel("5036234901", "25401")
+    assert result == {"tuNo": "5036234901"}
+    mock_transport.assert_awaited_once_with(
+        client._session, "gls-group.com", "CZ/en", "5036234901", "25401"
+    )

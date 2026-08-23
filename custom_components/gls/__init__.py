@@ -65,9 +65,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     client = GlsApiClient(
         async_get_clientsession(hass),
         host=country_cfg["host"],
-        culture=country_cfg["culture"],
+        # CZ has no "culture" key (it uses "group_locale" instead — see the
+        # COUNTRIES docstring), so this defaults to "" rather than KeyError.
+        culture=country_cfg.get("culture", ""),
         country=country,
         de_session=de_session,
+        group_locale=country_cfg.get("group_locale"),
     )
     coordinator = GlsCoordinator(hass, client, entry, de_session=de_session)
 

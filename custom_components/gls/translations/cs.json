@@ -1,0 +1,176 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nastavit GLS",
+        "description": "Vyberte zemi, do které vám balíky chodí, a PSČ, na které obvykle chodí. Balíky přidáte až po nastavení.\n\nNizozemsko, Německo a Česko jsou dnes podporovány — [vyžádejte si další zemi]({issue_url}).",
+        "data": {
+          "country": "Země",
+          "postal_code": "PSČ"
+        },
+        "data_description": {
+          "postal_code": "např. {postcode_example}. Použije se jako výchozí doručovací adresa pro balíky, které přidáte."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "GLS není dostupné. Zkontrolujte své připojení k síti.",
+      "invalid_parcel_no": "To nevypadá jako číslo balíku ani sledovací kód GLS.",
+      "invalid_postcode": "Zadejte platné PSČ pro vybranou zemi, např. {postcode_example}.",
+      "de_registration_failed": "Nepodařilo se zaregistrovat anonymní relaci GLS Německo. Zkontrolujte své připojení k síti a zkuste to znovu."
+    },
+    "abort": {
+      "already_configured": "Pro toto PSČ je již nastaven hub GLS."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti GLS",
+        "sections": {
+          "parcels": {
+            "name": "Balíky",
+            "data": {
+              "add": "Přidat balík",
+              "remove": "Odebrat balíky"
+            },
+            "data_description": {
+              "add": "Zadejte číslo balíku nebo sledovací kód GLS, který chcete sledovat. Použije se PSČ hubu."
+            }
+          },
+          "delivered": {
+            "name": "Doručené balíky",
+            "data": {
+              "delivered_filter_type": "Filtrovat podle",
+              "delivered_filter_amount": "Počet"
+            },
+            "data_description": {
+              "delivered_filter_type": "Zobrazit doručené balíky za posledních X dní, nebo omezit na X nejnovějších.",
+              "delivered_filter_amount": "Počet dní nebo balíků k zobrazení."
+            }
+          },
+          "history": {
+            "name": "Historie balíku",
+            "data": {
+              "include_history": "Zahrnout historii stavů"
+            },
+            "data_description": {
+              "include_history": "Přidá k balíku atribut s historií, který zobrazuje každou změnu stavu (čas, stav, původní text). Ve výchozím nastavení vypnuto."
+            }
+          },
+          "polling": {
+            "name": "Obnovování",
+            "data": {
+              "refresh_interval": "Obnovovat každých"
+            },
+            "data_description": {
+              "refresh_interval": "Jak často integrace kontroluje GLS ohledně aktualizací balíků. Delší interval je šetrnější k API GLS; výchozích 30 minut stačí pro většinu balíků."
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "To nevypadá jako číslo balíku ani sledovací kód GLS.",
+      "already_tracked": "Tento balík už se sleduje."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "nl": "Nizozemsko",
+        "de": "Německo",
+        "cz": "Česko"
+      }
+    },
+    "refresh_interval": {
+      "options": {
+        "15": "15 minut",
+        "30": "30 minut",
+        "60": "60 minut",
+        "120": "120 minut",
+        "240": "240 minut"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dny",
+        "parcels": "Počet balíků"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Sledovat balík",
+      "description": "Začne sledovat balík GLS podle čísla.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledovací kód",
+          "description": "Číslo balíku nebo sledovací kód GLS."
+        },
+        "postal_code": {
+          "name": "PSČ",
+          "description": "Doručovací PSČ. Vybere hub, pokud jich je nastaveno více; jinak se použije jediný dostupný hub."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Přestat sledovat balík",
+      "description": "Přestane sledovat balík GLS podle čísla.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledovací kód",
+          "description": "Sledovací číslo GLS, jehož sledování se má ukončit."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Byl zaregistrován balík",
+      "parcel_status_changed": "Změnil se stav balíku",
+      "parcel_delivered": "Balík byl doručen",
+      "parcel_delivery_time_changed": "Změnil se očekávaný čas doručení balíku"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Obnovit"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Doručení"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Příchozí balíky",
+        "unit_of_measurement": "balíků"
+      },
+      "next_delivery": {
+        "name": "Další doručení"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Na cestě do ParcelShopu",
+        "unit_of_measurement": "balíků"
+      },
+      "awaiting_pickup": {
+        "name": "Čeká na vyzvednutí",
+        "unit_of_measurement": "balíků"
+      },
+      "delivered_parcels": {
+        "name": "Doručené balíky",
+        "unit_of_measurement": "balíků"
+      },
+      "last_update": {
+        "name": "Poslední úspěšná aktualizace"
+      },
+      "parcel": {
+        "name": "Balík {barcode}"
+      }
+    }
+  }
+}

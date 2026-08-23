@@ -8,6 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.gls.api import GlsApiError
 from custom_components.gls.const import (
     CAPABILITIES,
+    CONF_COUNTRY,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_PARCEL_NO,
@@ -362,3 +363,44 @@ def test_normalize_parcel_no_dimensions_at_all():
 def test_capabilities_are_known_values():
     """A typo here would silently misreport this carrier on the docs site."""
     assert CAPABILITIES <= KNOWN_CAPABILITIES
+
+
+# ---------------------------------------------------------------------------
+# CZ dispatch — the coordinator threads the looked-up parcel_no into
+# normalize_parcel_cz, since CZ's barcode must never come from a raw
+# response field (countries/cz's docstring). NL/DE ignore parcel_no
+# entirely, so this is CZ-only coverage; it does not touch either of them.
+# ---------------------------------------------------------------------------
+
+
+async def test_update_threads_parcel_no_into_normalize_parcel_cz(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        options={
+            CONF_COUNTRY: "CZ",
+            CONF_PARCELS: [{CONF_PARCEL_NO: "5036234901", CONF_POSTAL_CODE: "25401"}],
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+        },
+        unique_id="25401",
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    # tuNo/referenceNo deliberately do NOT match the tracked parcel_no, the
+    # way group-rest.md documents happening for a non-Czech consignment on
+    # the same leaves.
+    client.async_get_parcel.return_value = {
+        "tuNo": "UNRELATED-ID",
+        "referenceNo": "UNRELATED-ID",
+        "progressBar": {
+            "statusInfo": "INTRANSIT",
+            "statusText": "On the way",
+            "retourFlag": False,
+        },
+    }
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    data = await coordinator._async_update_data()
+
+    assert data[0]["barcode"] == "5036234901"
+    assert data[0]["status"] == ParcelStatus.IN_TRANSIT

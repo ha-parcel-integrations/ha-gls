@@ -224,9 +224,11 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
             return_exceptions=True,
         )
 
-        # Each raw payload is kept with its postcode so the tracking deep-link
-        # (NL needs the postcode) can be built per parcel.
-        raws: list[tuple[dict, str]] = []
+        # Each raw payload is kept with its postcode (NL needs it for the
+        # tracking deep-link) and its own parcel_no (CZ's normalizer needs it
+        # as the authoritative barcode source — see countries/cz's docstring)
+        # so both can be threaded into normalize_parcel per parcel.
+        raws: list[tuple[dict, str, str]] = []
         errors = 0
         for (parcel_no, postal_code), result in zip(pairs, results):
             if isinstance(result, BaseException):
@@ -241,7 +243,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
                 _LOGGER.warning("GLS fetch failed for %s: %s", parcel_no, result)
                 cached = self._raw_cache.get(parcel_no)
                 if cached is not None:
-                    raws.append((cached, postal_code))
+                    raws.append((cached, postal_code, parcel_no))
                 continue
 
             if result is None:
@@ -253,12 +255,13 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
                         self._raw_cache.get(parcel_no)
                         or {"parcelNo": parcel_no, "state": None},
                         postal_code,
+                        parcel_no,
                     )
                 )
                 continue
 
             self._raw_cache[parcel_no] = result
-            raws.append((result, postal_code))
+            raws.append((result, postal_code, parcel_no))
 
         if pairs and errors == len(pairs) and not raws:
             raise UpdateFailed("GLS unreachable for all tracked parcels")
@@ -273,8 +276,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
                 postal_code=postal_code,
                 country=country,
                 include_history=include_history,
+                parcel_no=parcel_no,
             )
-            for raw, postal_code in raws
+            for raw, postal_code, parcel_no in raws
         ]
         active = [p for p in normalized if not p["delivered"]]
         delivered = [p for p in normalized if p["delivered"]]

@@ -63,6 +63,32 @@ async def test_user_flow_invalid_postcode_keeps_selected_country(hass):
     assert country_key.default() == "de"
 
 
+async def test_cz_user_flow_creates_hub_with_spaced_postcode(hass):
+    """CZ postcodes are written with or without the internal space; either
+    form must be accepted and stored space-stripped (group-rest.md: the
+    unspaced form is the verified-working one sent on the wire)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "cz", CONF_POSTAL_CODE: "254 01"}
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == "CZ"
+    assert result["options"][CONF_POSTAL_CODE] == "25401"
+
+
+async def test_cz_user_flow_invalid_postcode(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "cz", CONF_POSTAL_CODE: "nope"}
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+    assert result["description_placeholders"]["postcode_example"] == "254 01"
+
+
 async def test_same_postcode_hub_rejected(hass):
     """A second hub for the same postcode aborts; the postcode is the key."""
     MockConfigEntry(domain=DOMAIN, unique_id="1234AB").add_to_hass(hass)

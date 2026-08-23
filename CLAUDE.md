@@ -71,12 +71,27 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
 ## Integration-level carrier decisions
 
 - **Country model** (`CONF_COUNTRY` / `COUNTRIES`): each hub picks a country →
-  host/culture/postcode-regex. **Only `NL` is mapped** — other GLS countries expose
-  no account-less endpoint or gate it behind Cloudflare/registration. Adding a
-  country = one `COUNTRIES` entry once a working account-less endpoint is confirmed;
-  the setup form links `NEW_COUNTRY_ISSUE_URL`. **Do not switch to the
-  registration-gated group REST.** `unique_id` stays the bare postcode (fine while
-  NL-only); fold in the country once a second lands.
+  host/culture (or `group_locale`, see below)/postcode-regex. Three countries
+  are mapped today — **NL** (keyless national GET), **DE** (bearer-POST
+  guest-account, its own `countries/de/session.py`) and **CZ** (keyless
+  pan-EU group leaves, `rstt028`/`rstt029` — see `countries/cz/`'s
+  docstring). Adding a country = one `COUNTRIES` entry once a working
+  account-less endpoint is confirmed; the setup form links
+  `NEW_COUNTRY_ISSUE_URL`. `unique_id` stays the bare postcode — fine while
+  a postcode is unique per hub regardless of country.
+- **`culture` vs `group_locale`.** NL/DE's `culture` is a `nl-NL`-style
+  locale plugged into a *national* URL template. CZ's leaves are pan-EU and
+  partitioned by consignment record, not by country path — their
+  `{ISO2}/{lang}` segment is a locale switch only, so it lives under its own
+  `group_locale` key rather than overloading `culture`. A country row
+  without `culture` (CZ) falls back to `""` in `__init__.py` rather than
+  `KeyError`.
+- **`CAPABILITIES` is the intersection across every mapped country**, not
+  just NL's. It shrank when CZ landed: CZ has no `pickup_point` (the
+  locker/shop is only unstructured text inside a history entry's address),
+  so `pickup_point` dropped out even though NL/DE still populate it — a
+  deliberate, user-visible change to the docs-site comparison table, not a
+  regression.
 - **Per-country code lives in `custom_components/gls/countries/<code>/`** —
   every country is its own package (`__init__.py` holding transport,
   `normalize_parcel_<code>`, `map_parcel_status_<code>`), with an *extra*

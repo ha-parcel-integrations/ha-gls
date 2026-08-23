@@ -198,3 +198,53 @@ async def test_de_setup_wires_country_and_de_session_end_to_end(hass):
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.NOT_LOADED
+
+
+async def test_cz_setup_wires_group_locale_end_to_end(hass):
+    """The full country="CZ" wiring (__init__.py -> api.py -> countries/cz)
+    — proves ``group_locale`` (not ``culture``, which CZ's COUNTRIES row
+    doesn't define) actually reaches the transport, and that barcode comes
+    from the tracked parcel_no rather than the response's own tuNo.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="25401",
+        options={
+            CONF_COUNTRY: "CZ",
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "5036234901", CONF_POSTAL_CODE: "25401"}
+            ],
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    cz_payload = {
+        "tuNo": "5036234901",
+        "referenceNo": "5036234901",
+        "date": "2026-06-24",
+        "progressBar": {
+            "statusInfo": "INTRANSIT",
+            "statusText": "In transit",
+            "retourFlag": False,
+        },
+    }
+    with patch(
+        "custom_components.gls.api.async_get_parcel_cz",
+        new=AsyncMock(return_value=cz_payload),
+    ) as mock_transport:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    mock_transport.assert_awaited_once_with(
+        mock_transport.call_args.args[0],
+        "gls-group.com",
+        "CZ/en",
+        "5036234901",
+        "25401",
+    )
+
+    incoming = hass.states.get("sensor.gls_incoming_parcels")
+    assert incoming is not None

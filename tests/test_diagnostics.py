@@ -83,3 +83,36 @@ async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
     assert result["incoming"][0]["raw"]["id"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["trackingReference"] == "**REDACTED**"
     assert result["entry_options"]["parcels"][0]["de_parcel_number"] == "**REDACTED**"
+
+
+async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
+    """CUSTREF (the sender's own order reference) and signature.value are the
+    two genuinely sensitive CZ fields (BUILD_PLAN_CZ.md §7) — UNITNO's own
+    value must survive untouched, proving the redaction is type-scoped, not a
+    blanket "value" key match."""
+    entry = MagicMock()
+    entry.data = {}
+    entry.options = {"country": "CZ", "parcels": []}
+    entry.runtime_data.coordinator.data = [
+        {
+            "barcode": "5036234901",
+            "raw": {
+                "postalCode": "25401",
+                "signature": {"validate": True, "name": "Signature:", "value": "true"},
+                "references": [
+                    {"type": "UNITNO", "name": "Parcel number:", "value": "5036234901"},
+                    {"type": "CUSTREF", "name": "Reference no:", "value": "order-42"},
+                ],
+            },
+        }
+    ]
+    entry.runtime_data.coordinator.delivered = []
+
+    result = await async_get_config_entry_diagnostics(hass, entry)
+
+    incoming_raw = result["incoming"][0]["raw"]
+    assert incoming_raw["postalCode"] == "**REDACTED**"
+    assert incoming_raw["signature"]["value"] == "**REDACTED**"
+    references = {r["type"]: r["value"] for r in incoming_raw["references"]}
+    assert references["CUSTREF"] == "**REDACTED**"
+    assert references["UNITNO"] == "5036234901"  # never touched

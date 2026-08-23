@@ -6,7 +6,7 @@
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
-A custom Home Assistant integration that tracks your GLS parcels in the Netherlands. No GLS account is needed — you enter the tracking number and delivery postal code yourself, just like the gls-info.nl website.
+A custom Home Assistant integration that tracks your GLS parcels — Netherlands, Germany and Czech Republic today. No GLS account is needed — you enter the tracking number and delivery postal code yourself.
 
 ## Contents
 
@@ -41,8 +41,9 @@ A custom Home Assistant integration that tracks your GLS parcels in the Netherla
 ## Requirements
 
 - Home Assistant 2024.7 or newer
-- A GLS parcel delivered to a supported country. The **Netherlands** and
-  **Germany** are available today; the setup form links to the
+- A GLS parcel delivered to a supported country. The **Netherlands**,
+  **Germany** and **Czech Republic** are available today; the setup form
+  links to the
   [organisation discussion](https://github.com/ha-parcel-integrations/.github/discussions/new/choose)
   for requesting another country
 
@@ -64,8 +65,8 @@ A custom Home Assistant integration that tracks your GLS parcels in the Netherla
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **GLS**
-3. Pick your **country** (Netherlands for now) and enter your **delivery
-   postal code** (the one parcels usually go to)
+3. Pick your **country** and enter your **delivery postal code** (the one
+   parcels usually go to)
 4. Click **Submit**
 
 That's it — setup only asks for the country and postal code. The postcode
@@ -122,7 +123,10 @@ friendly-name pattern (with multiple hubs each carries its own postcode):
 | `GLS (postcode) Delivered parcels` | Recently delivered tracked parcels (retention configurable) |
 | `GLS (postcode) Last successful update` | Diagnostic timestamp of the last successful poll |
 
-Every parcel exposed on a sensor attribute uses a carrier-agnostic shape:
+Not every field is populated by every country — `weight`/`dimensions`/
+`sender`/`receiver`/`pickup_point` and the delivery window vary by which
+data GLS' own backend for that country exposes. Every parcel exposed on a
+sensor attribute uses the same carrier-agnostic shape regardless:
 
 | Key | Type | Meaning |
 |---|---|---|

@@ -40,10 +40,15 @@ KNOWN_CAPABILITIES = frozenset(
 # normalize_parcel() in parcels.py (which dispatches per country): this is the
 # INTERSECTION across countries, not just the NL default — a field only
 # belongs here if every dispatched country populates it, so the table never
-# overclaims for a GLS DE user. NL populates weight, dimensions and the
-# delivery window; DE's normalize_parcel_de does not (still `None` there), so
-# those three stay out. Both countries populate pickup_point, url and history.
-CAPABILITIES = frozenset({"pickup_point", "url", "history"})
+# overclaims for a GLS CZ user. NL populates weight, dimensions and the
+# delivery window; DE's normalize_parcel_de does not (still `None` there).
+# CZ populates weight (BUILD_PLAN_CZ.md §3's rstt028 capture) but not
+# pickup_point — the locker/shop is only unstructured text inside
+# ``history[].address.city`` — so `pickup_point` dropped out of the
+# intersection when CZ landed (a deliberate, user-visible change called out
+# in the 1.5.0 release notes, not a regression). All three populate url and
+# history.
+CAPABILITIES = frozenset({"url", "history"})
 
 
 class GlsApiError(Exception):
@@ -99,6 +104,28 @@ GLS_DE_VALIDATE_URL = (
     f"https://{GLS_DE_IDENTITY_HOST}/ecosystem/user-service/v1/users/validate"
 )
 
+# The pan-EU GLS group leaves behind the web tracker (group-rest.md) — keyless,
+# host-agnostic, and partitioned by the *consignment record*, not by the
+# ``{ISO2}/{lang}`` path segment (a locale switch only). CZ is the first
+# ``COUNTRIES`` row routed here (its own package is ``countries/cz/``), but
+# nothing below names Czech Republic: a later group-leaf country is meant to
+# be one more ``COUNTRIES`` row pointing at the same transport, not a copy of
+# it (BUILD_PLAN_CZ.md §9/§10). ``rstt028`` (primary) additionally carries
+# ``history``/weight/references and needs the delivery ``postalCode``;
+# ``rstt029`` (fallback, used only on an ``E609`` postcode mismatch) resolves
+# by AWB alone. ``caller=witt002`` is the web tracker's fixed client id, not a
+# credential — nothing issues or revokes it per user. ``millis`` is a
+# cache-buster (``int(time.time() * 1000)``); no value has ever been
+# rejected.
+GLS_GROUP_RSTT028_URL = (
+    "https://{host}/app/service/open/rest/{group_locale}/rstt028/{awb}"
+    "?caller=witt002&millis={millis}&tuOwnerCode=&postalCode={postal_code}"
+)
+GLS_GROUP_RSTT029_URL = (
+    "https://{host}/app/service/open/rest/{group_locale}/rstt029"
+    "?match={awb}&type=&caller=witt002&millis={millis}"
+)
+
 # The delivery country of a hub, chosen at setup time. Only the Netherlands
 # exposes a public, postcode-keyed JSON endpoint today; other GLS countries
 # either do not expose one or gate it behind Cloudflare / API registration.
@@ -126,6 +153,16 @@ DEFAULT_COUNTRY = "NL"
 # and logic must never key off that text). DE has no ``tracking_url`` entry:
 # BUILD_PLAN_DE.md §4 says its ``url`` reuses the generic ``TRACKING_URL``
 # fallback below directly, keyed on ``parcelNumber``.
+#
+# CZ has no ``culture`` key at all — deliberately. For NL/DE, ``culture`` is a
+# ``nl-NL``-style locale in a *national* URL template; on the group leaves
+# (group-rest.md) the ``{ISO2}/{lang}`` path segment is a locale switch over
+# the *same* pan-EU index, not a data partition, and status mapping keys off
+# the locale-independent ``progressBar.statusInfo``. Overloading ``culture``
+# for that would blur two different concepts, so group-leaf countries get
+# their own ``group_locale`` key instead (BUILD_PLAN_CZ.md §6's decision) —
+# consumed by ``countries/cz/``'s transport, which any future group-leaf
+# country (SI/RO/HU/SK) is meant to share by adding one more row here.
 COUNTRIES: dict[str, dict[str, str]] = {
     "NL": {
         "host": "apm.gls.nl",
@@ -142,6 +179,15 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "culture": "de-DE",
         "postcode_regex": r"^\d{5}$",
         "postcode_example": "12345",
+    },
+    "CZ": {
+        "host": "gls-group.com",  # .eu and .com are interchangeable (group-rest.md)
+        "group_locale": "CZ/en",
+        "postcode_regex": r"^\d{3}\s?\d{2}$",
+        "postcode_example": "254 01",
+        "tracking_url": (
+            "https://gls-group.eu/CZ/en/parcel-tracking?match={parcel_no}"
+        ),
     },
 }
 
