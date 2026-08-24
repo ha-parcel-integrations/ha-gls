@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Nastavit GLS",
-        "description": "Vyberte zemi, do které vám balíky chodí, a PSČ, na které obvykle chodí. Balíky přidáte až po nastavení.\n\nNizozemsko, Německo a Česko jsou dnes podporovány — [vyžádejte si další zemi]({issue_url}).",
+        "description": "Vyberte zemi, do které vám balíky chodí, a PSČ, na které obvykle chodí. Balíky přidáte až po nastavení.\n\nNizozemsko, Německo, Česko, Rakousko, Irsko, Francie, Slovinsko, Chorvatsko a Itálie jsou dnes podporovány — [vyžádejte si další zemi]({issue_url}).",
         "data": {
           "country": "Země",
           "postal_code": "PSČ"
@@ -81,7 +81,13 @@
       "options": {
         "nl": "Nizozemsko",
         "de": "Německo",
-        "cz": "Česko"
+        "cz": "Česko",
+        "at": "Rakousko",
+        "ie": "Irsko",
+        "fr": "Francie",
+        "si": "Slovinsko",
+        "hr": "Chorvatsko",
+        "it": "Itálie"
       }
     },
     "refresh_interval": {

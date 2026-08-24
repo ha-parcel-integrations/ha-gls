@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import CONF_POSTAL_CODE, DOMAIN
+from .const import CONF_COUNTRY, CONF_POSTAL_CODE, DEFAULT_COUNTRY, DOMAIN
 
 
 def build_device_info(entry: ConfigEntry) -> DeviceInfo:
@@ -19,12 +19,16 @@ def build_device_info(entry: ConfigEntry) -> DeviceInfo:
 
     The postal code is part of the device name so multiple hubs (e.g. home
     and work) stay distinguishable — mirroring the account-in-name pattern
-    of the other carriers.
+    of the other carriers. The country joined it once a bare postcode
+    stopped uniquely identifying a hub: French and German postcodes can both
+    read "39100" (BUILD_PLAN_GROUP_COUNTRIES.md §4, alongside the unique_id
+    migration this label change accompanies).
     """
     postal_code = entry.options.get(CONF_POSTAL_CODE, "")
+    country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
-        name=f"GLS ({postal_code})" if postal_code else "GLS",
+        name=f"GLS ({country} {postal_code})" if postal_code else "GLS",
         manufacturer="GLS",
         entry_type=DeviceEntryType.SERVICE,
         configuration_url="https://gls-group.com",

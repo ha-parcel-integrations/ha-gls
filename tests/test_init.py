@@ -109,9 +109,13 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
         )
 
 
-async def test_legacy_unique_id_migrates_to_postcode(hass):
-    """Pre-multi-hub entries (unique_id == DOMAIN) migrate to their postcode,
-    so the flow's per-postcode duplicate guard also covers them."""
+async def test_legacy_unique_id_migrates_to_country_scoped_postcode(hass):
+    """Pre-multi-hub entries (unique_id == DOMAIN) migrate straight to the
+    country-scoped f"{country}:{postal_code}" unique_id
+    (BUILD_PLAN_GROUP_COUNTRIES.md §4) in one hop — not to the bare postcode
+    as an intermediate step — so the flow's per-postcode-and-country
+    duplicate guard also covers them.
+    """
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=DOMAIN,
@@ -126,9 +130,10 @@ async def test_legacy_unique_id_migrates_to_postcode(hass):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    assert entry.unique_id == "1234AB"
+    assert entry.unique_id == "NL:1234AB"
 
-    # A second hub for the same postcode now aborts instead of duplicating.
+    # A second hub for the same postcode+country now aborts instead of
+    # duplicating.
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
@@ -137,6 +142,76 @@ async def test_legacy_unique_id_migrates_to_postcode(hass):
     )
     assert result["type"] == "abort"
     assert result["reason"] == "already_configured"
+
+
+async def test_bare_postcode_unique_id_migrates_to_country_scoped(hass):
+    """1.5.1-and-earlier entries carry a bare-postcode unique_id (no legacy
+    DOMAIN id involved) — these must also re-key to
+    f"{country}:{postal_code}" (§4), the migration this build adds.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="12345",
+        options={
+            CONF_COUNTRY: "DE",
+            CONF_PARCELS: [],
+            CONF_POSTAL_CODE: "12345",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        new=AsyncMock(return_value=minimal_sample()),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.unique_id == "DE:12345"
+
+
+async def test_already_country_scoped_unique_id_is_left_alone(hass):
+    """An entry already on the current scheme must not be touched again —
+    the migration is idempotent."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="NL:1234AB",
+        options={CONF_PARCELS: [], CONF_POSTAL_CODE: "1234AB"},
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        new=AsyncMock(return_value=minimal_sample()),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.unique_id == "NL:1234AB"
+
+
+async def test_same_postcode_different_country_hubs_do_not_collide(hass):
+    """The exact collision §4 exists to fix: French and Italian postcodes can
+    both read "39100" (both ``^\\d{5}$``) — a bare-postcode unique_id would
+    reject the second hub as a duplicate of the first. Country-scoping must
+    let both stand. (DE is avoided here since its setup step performs a live
+    registration call.)
+    """
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "it", CONF_POSTAL_CODE: "39100"}
+    )
+    assert result["type"] == "create_entry"
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "fr", CONF_POSTAL_CODE: "39100"}
+    )
+    assert result["type"] == "create_entry"
 
 
 async def test_de_setup_wires_country_and_de_session_end_to_end(hass):
@@ -201,14 +276,14 @@ async def test_de_setup_wires_country_and_de_session_end_to_end(hass):
 
 
 async def test_cz_setup_wires_group_locale_end_to_end(hass):
-    """The full country="CZ" wiring (__init__.py -> api.py -> countries/cz)
+    """The full country="CZ" wiring (__init__.py -> api.py -> countries/group)
     — proves ``group_locale`` (not ``culture``, which CZ's COUNTRIES row
     doesn't define) actually reaches the transport, and that barcode comes
     from the tracked parcel_no rather than the response's own tuNo.
     """
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="25401",
+        unique_id="CZ:25401",
         options={
             CONF_COUNTRY: "CZ",
             CONF_PARCELS: [
@@ -231,7 +306,7 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
         },
     }
     with patch(
-        "custom_components.gls.api.async_get_parcel_cz",
+        "custom_components.gls.api.async_get_parcel_group",
         new=AsyncMock(return_value=cz_payload),
     ) as mock_transport:
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -244,6 +319,7 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
         "CZ/en",
         "5036234901",
         "25401",
+        country="CZ",
     )
 
     incoming = hass.states.get("sensor.gls_incoming_parcels")

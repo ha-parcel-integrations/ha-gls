@@ -368,8 +368,8 @@ def test_capabilities_are_known_values():
 
 # ---------------------------------------------------------------------------
 # CZ dispatch — the coordinator threads the looked-up parcel_no into
-# normalize_parcel_cz, since CZ's barcode must never come from a raw
-# response field (countries/cz's docstring). NL/DE ignore parcel_no
+# normalize_parcel_group, since a group-leaf barcode must never come from a
+# raw response field (countries/group's docstring). NL/DE ignore parcel_no
 # entirely, so this is CZ-only coverage; it does not touch either of them.
 # ---------------------------------------------------------------------------
 

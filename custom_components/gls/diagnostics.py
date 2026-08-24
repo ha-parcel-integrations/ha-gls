@@ -72,8 +72,8 @@ TO_REDACT = {
 }
 
 
-def _redact_cz_sensitive(data: Any) -> Any:
-    """Redact GLS CZ's ``references[].value`` (CUSTREF) and ``signature.value``.
+def _redact_group_sensitive(data: Any) -> Any:
+    """Redact the group-leaf ``references[].value`` (CUSTREF) and ``signature.value``.
 
     Both live too deep/context-dependently for the flat ``TO_REDACT`` key set
     above: a ``references[]`` entry is typed by a sibling ``type`` field, so
@@ -85,7 +85,7 @@ def _redact_cz_sensitive(data: Any) -> Any:
     ``references[]`` entry typed ``CUSTREF`` or a ``signature`` dict.
     """
     if isinstance(data, list):
-        return [_redact_cz_sensitive(item) for item in data]
+        return [_redact_group_sensitive(item) for item in data]
     if isinstance(data, dict):
         redacted = dict(data)
         if redacted.get("type") == "CUSTREF" and "value" in redacted:
@@ -93,7 +93,7 @@ def _redact_cz_sensitive(data: Any) -> Any:
         signature = redacted.get("signature")
         if isinstance(signature, dict) and "value" in signature:
             redacted["signature"] = {**signature, "value": REDACTED}
-        return {key: _redact_cz_sensitive(value) for key, value in redacted.items()}
+        return {key: _redact_group_sensitive(value) for key, value in redacted.items()}
     return data
 
 
@@ -111,9 +111,9 @@ async def async_get_config_entry_diagnostics(
             "delivered": len(coordinator.delivered or []),
         },
         "incoming": async_redact_data(
-            _redact_cz_sensitive(coordinator.data or []), TO_REDACT
+            _redact_group_sensitive(coordinator.data or []), TO_REDACT
         ),
         "delivered": async_redact_data(
-            _redact_cz_sensitive(coordinator.delivered or []), TO_REDACT
+            _redact_group_sensitive(coordinator.delivered or []), TO_REDACT
         ),
     }

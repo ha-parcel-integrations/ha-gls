@@ -225,9 +225,10 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         )
 
         # Each raw payload is kept with its postcode (NL needs it for the
-        # tracking deep-link) and its own parcel_no (CZ's normalizer needs it
-        # as the authoritative barcode source — see countries/cz's docstring)
-        # so both can be threaded into normalize_parcel per parcel.
+        # tracking deep-link) and its own parcel_no (the group-leaf
+        # normalizer needs it as the authoritative barcode source — see
+        # countries/group's docstring) so both can be threaded into
+        # normalize_parcel per parcel.
         raws: list[tuple[dict, str, str]] = []
         errors = 0
         for (parcel_no, postal_code), result in zip(pairs, results):

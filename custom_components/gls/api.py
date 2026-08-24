@@ -17,9 +17,9 @@ from typing import TYPE_CHECKING
 
 import aiohttp
 
-from .const import DEFAULT_COUNTRY, GlsApiError
-from .countries.cz import async_get_parcel_cz
+from .const import DEFAULT_COUNTRY, GROUP_LEAF_COUNTRIES, GlsApiError
 from .countries.de import async_get_parcel_de
+from .countries.group import async_get_parcel_group
 from .countries.nl import async_get_parcel_nl
 
 if TYPE_CHECKING:
@@ -36,10 +36,10 @@ class GlsApiClient:
     its bearer token — pass it as ``de_session`` when ``country="DE"``.
     Constructing a DE client without one is a configuration bug, not a
     runtime API failure, so it raises ``RuntimeError`` rather than
-    ``GlsApiError``. CZ needs ``group_locale`` (the group leaf's
-    ``{ISO2}/{lang}`` path segment) instead of ``culture`` — see
-    ``const.py``'s ``COUNTRIES`` docstring for why the two aren't the same
-    key.
+    ``GlsApiError``. Every ``GROUP_LEAF_COUNTRIES`` member needs
+    ``group_locale`` (the group leaf's ``{ISO2}/{lang}`` path segment)
+    instead of ``culture`` — see ``const.py``'s ``COUNTRIES`` docstring for
+    why the two aren't the same key.
 
     Wiring a real DE hub through end-to-end (``__init__.py`` constructing
     this with ``country="DE"`` + a live ``GlsDeSession``, and
@@ -79,9 +79,14 @@ class GlsApiClient:
             return await async_get_parcel_de(
                 self._session, self._de_session, parcel_no, postal_code
             )
-        if self._country == "CZ":
-            return await async_get_parcel_cz(
-                self._session, self._host, self._group_locale, parcel_no, postal_code
+        if self._country in GROUP_LEAF_COUNTRIES:
+            return await async_get_parcel_group(
+                self._session,
+                self._host,
+                self._group_locale,
+                parcel_no,
+                postal_code,
+                country=self._country,
             )
         return await async_get_parcel_nl(
             self._session, self._host, self._culture, parcel_no, postal_code

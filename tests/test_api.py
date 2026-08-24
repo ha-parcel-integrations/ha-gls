@@ -93,7 +93,7 @@ async def test_de_dispatch_delegates_to_the_de_transport():
     )
 
 
-async def test_cz_dispatch_delegates_to_the_cz_transport():
+async def test_cz_dispatch_delegates_to_the_group_transport():
     client = GlsApiClient(
         MagicMock(),
         "gls-group.com",
@@ -102,11 +102,43 @@ async def test_cz_dispatch_delegates_to_the_cz_transport():
         group_locale="CZ/en",
     )
     with patch(
-        "custom_components.gls.api.async_get_parcel_cz",
+        "custom_components.gls.api.async_get_parcel_group",
         new=AsyncMock(return_value={"tuNo": "5036234901"}),
     ) as mock_transport:
         result = await client.async_get_parcel("5036234901", "25401")
     assert result == {"tuNo": "5036234901"}
     mock_transport.assert_awaited_once_with(
-        client._session, "gls-group.com", "CZ/en", "5036234901", "25401"
+        client._session,
+        "gls-group.com",
+        "CZ/en",
+        "5036234901",
+        "25401",
+        country="CZ",
+    )
+
+
+async def test_it_dispatch_delegates_to_the_group_transport_with_its_own_country():
+    """A non-CZ group-leaf country (IT) also dispatches through the same
+    transport, passing its own country code through — GROUP_LEAF_COUNTRIES
+    membership drives this, not a bare country == "CZ" check."""
+    client = GlsApiClient(
+        MagicMock(),
+        "gls-group.com",
+        "unused",
+        country="IT",
+        group_locale="IT/en",
+    )
+    with patch(
+        "custom_components.gls.api.async_get_parcel_group",
+        new=AsyncMock(return_value={"tuNo": "M4 663093258"}),
+    ) as mock_transport:
+        result = await client.async_get_parcel("M4663093258", "20121")
+    assert result == {"tuNo": "M4 663093258"}
+    mock_transport.assert_awaited_once_with(
+        client._session,
+        "gls-group.com",
+        "IT/en",
+        "M4663093258",
+        "20121",
+        country="IT",
     )

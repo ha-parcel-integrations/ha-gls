@@ -1,6 +1,7 @@
 """Tests for the GLS config and options flow."""
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gls.const import (
@@ -13,6 +14,7 @@ from custom_components.gls.const import (
     CONF_PARCELS,
     CONF_POSTAL_CODE,
     CONF_REFRESH_INTERVAL,
+    COUNTRIES,
     DOMAIN,
 )
 from custom_components.gls.countries.de.session import GlsDeSessionError
@@ -90,8 +92,9 @@ async def test_cz_user_flow_invalid_postcode(hass):
 
 
 async def test_same_postcode_hub_rejected(hass):
-    """A second hub for the same postcode aborts; the postcode is the key."""
-    MockConfigEntry(domain=DOMAIN, unique_id="1234AB").add_to_hass(hass)
+    """A second hub for the same postcode+country aborts (unique_id is now
+    f"{country}:{postal_code}" — BUILD_PLAN_GROUP_COUNTRIES.md §4)."""
+    MockConfigEntry(domain=DOMAIN, unique_id="NL:1234AB").add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
@@ -104,7 +107,7 @@ async def test_same_postcode_hub_rejected(hass):
 
 async def test_second_hub_different_postcode_allowed(hass):
     """A hub for a different postcode is allowed (home + work)."""
-    MockConfigEntry(domain=DOMAIN, unique_id="1234AB").add_to_hass(hass)
+    MockConfigEntry(domain=DOMAIN, unique_id="NL:1234AB").add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
@@ -113,6 +116,76 @@ async def test_second_hub_different_postcode_allowed(hass):
     )
     assert result["type"] == "create_entry"
     assert result["title"] == "GLS (5678CD)"
+
+
+async def test_same_postcode_different_country_hub_allowed(hass):
+    """The same postcode string in a different country is a different hub —
+    French and German postcodes can both read "39100"
+    (BUILD_PLAN_GROUP_COUNTRIES.md §4, the collision unique_id-scoping
+    fixes)."""
+    MockConfigEntry(domain=DOMAIN, unique_id="DE:39100").add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "fr", CONF_POSTAL_CODE: "39100"}
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == "FR"
+
+
+# ---------------------------------------------------------------------------
+# The six group-leaf countries added past their §0 gate
+# (BUILD_PLAN_GROUP_COUNTRIES.md) — postcode validation only; the transport
+# itself is covered in tests/countries/test_group.py.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("country", ["AT", "IE", "FR", "SI", "HR", "IT"])
+async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
+    hass, country
+):
+    example = COUNTRIES[country]["postcode_example"]
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: country.lower(), CONF_POSTAL_CODE: example},
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == country
+    assert result["options"][CONF_POSTAL_CODE] == example
+
+
+@pytest.mark.parametrize("country", ["AT", "IE", "FR", "SI", "HR", "IT"])
+async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: country.lower(), CONF_POSTAL_CODE: "!!!"},
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+    assert (
+        result["description_placeholders"]["postcode_example"]
+        == COUNTRIES[country]["postcode_example"]
+    )
+
+
+async def test_ie_eircode_accepts_spaced_form(hass):
+    """Eircodes are written with an internal space; the regex normalises it
+    away first (space-stripped, upper-cased) — the shakiest entry in §2."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: "ie", CONF_POSTAL_CODE: "d02 af30"},
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_POSTAL_CODE] == "D02AF30"
 
 
 # ---------------------------------------------------------------------------

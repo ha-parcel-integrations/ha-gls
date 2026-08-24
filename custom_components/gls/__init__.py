@@ -39,20 +39,28 @@ type GlsConfigEntry = ConfigEntry[GlsData]
 
 async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Set up GLS from a config entry."""
-    # Entries from before the multi-hub redesign carry ``unique_id = DOMAIN``;
-    # the config flow now dedupes hubs on their postcode, so migrate the
-    # legacy id or a second hub with the same postcode could be added.
-    if entry.unique_id == DOMAIN and (
-        postal_code := entry.options.get(CONF_POSTAL_CODE)
-    ):
-        hass.config_entries.async_update_entry(entry, unique_id=postal_code)
+    country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
+    postal_code = entry.options.get(CONF_POSTAL_CODE)
+
+    # unique_id migrations, oldest scheme first, both converging on today's
+    # f"{country}:{postal_code}" (BUILD_PLAN_GROUP_COUNTRIES.md §4): entries
+    # from before the multi-hub redesign carry unique_id == DOMAIN, and
+    # entries from 1.5.1 and earlier carry a bare postcode. Six new countries
+    # made a bare-postcode collision ordinary rather than theoretical (French
+    # and German postcodes can both read "39100"), so a hub's country is now
+    # part of its identity. A legacy DOMAIN entry converges in one hop
+    # instead of two. Do NOT drop or reorder this without re-running the
+    # migration test — it must never orphan a production hub.
+    if postal_code and entry.unique_id in (DOMAIN, postal_code):
+        hass.config_entries.async_update_entry(
+            entry, unique_id=f"{country}:{postal_code}"
+        )
 
     # The endpoint host + culture come from the hub country; entries created
     # before the country option default to the Netherlands. NL is keyless
     # (the HA-managed session is enough); DE needs its own anonymous
     # guest-account session (BUILD_PLAN_DE.md §3) — self-minted, not shared,
     # so it still clears the shared-secret refusal.
-    country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     country_cfg = COUNTRIES.get(country, COUNTRIES[DEFAULT_COUNTRY])
 
     de_session: GlsDeSession | None = None

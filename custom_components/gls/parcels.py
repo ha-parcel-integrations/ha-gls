@@ -19,9 +19,10 @@ from .const import (
     DEFAULT_COUNTRY,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
+    GROUP_LEAF_COUNTRIES,
 )
-from .countries.cz import normalize_parcel_cz
 from .countries.de import normalize_parcel_de
+from .countries.group import normalize_parcel_group
 from .countries.nl import normalize_parcel_nl
 from .timeutils import parse_iso as _parse_iso
 
@@ -41,15 +42,16 @@ def normalize_parcel(
     """Dispatch to the right country's ``normalize_parcel_<code>``.
 
     NL is the default/fallback — a country without its own entry here is
-    treated as NL. CZ is special-cased rather than added to
-    ``_NORMALIZERS`` because it is the only normalizer that needs
-    ``parcel_no`` (the AWB the user entered — CZ's own ``barcode`` source,
-    see ``countries/cz``'s docstring); adding it to NL's/DE's signature just
-    to keep one dict uniform would touch two normalizers, and their tests,
-    for a parameter neither uses.
+    treated as NL. Every group-leaf country (``GROUP_LEAF_COUNTRIES``:
+    CZ/AT/IE/FR/SI/HR/IT) is special-cased rather than added to
+    ``_NORMALIZERS`` because ``normalize_parcel_group`` is the only
+    normalizer that needs ``parcel_no`` (the AWB the user entered — its own
+    ``barcode`` source, see ``countries/group``'s docstring); adding it to
+    NL's/DE's signature just to keep one dict uniform would touch two
+    normalizers, and their tests, for a parameter neither uses.
     """
-    if country == "CZ":
-        return normalize_parcel_cz(
+    if country in GROUP_LEAF_COUNTRIES:
+        return normalize_parcel_group(
             raw,
             postal_code=postal_code,
             country=country,

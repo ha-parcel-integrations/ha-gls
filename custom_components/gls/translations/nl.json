@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "GLS instellen",
-        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nNederland, Duitsland en Tsjechië worden op dit moment ondersteund — [vraag een ander land aan]({issue_url}).",
+        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nNederland, Duitsland, Tsjechië, Oostenrijk, Ierland, Frankrijk, Slovenië, Kroatië en Italië worden op dit moment ondersteund — [vraag een ander land aan]({issue_url}).",
         "data": {
           "country": "Land",
           "postal_code": "Postcode"
@@ -81,7 +81,13 @@
       "options": {
         "nl": "Nederland",
         "de": "Duitsland",
-        "cz": "Tsjechië"
+        "cz": "Tsjechië",
+        "at": "Oostenrijk",
+        "ie": "Ierland",
+        "fr": "Frankrijk",
+        "si": "Slovenië",
+        "hr": "Kroatië",
+        "it": "Italië"
       }
     },
     "refresh_interval": {

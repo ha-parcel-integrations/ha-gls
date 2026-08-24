@@ -157,9 +157,11 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
             if not valid_postcode(postal_code, country):
                 errors[CONF_POSTAL_CODE] = "invalid_postcode"
             else:
-                # unique_id is the postcode: fine while only NL is supported.
-                # Add the country here once a second country lands.
-                await self.async_set_unique_id(postal_code)
+                # unique_id is country-scoped so the same postcode string can
+                # be a different hub in a different country (e.g. French and
+                # German postcodes are both 5 digits) — see __init__.py's
+                # migration for entries created before this scoping existed.
+                await self.async_set_unique_id(f"{country}:{postal_code}")
                 self._abort_if_unique_id_configured()
 
                 # DE has no keyless route — mint the anonymous app-instance

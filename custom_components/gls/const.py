@@ -45,13 +45,17 @@ KNOWN_CAPABILITIES = frozenset(
 #   Germany      — weight/dimensions are not in the DTO (confirmed absent by
 #                  capture) and there is no delivery-window field either;
 #                  pickup_point, url and history still populate.
-#   Other        — the pan-EU group-leaf backend (CZ is the first country
-#                  routed through it, BUILD_PLAN_CZ.md §3). Populates weight
-#                  (infos[] WEIGHT) and url/history, but not dimensions,
-#                  delivery_window or pickup_point — the leaf response has no
-#                  dimensions/ETA field, and a locker/shop name is only
-#                  unstructured text inside history[]'s address, not a
-#                  structured pickup_point.
+#   Other        — the pan-EU group-leaf backend (CZ, AT, IE, FR, SI, HR and
+#                  IT all route through it — countries/group/). Populates
+#                  weight (infos[] WEIGHT) and url/history, but not
+#                  dimensions, delivery_window or pickup_point — the leaf
+#                  response has no dimensions/ETA field, and a locker/shop
+#                  name is only unstructured text inside history[]'s
+#                  address, not a structured pickup_point. Weight itself
+#                  comes from rstt028, which is confirmed on the wire for
+#                  CZ only as of the AT/IE/FR/SI/HR/IT rollout — see each
+#                  row's release notes for which countries' rstt028 is
+#                  still unverified.
 # This used to be a single CAPABILITIES = the intersection across countries,
 # which meant NL's full support was invisible on the docs site the moment a
 # second, weaker country landed. Per-variant rows fixed that (2026-08-23) —
@@ -120,24 +124,31 @@ GLS_DE_VALIDATE_URL = (
 
 # The pan-EU GLS group leaves behind the web tracker (group-rest.md) — keyless,
 # host-agnostic, and partitioned by the *consignment record*, not by the
-# ``{ISO2}/{lang}`` path segment (a locale switch only). CZ is the first
-# ``COUNTRIES`` row routed here (its own package is ``countries/cz/``), but
-# nothing below names Czech Republic: a later group-leaf country is meant to
-# be one more ``COUNTRIES`` row pointing at the same transport, not a copy of
-# it (BUILD_PLAN_CZ.md §9/§10). ``rstt028`` (primary) additionally carries
-# ``history``/weight/references and needs the delivery ``postalCode``;
-# ``rstt029`` (fallback, used only on an ``E609`` postcode mismatch) resolves
-# by AWB alone. ``caller=witt002`` is the web tracker's fixed client id, not a
-# credential — nothing issues or revokes it per user. ``millis`` is a
-# cache-buster (``int(time.time() * 1000)``); no value has ever been
-# rejected.
+# ``{ISO2}/{lang}`` path segment (a locale switch only). CZ was the first
+# ``COUNTRIES`` row routed here (the transport is ``countries/group/``,
+# named for the surface rather than for CZ once AT/IE/FR/SI/HR/IT joined it
+# too — BUILD_PLAN_GROUP_COUNTRIES.md §1), but nothing below names any one
+# country: a later group-leaf country is meant to be one more ``COUNTRIES``
+# row pointing at the same transport, not a copy of it. ``rstt028``
+# (primary) additionally carries ``history``/weight/references and needs
+# the delivery ``postalCode``; ``rstt029`` (fallback, used only on an
+# ``E609`` postcode mismatch) resolves by AWB alone. ``caller=witt002`` is
+# the web tracker's fixed client id, not a credential — nothing issues or
+# revokes it per user. ``millis`` is a cache-buster
+# (``int(time.time() * 1000)``); no value has ever been rejected.
 GLS_GROUP_RSTT028_URL = (
     "https://{host}/app/service/open/rest/{group_locale}/rstt028/{awb}"
     "?caller=witt002&millis={millis}&tuOwnerCode=&postalCode={postal_code}"
 )
+# ``type=`` is empty for every plain-numeric AWB seen, but not universal: a
+# non-plain-numeric code can need ``type=NAT`` instead, sometimes after an
+# outright ``HTTP 500`` on the empty value (group-rest.md § type=NAT). The
+# ``{type}`` placeholder lets ``countries/group/``'s fallback retry once with
+# the other value on a ``5xx``/``404 E206`` — see its
+# ``_async_get_parcel_group_fallback`` and ``COUNTRIES[cc]["group_type"]``.
 GLS_GROUP_RSTT029_URL = (
     "https://{host}/app/service/open/rest/{group_locale}/rstt029"
-    "?match={awb}&type=&caller=witt002&millis={millis}"
+    "?match={awb}&type={type}&caller=witt002&millis={millis}"
 )
 
 # The delivery country of a hub, chosen at setup time. Only the Netherlands
@@ -174,9 +185,30 @@ DEFAULT_COUNTRY = "NL"
 # the *same* pan-EU index, not a data partition, and status mapping keys off
 # the locale-independent ``progressBar.statusInfo``. Overloading ``culture``
 # for that would blur two different concepts, so group-leaf countries get
-# their own ``group_locale`` key instead (BUILD_PLAN_CZ.md §6's decision) —
-# consumed by ``countries/cz/``'s transport, which any future group-leaf
-# country (SI/RO/HU/SK) is meant to share by adding one more row here.
+# their own ``group_locale`` key instead — consumed by ``countries/group/``'s
+# transport, which every group-leaf country below shares by adding one more
+# row here rather than copying the package. Every row uses ``/en`` (not its
+# native language) for ``group_locale``: the segment is a display switch
+# only (proved 2026-08-10: one AWB, identical bodies under three paths), so
+# uniform ``/en`` keeps ``raw_status`` consistent across every group-leaf
+# country. ``tracking_url`` is a separate, per-country *display* choice and
+# is free to use the native language — see AT/FR/IT below.
+#
+# ``group_type`` is optional (default ``""``) and names the ``type=`` value
+# ``countries/group/``'s ``rstt029`` fallback should try *first*, before the
+# other one — group-rest.md's sweep found two non-plain-numeric codes that
+# only resolved with ``type=NAT`` (one after an outright ``HTTP 500`` on the
+# empty value). Only Italy sets it; every other row is unaffected by its
+# absence, since the fallback always tries both values regardless
+# (BUILD_PLAN_GROUP_COUNTRIES.md §3).
+#
+# AT/IE/SI/HR/IT shipped past the §0 gate (maintainer decision, 2026-08-24,
+# same precedent as DE in 1.4.0): each has one real ``rstt029`` pair, but
+# ``rstt028`` — the call that actually carries history/weight/references —
+# is unverified for all of them. FR ships too, with the strongest evidence
+# of the six (`E609` proves the pair check runs) though it has never seen an
+# `rstt028` `200` either. See BUILD_PLAN_GROUP_COUNTRIES.md §0 and the
+# release notes for the per-country detail.
 COUNTRIES: dict[str, dict[str, str]] = {
     "NL": {
         "host": "apm.gls.nl",
@@ -203,7 +235,83 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "https://gls-group.eu/CZ/en/parcel-tracking?match={parcel_no}"
         ),
     },
+    "AT": {
+        "host": "gls-group.com",
+        "group_locale": "AT/en",
+        "postcode_regex": r"^\d{4}$",
+        "postcode_example": "1010",
+        "tracking_url": (
+            "https://gls-group.com/AT/de/paket-verfolgen/?match={parcel_no}"
+        ),
+    },
+    "IE": {
+        "host": "gls-group.com",
+        "group_locale": "IE/en",
+        # Loose on purpose — written from the Eircode format, not from a
+        # probe (BUILD_PLAN_GROUP_COUNTRIES.md §2). Space-stripped/upper-cased
+        # before matching, so "D02 AF30" -> "D02AF30".
+        "postcode_regex": r"^[A-Z0-9]{3}[A-Z0-9]{4}$",
+        "postcode_example": "D02AF30",
+        "tracking_url": (
+            "https://gls-group.com/IE/en/parcel-tracking/?match={parcel_no}"
+        ),
+    },
+    "FR": {
+        "host": "gls-group.com",
+        "group_locale": "FR/en",
+        "postcode_regex": r"^\d{5}$",
+        "postcode_example": "39100",
+        # The group tracker, not moncolis.gls-france.com: the integration
+        # only ever holds numeric AWBs for France, moncolis' alphanumeric
+        # reference format never becomes a tracked parcel here (rejected
+        # outright by both group leaves), and moncolis'
+        # {numeric AWB}-shaped URL has never been probed
+        # (BUILD_PLAN_GROUP_COUNTRIES.md § "and the French exception").
+        "tracking_url": (
+            "https://gls-group.com/FR/fr/suivi-de-colis/?match={parcel_no}"
+        ),
+    },
+    "SI": {
+        "host": "gls-group.com",
+        "group_locale": "SI/en",
+        "postcode_regex": r"^\d{4}$",
+        "postcode_example": "1000",
+        "tracking_url": (
+            "https://gls-group.com/SI/sl/sledenje-posiljki/?match={parcel_no}"
+        ),
+    },
+    "HR": {
+        "host": "gls-group.com",
+        "group_locale": "HR/en",
+        "postcode_regex": r"^\d{5}$",
+        "postcode_example": "10000",
+        "tracking_url": (
+            "https://gls-group.com/HR/hr/pracenje-paketa/?match={parcel_no}"
+        ),
+    },
+    "IT": {
+        "host": "gls-group.com",
+        "group_locale": "IT/en",
+        "postcode_regex": r"^\d{5}$",
+        "postcode_example": "20121",
+        "tracking_url": (
+            "https://gls-group.com/IT/it/servizi-online/ricerca-spedizioni/"
+            "?match={parcel_no}&type=NAT"
+        ),
+        # Italy's own consumer deep-link carries type=NAT unconditionally
+        # (evidence for the "per-country convention" hypothesis in
+        # group-rest.md § type=NAT), and the one real Italian AWB probed
+        # only resolved on rstt029 with type=NAT (an HTTP 500 on type=).
+        "group_type": "NAT",
+    },
 }
+
+# Every ``COUNTRIES`` row served by the pan-EU group-leaf transport
+# (``countries/group/``) rather than a national backend — the dispatchers in
+# ``parcels.py`` and ``api.py`` route on membership here instead of a bare
+# ``country == "CZ"`` special case, so a later group-leaf country only needs
+# a ``COUNTRIES`` row plus one more entry here.
+GROUP_LEAF_COUNTRIES = frozenset({"CZ", "AT", "IE", "FR", "SI", "HR", "IT"})
 
 # Linked from the setup form so users can ask for a country we don't cover
 # yet. Country/carrier requests go through the organisation discussion (the
