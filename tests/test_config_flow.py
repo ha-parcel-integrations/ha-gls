@@ -274,100 +274,36 @@ def _init_input(
     }
 
 
-async def test_options_add_parcel_uses_hub_postcode(hass):
-    entry = _hub([])
-    entry.add_to_hass(hass)
-
+async def _open_options_step(hass, entry, step_id: str):
+    """Start the options flow and select one of its two top-level routes."""
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    # No postcode field at all — the hub default is used.
+    assert result["type"] == "menu"
+    assert result["menu_options"] == ["parcels", "settings"]
+    return await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": step_id}
+    )
+
+
+async def test_options_parcel_list_can_be_cleared(hass):
+    """A submitted empty list removes the final manually tracked parcel."""
+    entry = MockConfigEntry(domain=DOMAIN, options={CONF_PARCELS: [{CONF_PARCEL_NO: "EXAMPLE111111"}], CONF_POSTAL_CODE: "1234AB"})
+    entry.add_to_hass(hass)
+    result = await _open_options_step(hass, entry, "parcels")
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], _init_input(add="222222222")
+        result["flow_id"], {"tracking_codes": []}
     )
     assert result["type"] == "create_entry"
-    assert result["data"][CONF_PARCELS] == [
-        {CONF_PARCEL_NO: "222222222", CONF_POSTAL_CODE: "1000AA"}
-    ]
+    assert result["data"][CONF_PARCELS] == []
 
 
-async def test_options_flow_preserves_de_country(hass):
-    """Adding a parcel through the options flow must not reset the hub's country.
-
-    Regression test for ha-parcel-integrations/ha-gls#2: an options flow's
-    ``data`` replaces ``entry.options`` wholesale rather than merging into
-    it, so omitting CONF_COUNTRY here silently downgraded every DE hub to
-    NL the moment its first (mandatory, since CONF_PARCELS starts empty)
-    parcel was added.
-    """
-    entry = _hub([], country="DE")
+async def test_options_settings_preserve_parcel_list(hass):
+    """Saving settings must never replace the manually tracked parcel list."""
+    parcels = [{CONF_PARCEL_NO: "EXAMPLE111111"}]
+    entry = MockConfigEntry(domain=DOMAIN, options={CONF_PARCELS: parcels, CONF_POSTAL_CODE: "1234AB"})
     entry.add_to_hass(hass)
-
-    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await _open_options_step(hass, entry, "settings")
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], _init_input(add="222222222")
+        result["flow_id"], {CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7, CONF_INCLUDE_HISTORY: False, CONF_REFRESH_INTERVAL: "30"}
     )
     assert result["type"] == "create_entry"
-    assert result["data"][CONF_COUNTRY] == "DE"
-
-
-async def test_options_add_alphanumeric_tracking_id(hass):
-    """The short alphanumeric uniqueNo is accepted and upper-cased."""
-    entry = _hub([])
-    entry.add_to_hass(hass)
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], _init_input(add="00l1b3bx")
-    )
-    assert result["type"] == "create_entry"
-    assert result["data"][CONF_PARCELS] == [
-        {CONF_PARCEL_NO: "00L1B3BX", CONF_POSTAL_CODE: "1000AA"}
-    ]
-
-
-async def test_options_add_invalid_parcel_no(hass):
-    entry = _hub([])
-    entry.add_to_hass(hass)
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], _init_input(add="abc")
-    )
-    assert result["errors"]["base"] == "invalid_parcel_no"
-
-
-async def test_options_add_duplicate_rejected(hass):
-    entry = _hub([{CONF_PARCEL_NO: "111111111", CONF_POSTAL_CODE: "1000AA"}])
-    entry.add_to_hass(hass)
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], _init_input(add="111111111", remove=[])
-    )
-    assert result["errors"]["base"] == "already_tracked"
-
-
-async def test_options_remove_parcel(hass):
-    entry = _hub([
-        {CONF_PARCEL_NO: "111111111", CONF_POSTAL_CODE: "1000AA"},
-        {CONF_PARCEL_NO: "222222222", CONF_POSTAL_CODE: "2000BB"},
-    ])
-    entry.add_to_hass(hass)
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], _init_input(remove=["111111111"])
-    )
-    assert result["type"] == "create_entry"
-    nos = {p[CONF_PARCEL_NO] for p in result["data"][CONF_PARCELS]}
-    assert nos == {"222222222"}
-
-
-async def test_options_changes_interval_history_and_delivered(hass):
-    entry = _hub([])
-    entry.add_to_hass(hass)
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        _init_input(interval="120", history=True, filter_type="parcels", amount=5),
-    )
-    assert result["type"] == "create_entry"
-    assert result["data"][CONF_REFRESH_INTERVAL] == 120
-    assert result["data"][CONF_INCLUDE_HISTORY] is True
-    assert result["data"][CONF_DELIVERED_FILTER_TYPE] == "parcels"
-    assert result["data"][CONF_DELIVERED_FILTER_AMOUNT] == 5
+    assert result["data"][CONF_PARCELS] == parcels

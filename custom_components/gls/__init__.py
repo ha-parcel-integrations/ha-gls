@@ -12,6 +12,7 @@ from .api import GlsApiClient
 from .const import (
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
+    CONF_PARCELS,
     CONF_POSTAL_CODE,
     COUNTRIES,
     DEFAULT_COUNTRY,
@@ -41,6 +42,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Set up GLS from a config entry."""
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     postal_code = entry.options.get(CONF_POSTAL_CODE)
+
+    # Older entries stored the postcode beside every parcel number.  A hub now
+    # owns one postcode, so migrate the common single-postcode shape on setup.
+    # Entries with mixed legacy postcodes keep their first postcode; users can
+    # then create a second hub and move the relevant codes there.
+    old_parcels = entry.options.get(CONF_PARCELS, [])
+    legacy_postcode = postal_code or next(
+        (parcel.get(CONF_POSTAL_CODE) for parcel in old_parcels if parcel.get(CONF_POSTAL_CODE)),
+        None,
+    )
+    normalized_parcels = [
+        {key: value for key, value in parcel.items() if key != CONF_POSTAL_CODE}
+        for parcel in old_parcels
+    ]
+    if legacy_postcode and (
+        legacy_postcode != postal_code or normalized_parcels != old_parcels
+    ):
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                CONF_POSTAL_CODE: legacy_postcode,
+                CONF_PARCELS: normalized_parcels,
+            },
+        )
+        postal_code = legacy_postcode
 
     # unique_id migrations, oldest scheme first, both converging on today's
     # f"{country}:{postal_code}" (BUILD_PLAN_GROUP_COUNTRIES.md §4): entries

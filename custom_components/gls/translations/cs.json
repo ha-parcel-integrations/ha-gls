@@ -68,6 +68,25 @@
               "refresh_interval": "Jak často integrace kontroluje GLS ohledně aktualizací balíků. Delší interval je šetrnější k API GLS; výchozích 30 minut stačí pro většinu balíků."
             }
           }
+        },
+        "menu_options": {
+          "parcels": "Zásilky",
+          "settings": "Nastavení"
+        }
+      },
+      "parcels": {
+        "title": "Zásilky",
+        "data": {
+          "tracking_codes": "Sledovací kódy"
+        }
+      },
+      "settings": {
+        "title": "Nastavení",
+        "data": {
+          "delivered_filter_type": "Doručené zásilky: filtrovat podle",
+          "delivered_filter_amount": "Doručené zásilky: počet",
+          "include_history": "Zahrnout historii stavu",
+          "refresh_interval": "Obnovovat každých"
         }
       }
     },

@@ -4,6 +4,7 @@
 parcel without opening the integration options — so a Lovelace button can
 start tracking a parcel straight from a dashboard.
 """
+
 from __future__ import annotations
 
 import logging
@@ -80,8 +81,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             raise ServiceValidationError(f"'{parcel_no}' is not a valid parcel number")
         entry = _resolve_entry(hass, call.data.get(CONF_POSTAL_CODE))
         postal_code = normalize_postcode(
-            call.data.get(CONF_POSTAL_CODE)
-            or entry.options.get(CONF_POSTAL_CODE, "")
+            call.data.get(CONF_POSTAL_CODE) or entry.options.get(CONF_POSTAL_CODE, "")
         )
         country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
         if not valid_postcode(postal_code, country):
@@ -90,7 +90,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         parcels = [dict(p) for p in entry.options.get(CONF_PARCELS, [])]
         if any(p[CONF_PARCEL_NO] == parcel_no for p in parcels):
             return  # already tracked — no-op
-        parcels.append({CONF_PARCEL_NO: parcel_no, CONF_POSTAL_CODE: postal_code})
+        parcels.append({CONF_PARCEL_NO: parcel_no})
         hass.config_entries.async_update_entry(
             entry, options={**entry.options, CONF_PARCELS: parcels}
         )

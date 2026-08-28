@@ -39,7 +39,7 @@ async def test_setup_and_unload(hass):
     assert entry.state is ConfigEntryState.LOADED
 
     # The active parcel produced a per-parcel sensor and the summary sensor.
-    incoming = hass.states.get("sensor.gls_incoming_parcels")
+    incoming = hass.states.get("sensor.gls_nl_1234ab_incoming_parcels")
     assert incoming is not None
     assert incoming.state == "1"
 
@@ -260,10 +260,10 @@ async def test_de_setup_wires_country_and_de_session_end_to_end(hass):
     de_session_arg = mock_transport.call_args.args[1]
     assert de_session_arg.app_instance_id == "existing-app-instance-id"
 
-    incoming = hass.states.get("sensor.gls_incoming_parcels")
+    incoming = hass.states.get("sensor.gls_de_00000_incoming_parcels")
     assert incoming is not None
     assert incoming.state == "0"  # delivered, not active
-    delivered = hass.states.get("sensor.gls_delivered_parcels")
+    delivered = hass.states.get("sensor.gls_de_00000_delivered_parcels")
     assert delivered is not None
     assert delivered.state == "1"
 
@@ -322,5 +322,5 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
         country="CZ",
     )
 
-    incoming = hass.states.get("sensor.gls_incoming_parcels")
+    incoming = hass.states.get("sensor.gls_cz_25401_incoming_parcels")
     assert incoming is not None

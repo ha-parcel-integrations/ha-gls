@@ -68,6 +68,25 @@
               "refresh_interval": "How often the integration checks GLS for parcel updates. A slower interval is gentler on GLS's API; the default of 30 minutes is plenty for most parcels."
             }
           }
+        },
+        "menu_options": {
+          "parcels": "Parcels",
+          "settings": "Settings"
+        }
+      },
+      "parcels": {
+        "title": "Parcels",
+        "data": {
+          "tracking_codes": "Tracking codes"
+        }
+      },
+      "settings": {
+        "title": "Settings",
+        "data": {
+          "delivered_filter_type": "Delivered parcels: filter by",
+          "delivered_filter_amount": "Delivered parcels: amount",
+          "include_history": "Include status history",
+          "refresh_interval": "Refresh every"
         }
       }
     },

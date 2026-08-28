@@ -68,6 +68,25 @@
               "refresh_interval": "Wie oft die Integration bei GLS nach Paketaktualisierungen fragt. Ein längeres Intervall ist schonender für die GLS-API; der Standard von 30 Minuten reicht für die meisten Pakete aus."
             }
           }
+        },
+        "menu_options": {
+          "parcels": "Pakete",
+          "settings": "Einstellungen"
+        }
+      },
+      "parcels": {
+        "title": "Pakete",
+        "data": {
+          "tracking_codes": "Sendungsnummern"
+        }
+      },
+      "settings": {
+        "title": "Einstellungen",
+        "data": {
+          "delivered_filter_type": "Zugestellte Pakete: filtern nach",
+          "delivered_filter_amount": "Zugestellte Pakete: Anzahl",
+          "include_history": "Statusverlauf einbeziehen",
+          "refresh_interval": "Aktualisieren alle"
         }
       }
     },

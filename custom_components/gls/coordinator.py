@@ -1,4 +1,5 @@
 """Coordinator for the GLS parcel tracker integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -86,9 +87,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         # ``None`` on the first refresh so events are suppressed for parcels
         # that already existed when the integration started.
         self._known_state: dict[str, ParcelStatus] | None = None
-        self._known_delivery_times: (
-            dict[str, tuple[str | None, str | None]] | None
-        ) = None
+        self._known_delivery_times: dict[str, tuple[str | None, str | None]] | None = (
+            None
+        )
         # Cached device id, attached to every fired event so device-trigger
         # automations can filter to this GLS device.
         self._cached_device_id: str | None = None
@@ -101,7 +102,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
             return self._cached_device_id
         registry = dr.async_get(self.hass)
         device = next(
-            iter(dr.async_entries_for_config_entry(registry, self.config_entry.entry_id)),
+            iter(
+                dr.async_entries_for_config_entry(registry, self.config_entry.entry_id)
+            ),
             None,
         )
         if device is not None:
@@ -109,16 +112,14 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         return self._cached_device_id
 
     def _tracked(self) -> list[dict]:
-        """Return the configured ``{parcel_no, postal_code}`` pairs."""
+        """Return the configured parcel numbers for this hub."""
         return list(self.config_entry.options.get(CONF_PARCELS, []))
 
     @property
     def _include_history(self) -> bool:
         """Whether the opt-in per-parcel history option is enabled."""
         return bool(
-            self.config_entry.options.get(
-                CONF_INCLUDE_HISTORY, DEFAULT_INCLUDE_HISTORY
-            )
+            self.config_entry.options.get(CONF_INCLUDE_HISTORY, DEFAULT_INCLUDE_HISTORY)
         )
 
     def _apply_delivered_filter(self, parcels: list[dict]) -> list[dict]:
@@ -200,10 +201,14 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
     async def _async_update_data(self) -> list[dict]:
         tracked = self._tracked()
         country = self.config_entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
+        postal_code = self.config_entry.options.get(CONF_POSTAL_CODE)
         pairs = [
-            (item[CONF_PARCEL_NO], item[CONF_POSTAL_CODE])
+            # The item fallback only supports a legacy entry before its setup
+            # migration; all newly stored parcel items contain just the code.
+            (item[CONF_PARCEL_NO], postal_code or item.get(CONF_POSTAL_CODE))
             for item in tracked
-            if item.get(CONF_PARCEL_NO) and item.get(CONF_POSTAL_CODE)
+            if item.get(CONF_PARCEL_NO)
+            and (postal_code or item.get(CONF_POSTAL_CODE))
         ]
 
         # Drop cache entries for parcels that were untracked, so the cache

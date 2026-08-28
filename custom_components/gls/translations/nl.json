@@ -68,6 +68,25 @@
               "refresh_interval": "Hoe vaak de integratie GLS controleert op pakketupdates. Een langzamer interval is vriendelijker voor GLS; de standaard van 30 minuten is ruim voldoende voor de meeste pakketten."
             }
           }
+        },
+        "menu_options": {
+          "parcels": "Pakketten",
+          "settings": "Instellingen"
+        }
+      },
+      "parcels": {
+        "title": "Pakketten",
+        "data": {
+          "tracking_codes": "Trackingcodes"
+        }
+      },
+      "settings": {
+        "title": "Instellingen",
+        "data": {
+          "delivered_filter_type": "Bezorgde pakketten: filteren op",
+          "delivered_filter_amount": "Bezorgde pakketten: aantal",
+          "include_history": "Statusgeschiedenis opnemen",
+          "refresh_interval": "Vernieuwen elke"
         }
       }
     },

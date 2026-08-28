@@ -45,7 +45,7 @@ async def test_track_parcel_adds_to_options(hass):
         await hass.async_block_till_done()
 
     parcels = entry.options[CONF_PARCELS]
-    assert parcels == [{CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "1234AB"}]
+    assert parcels == [{CONF_PARCEL_NO: "9999999999999"}]
 
 
 async def test_track_parcel_rejects_invalid_number(hass):
@@ -118,9 +118,7 @@ async def test_track_parcel_routes_to_hub_by_postcode(hass):
         await hass.async_block_till_done()
 
     assert home.options[CONF_PARCELS] == []
-    assert work.options[CONF_PARCELS] == [
-        {CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "2000BB"}
-    ]
+    assert work.options[CONF_PARCELS] == [{CONF_PARCEL_NO: "9999999999999"}]
 
 
 async def test_track_parcel_ambiguous_without_postcode(hass):
