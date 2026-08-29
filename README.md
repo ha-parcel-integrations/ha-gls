@@ -40,7 +40,7 @@ A custom Home Assistant integration that tracks your GLS parcels — Netherlands
 
 ## Requirements
 
-- Home Assistant 2024.7 or newer
+- Home Assistant 2024.12 or newer
 - A GLS parcel delivered to a supported country. The **Netherlands**,
   **Germany** and **Czech Republic** are available today; the setup form
   links to the
@@ -122,6 +122,12 @@ friendly-name pattern (with multiple hubs each carries its own postcode):
 | `GLS (postcode) Awaiting pickup` | Parcels that have arrived at a ParcelShop and are ready to collect |
 | `GLS (postcode) Delivered parcels` | Recently delivered tracked parcels (retention configurable) |
 | `GLS (postcode) Last successful update` | Diagnostic timestamp of the last successful poll |
+
+A **`GLS (postcode) Deliveries`** calendar entity is also created, showing
+expected delivery dates for active parcels — read-only, no extra API calls.
+
+A **`GLS (postcode) Refresh`** button entity forces an immediate poll, without
+waiting for the next scheduled interval.
 
 Not every field is populated by every country — `weight`/`dimensions`/
 `sender`/`receiver`/`pickup_point` and the delivery window vary by which
