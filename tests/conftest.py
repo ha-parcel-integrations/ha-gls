@@ -20,10 +20,8 @@ def reset_one_shot_warnings():
     makes them leak across tests, so whether a warning fires would otherwise
     depend on test order.
     """
-    from custom_components.gls.countries import de
+    from custom_components.gls.countries import de, group, nl
     from custom_components.gls.countries.de import session
-    from custom_components.gls.countries import group
-    from custom_components.gls.countries import nl
 
     de._recaptcha_warned = False
     de._unmapped_enum_logged.clear()
