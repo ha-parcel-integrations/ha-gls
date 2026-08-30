@@ -81,7 +81,8 @@ work). Each hub is its own **GLS (postcode)** device with its own parcels.
 A **GLS** hub holds your tracked parcels. Add them any of three ways — new
 per-parcel sensors appear immediately, no restart or manual refresh needed:
 
-- **Options** — integration card → **Configure** → **Parcels** → **Add a parcel**.
+- **Options** — integration card → **Configure** → **Parcels** → edit the
+  list of tracking codes (add or remove any number, then save).
 - **Service** — call `gls.track_parcel` with a `tracking_code` (and optional
   `postal_code`, which picks the hub when you run several). `gls.untrack_parcel`
   removes one.
@@ -94,18 +95,22 @@ them in the GLS track & trace mail/SMS or on gls-info.nl.
 
 ## Options
 
-Click **Configure** on the integration card. One form, four sections:
+Click **Configure** on the integration card — a menu with two pages:
 
-| Section | Description |
+| Page | Description |
 |---|---|
-| Parcels | Add a parcel by its tracking number (it uses the hub postal code), or remove tracked parcels. |
-| Delivered parcels | Keep delivered parcels in the delivered sensor for the last N **days**, or keep only the N most recent (**parcels**). Default: 7 days. Parcels stay tracked — this only controls the sensor. |
-| Parcel history | Add a per-parcel status history attribute. **Off by default.** |
-| Polling | How often GLS is checked: **Automatic**, or a fixed **15 / 30 / 60 / 120 / 240 minutes**. New hubs default to Automatic; existing hubs keep their current fixed value until changed. Changes apply immediately, no HA restart needed. See [Dynamic polling](#dynamic-polling) below. |
+| Parcels | Your tracked codes as one editable list — add or remove any number, then save. |
+| Settings | Delivered-parcel retention, status history and polling, described below. |
+
+| Setting (on the Settings page) | Description |
+|---|---|
+| Delivered parcels: filter by / amount | Keep delivered parcels in the delivered sensor for the last N **days**, or keep only the N most recent (**parcels**). Default: 7 days. Parcels stay tracked — this only controls the sensor. |
+| Include status history | Add a per-parcel status history attribute. **Off by default.** |
+| Refresh every | How often GLS is checked: **Automatic**, or a fixed **15 / 30 / 60 / 120 / 240 minutes**. New hubs default to Automatic; existing hubs keep their current fixed value until changed. Changes apply immediately, no HA restart needed. See [Dynamic polling](#dynamic-polling) below. |
 
 ## Dynamic polling
 
-You can now set **Polling** to **Automatic** instead of a fixed number of
+You can now set **Refresh every** to **Automatic** instead of a fixed number of
 minutes. Instead of polling GLS at the same rate around the clock, the
 integration adjusts its own cadence to what your tracked parcels are
 actually doing:
