@@ -56,9 +56,10 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
   dict key stays `parcel_no` (`CONF_PARCEL_NO`) — that's an internal options
   key, not the service field, and was never part of the alias; don't conflate
   them.
-- **Options flow = one sectioned form** (`parcels` / `history` / `polling`), not a
-  menu. The `remove` multiselect is only in the schema when parcels exist; do
-  remove-then-add so re-adding a just-removed number works.
+- **Options flow = a two-page menu** (`parcels` / `settings`), not a single
+  sectioned form. The `parcels` page edits the whole tracked-code list as one
+  multi-value text field (add or remove any number, then save); `settings`
+  holds delivered-parcel retention, history and polling.
 - **Option changes apply live, no reload.** An **update listener**
   (`_async_options_updated`) retunes `coordinator.update_interval` and calls
   `async_request_refresh()`; the coordinator re-reads options each update, so a

@@ -218,13 +218,15 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class GlsOptionsFlowHandler(OptionsFlow):
-    """Manage tracked parcels, history and polling in one sectioned form.
+    """Manage tracked parcels, history and polling via a two-page menu.
 
-    Mirrors the other suite carriers' section layout (here: ``parcels`` /
-    ``history`` / ``polling``). Adding a parcel needs only its number — the
-    postcode is inherited from the hub. Changes apply live via HA's
-    options-update listener (which refreshes the coordinator), so new/removed
-    per-parcel sensors appear and disappear immediately.
+    ``async_step_init`` shows a menu (``parcels`` / ``settings``) rather than
+    one long sectioned form. The ``parcels`` page edits the whole tracked-code
+    list at once; ``settings`` holds delivered-parcel retention, history and
+    polling. Adding a parcel needs only its number — the postcode is
+    inherited from the hub. Changes apply live via HA's options-update
+    listener (which refreshes the coordinator), so new/removed per-parcel
+    sensors appear and disappear immediately.
     """
 
     async def async_step_init(
