@@ -65,7 +65,7 @@
               "refresh_interval": "Aktualisieren alle"
             },
             "data_description": {
-              "refresh_interval": "Wie oft die Integration bei GLS nach Paketaktualisierungen fragt. Ein längeres Intervall ist schonender für die GLS-API; der Standard von 30 Minuten reicht für die meisten Pakete aus."
+              "refresh_interval": "Wie oft die Integration bei GLS nach Paketaktualisierungen fragt. „Automatisch“ (der Standard für neue Installationen) beschleunigt rund um eine erwartete Zustellung und verlangsamt sich nachts; ein fester Wert fragt rund um die Uhr mit diesem konstanten Takt."
             }
           }
         },
@@ -111,6 +111,7 @@
     },
     "refresh_interval": {
       "options": {
+        "auto": "Automatisch (empfohlen)",
         "15": "15 Minuten",
         "30": "30 Minuten",
         "60": "60 Minuten",

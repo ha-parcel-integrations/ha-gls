@@ -65,7 +65,7 @@
               "refresh_interval": "Obnovovat každých"
             },
             "data_description": {
-              "refresh_interval": "Jak často integrace kontroluje GLS ohledně aktualizací balíků. Delší interval je šetrnější k API GLS; výchozích 30 minut stačí pro většinu balíků."
+              "refresh_interval": "Jak často integrace kontroluje GLS ohledně aktualizací balíků. „Automaticky“ (výchozí pro nové instalace) zrychlí kolem očekávaného doručení a zpomalí přes noc; pevný interval dotazuje nepřetržitě stejnou rychlostí."
             }
           }
         },
@@ -111,6 +111,7 @@
     },
     "refresh_interval": {
       "options": {
+        "auto": "Automaticky (doporučeno)",
         "15": "15 minut",
         "30": "30 minut",
         "60": "60 minut",

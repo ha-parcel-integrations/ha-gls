@@ -1,5 +1,5 @@
 """Tests for the GLS coordinator logic."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -14,12 +14,24 @@ from custom_components.gls.const import (
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
+    CONF_REFRESH_INTERVAL,
     DOMAIN,
+    HOT_INTERVAL_MINUTES,
     KNOWN_CAPABILITIES,
+    MID_INTERVAL_MINUTES,
+    REFRESH_INTERVAL_AUTO,
+    STAGGER_MINUTES,
     ParcelStatus,
 )
 from custom_components.gls.coordinator import (
     GlsCoordinator,
+    _hottest_tier_minutes,
+    _in_quiet_window,
+    _next_anchor,
+    _next_update_interval,
+    _refresh_interval,
+    _refresh_setting,
+    _stagger_minutes,
 )
 from custom_components.gls.parcels import (
     normalize_parcel,
@@ -67,6 +79,175 @@ def _entry_with(parcels: list[dict]) -> MockConfigEntry:
         },
         unique_id=DOMAIN,
     )
+
+
+# ---------------------------------------------------------------------------
+# Dynamic polling (Section 2.1, barcode-based) — pure helpers
+# ---------------------------------------------------------------------------
+
+UTC = timezone.utc
+
+
+def test_refresh_interval_starts_hot_when_auto():
+    entry = _auto_entry_with([])
+    assert _refresh_interval(entry).total_seconds() == HOT_INTERVAL_MINUTES * 60
+
+
+def test_refresh_setting_passes_through_auto():
+    entry = _auto_entry_with([])
+    assert _refresh_setting(entry) == REFRESH_INTERVAL_AUTO
+
+
+def test_quiet_window_is_midnight_to_six():
+    assert _in_quiet_window(datetime(2026, 1, 1, 0, 0, tzinfo=UTC))
+    assert _in_quiet_window(datetime(2026, 1, 1, 5, 59, tzinfo=UTC))
+    assert not _in_quiet_window(datetime(2026, 1, 1, 6, 0, tzinfo=UTC))
+    assert not _in_quiet_window(datetime(2026, 1, 1, 23, 59, tzinfo=UTC))
+
+
+def test_next_anchor_before_six_is_six_today():
+    now = datetime(2026, 1, 1, 2, 30, tzinfo=UTC)
+    assert _next_anchor(now) == datetime(2026, 1, 1, 6, 0, tzinfo=UTC)
+
+
+def test_next_anchor_after_six_is_midnight_tomorrow():
+    now = datetime(2026, 1, 1, 14, 0, tzinfo=UTC)
+    assert _next_anchor(now) == datetime(2026, 1, 2, 0, 0, tzinfo=UTC)
+
+
+def test_stagger_is_stable_and_bounded():
+    a = _stagger_minutes("entry-1")
+    b = _stagger_minutes("entry-1")
+    c = _stagger_minutes("entry-2")
+    assert a == b
+    assert 0 <= a < STAGGER_MINUTES
+    assert 0 <= c < STAGGER_MINUTES
+
+
+def test_tier_is_none_when_nothing_active():
+    assert _hottest_tier_minutes([], datetime(2026, 1, 1, 12, tzinfo=UTC)) is None
+
+
+def test_tier_is_mid_for_non_hot_statuses():
+    now = datetime(2026, 1, 1, 12, tzinfo=UTC)
+    parcels = [
+        {"status": "registered", "planned_from": None},
+        {"status": "problem", "planned_from": None},
+        {"status": "returning", "planned_from": None},
+    ]
+    assert _hottest_tier_minutes(parcels, now) == MID_INTERVAL_MINUTES
+
+
+def test_tier_is_hot_when_out_for_delivery_without_planned_from():
+    now = datetime(2026, 1, 1, 12, tzinfo=UTC)
+    parcels = [
+        {"status": "in_transit", "planned_from": None},
+        {"status": "out_for_delivery", "planned_from": None},
+    ]
+    assert _hottest_tier_minutes(parcels, now) == HOT_INTERVAL_MINUTES
+
+
+def test_tier_is_hot_within_lookahead_of_planned_from():
+    planned = datetime(2026, 1, 1, 13, 0, tzinfo=UTC)
+    now = planned - timedelta(minutes=30)  # inside the 1h lookahead
+    parcels = [{"status": "out_for_delivery", "planned_from": planned.isoformat()}]
+    assert _hottest_tier_minutes(parcels, now) == HOT_INTERVAL_MINUTES
+
+
+def test_tier_is_mid_before_lookahead_of_planned_from():
+    planned = datetime(2026, 1, 1, 13, 0, tzinfo=UTC)
+    now = planned - timedelta(hours=3)  # well outside the 1h lookahead
+    parcels = [{"status": "out_for_delivery", "planned_from": planned.isoformat()}]
+    assert _hottest_tier_minutes(parcels, now) == MID_INTERVAL_MINUTES
+
+
+def test_next_update_interval_is_none_for_none_tier():
+    assert _next_update_interval(datetime(2026, 1, 1, 12, tzinfo=UTC), None, "entry-1") is None
+
+
+def test_daytime_candidate_outside_window_is_tier_plus_stagger():
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    interval = _next_update_interval(now, MID_INTERVAL_MINUTES, "entry-1")
+    stagger = _stagger_minutes("entry-1")
+    assert interval == timedelta(minutes=MID_INTERVAL_MINUTES + stagger)
+
+
+def test_now_inside_quiet_window_jumps_to_next_anchor():
+    now = datetime(2026, 1, 1, 1, 0, tzinfo=UTC)  # an anchor poll itself
+    interval = _next_update_interval(now, HOT_INTERVAL_MINUTES, "entry-1")
+    assert now + interval == datetime(2026, 1, 1, 6, 0, tzinfo=UTC)
+
+
+def test_candidate_landing_in_quiet_window_clamps_to_the_midnight_anchor():
+    now = datetime(2026, 1, 1, 23, 50, tzinfo=UTC)
+    interval = _next_update_interval(now, MID_INTERVAL_MINUTES, "entry-1")
+    assert now + interval == datetime(2026, 1, 2, 0, 0, tzinfo=UTC)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic polling — wired into _async_update_data
+# ---------------------------------------------------------------------------
+
+
+def _auto_entry_with(parcels: list[dict]) -> MockConfigEntry:
+    return MockConfigEntry(
+        domain=DOMAIN,
+        options={
+            CONF_PARCELS: parcels,
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+            CONF_REFRESH_INTERVAL: REFRESH_INTERVAL_AUTO,
+        },
+        unique_id=DOMAIN,
+    )
+
+
+async def test_auto_mode_stops_entirely_with_nothing_tracked(hass):
+    entry = _auto_entry_with([])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes is None
+    assert coordinator.update_interval is None
+
+
+async def test_auto_mode_is_hot_for_an_out_for_delivery_parcel(hass):
+    entry = _auto_entry_with(
+        [{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}]
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = active_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes == HOT_INTERVAL_MINUTES
+    assert coordinator.update_interval is not None
+
+
+async def test_fixed_mode_keeps_configured_interval(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        options={
+            CONF_PARCELS: [],
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+            CONF_REFRESH_INTERVAL: 60,
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes is None
+    assert coordinator.update_interval == timedelta(minutes=60)
 
 
 async def test_update_merges_multiple_parcels(hass):

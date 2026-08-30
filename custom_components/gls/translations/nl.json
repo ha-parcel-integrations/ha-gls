@@ -65,7 +65,7 @@
               "refresh_interval": "Ververs elke"
             },
             "data_description": {
-              "refresh_interval": "Hoe vaak de integratie GLS controleert op pakketupdates. Een langzamer interval is vriendelijker voor GLS; de standaard van 30 minuten is ruim voldoende voor de meeste pakketten."
+              "refresh_interval": "Hoe vaak de integratie GLS controleert op pakketupdates. \"Automatisch\" (de standaard voor nieuwe installaties) polt sneller rond een verwachte bezorging en langzamer 's nachts; een vaste waarde polt dag en nacht met dat constante interval."
             }
           }
         },
@@ -111,6 +111,7 @@
     },
     "refresh_interval": {
       "options": {
+        "auto": "Automatisch (aanbevolen)",
         "15": "15 minuten",
         "30": "30 minuten",
         "60": "60 minuten",

@@ -20,6 +20,8 @@ async def test_diagnostics_redacts_and_counts(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.current_tier_minutes = 45
+    entry.runtime_data.coordinator.update_interval = None
 
     result = await async_get_config_entry_diagnostics(hass, entry)
 
@@ -70,6 +72,8 @@ async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.current_tier_minutes = None
+    entry.runtime_data.coordinator.update_interval = None
 
     result = await async_get_config_entry_diagnostics(hass, entry)
 
@@ -107,6 +111,8 @@ async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.current_tier_minutes = None
+    entry.runtime_data.coordinator.update_interval = None
 
     result = await async_get_config_entry_diagnostics(hass, entry)
 
