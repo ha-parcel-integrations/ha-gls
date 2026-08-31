@@ -40,7 +40,6 @@ A custom Home Assistant integration that tracks your GLS parcels — Netherlands
 
 ## Requirements
 
-- Home Assistant 2024.12 or newer
 - A GLS parcel delivered to a supported country. The **Netherlands**,
   **Germany** and **Czech Republic** are available today; the setup form
   links to the
