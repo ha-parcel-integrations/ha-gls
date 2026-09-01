@@ -480,19 +480,20 @@ def map_parcel_status_group(
 # ``history[].evtNo`` — an observed subset, not a documented enum (nothing
 # published enumerates the full code space), so this maps only what's been
 # seen on a real capture and reports anything else with a one-shot warning,
-# the same convention DHL's ``map_event_status`` uses. ``3.896`` (deposited
-# into a ParcelLocker) is deliberately left out: the one capture that could
-# disambiguate it from a plain in-transit code was already collected by the
-# time it was pulled, so whether it means ``at_pickup_point`` or something
-# else is unprovable on current evidence — mapping it would be a guess, not a
-# reading (group-rest.md). It reports with no status like any other unmapped
-# code until a capture settles it.
+# the same convention DHL's ``map_event_status`` uses. ``3.896``'s ``evtDscr``
+# ("The parcel has been delivered into the ParcelLocker.") unambiguously
+# describes *that event* as a pickup-point moment, so it maps here even
+# though whether a parcel *sitting* in a locker reports parcel-level
+# ``at_pickup_point`` is a separate, still-open question that this per-event
+# map does not answer — ``map_parcel_status_group`` (parcel-level, keyed on
+# ``progressBar.statusInfo``) is untouched (group-rest.md).
 _EVENT_STATUS_MAP: dict[str, ParcelStatus] = {
     "0.100": ParcelStatus.REGISTERED,    # parcel data entered, not yet handed over
     "0.0": ParcelStatus.IN_TRANSIT,      # handed over to GLS
     "2.0": ParcelStatus.IN_TRANSIT,      # reached a parcel center
     "11.0": ParcelStatus.OUT_FOR_DELIVERY,
     "3.0": ParcelStatus.DELIVERED,
+    "3.896": ParcelStatus.AT_PICKUP_POINT,  # deposited into a ParcelLocker
 }
 
 

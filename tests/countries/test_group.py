@@ -216,6 +216,7 @@ def test_retour_flag_overrides_unmapped_without_warning(caplog):
         ("2.0", ParcelStatus.IN_TRANSIT),
         ("11.0", ParcelStatus.OUT_FOR_DELIVERY),
         ("3.0", ParcelStatus.DELIVERED),
+        ("3.896", ParcelStatus.AT_PICKUP_POINT),
     ],
 )
 def test_map_event_status_known(evt_no, expected):
@@ -226,16 +227,6 @@ def test_map_event_status_none_input_is_none_without_warning(caplog):
     with caplog.at_level("WARNING"):
         assert map_event_status_group(None) is None
     assert not caplog.messages
-
-
-def test_map_event_status_locker_deposit_is_deliberately_unmapped(caplog):
-    """3.896 (deposited into a ParcelLocker) is left out of the map on purpose —
-    the one capture that could show whether it means at_pickup_point or
-    something else was already collected (group-rest.md)."""
-    with caplog.at_level("WARNING"):
-        status = map_event_status_group("3.896")
-    assert status is None
-    assert any("3.896" in m for m in caplog.messages)
 
 
 def test_map_event_status_unmapped_is_none_and_warns_once(caplog):
@@ -301,15 +292,15 @@ def test_normalize_history_opt_in_is_reversed_to_oldest_first():
     assert history[-1]["raw_status"] == "The parcel has been delivered."
     # Per-event status, mapped from evtNo (oldest -> newest, matching the
     # reversed history): registered, handed over, twice at a parcel center,
-    # out for delivery, the deliberately-unmapped locker deposit (x2), delivered.
+    # out for delivery, the locker deposit (x2), delivered.
     assert [event["status"] for event in history] == [
         ParcelStatus.REGISTERED,
         ParcelStatus.IN_TRANSIT,
         ParcelStatus.IN_TRANSIT,
         ParcelStatus.IN_TRANSIT,
         ParcelStatus.OUT_FOR_DELIVERY,
-        None,
-        None,
+        ParcelStatus.AT_PICKUP_POINT,
+        ParcelStatus.AT_PICKUP_POINT,
         ParcelStatus.DELIVERED,
     ]
 
