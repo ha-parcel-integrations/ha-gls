@@ -235,6 +235,15 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "https://gls-group.eu/CZ/en/parcel-tracking?match={parcel_no}"
         ),
     },
+    "SK": {
+        "host": "gls-group.com",
+        "group_locale": "SK/sk",
+        "postcode_regex": r"^\d{3}\s?\d{2}$",
+        "postcode_example": "821 01",
+        "tracking_url": (
+            "https://gls-group.eu/SK/sk/sledovanie-zasielok?match={parcel_no}"
+        ),
+    },
     "AT": {
         "host": "gls-group.com",
         "group_locale": "AT/en",
@@ -311,7 +320,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
 # ``parcels.py`` and ``api.py`` route on membership here instead of a bare
 # ``country == "CZ"`` special case, so a later group-leaf country only needs
 # a ``COUNTRIES`` row plus one more entry here.
-GROUP_LEAF_COUNTRIES = frozenset({"CZ", "AT", "IE", "FR", "SI", "HR", "IT"})
+GROUP_LEAF_COUNTRIES = frozenset({"CZ", "SK", "AT", "IE", "FR", "SI", "HR", "IT"})
 
 # Linked from the setup form so users can ask for a country we don't cover
 # yet. Country/carrier requests go through the organisation discussion (the

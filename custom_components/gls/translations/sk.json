@@ -1,0 +1,203 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nastaviť GLS",
+        "description": "Vyberte krajinu, do ktorej sú vaše zásielky doručované, a poštové smerovacie číslo, kam zvyčajne smerujú. Zásielky pridáte po nastavení.\n\nV súčasnosti sú podporované Holandsko, Nemecko, Česká republika, Slovensko, Rakúsko, Írsko, Francúzsko, Slovinsko, Chorvátsko a Taliansko — [požiadať o ďalšiu krajinu]({issue_url}).",
+        "data": {
+          "country": "Krajina",
+          "postal_code": "PSČ"
+        },
+        "data_description": {
+          "postal_code": "napr. {postcode_example}. Použije sa ako predvolená doručovacia adresa pre zásielky, ktoré pridáte."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nepodarilo sa pripojiť k GLS. Skontrolujte sieťové pripojenie.",
+      "invalid_parcel_no": "Toto nevyzerá ako číslo zásielky alebo sledovací kód GLS.",
+      "invalid_postcode": "Zadajte platné PSČ pre vybranú krajinu, napr. {postcode_example}.",
+      "de_registration_failed": "Nepodarilo sa zaregistrovať anonymnú reláciu GLS Nemecko. Skontrolujte sieťové pripojenie a skúste to znova."
+    },
+    "abort": {
+      "already_configured": "Hub GLS pre toto PSČ je už nastavený."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti GLS",
+        "sections": {
+          "parcels": {
+            "name": "Zásielky",
+            "data": {
+              "add": "Pridať zásielku",
+              "remove": "Odstrániť zásielky"
+            },
+            "data_description": {
+              "add": "Zadajte číslo zásielky alebo sledovací kód GLS, aby sa začalo jej sledovanie. Použije sa PSČ hubu."
+            }
+          },
+          "delivered": {
+            "name": "Doručené zásielky",
+            "data": {
+              "delivered_filter_type": "Filtrovať podľa",
+              "delivered_filter_amount": "Počet"
+            },
+            "data_description": {
+              "delivered_filter_type": "Zobraziť doručené zásielky za posledných X dní alebo obmedziť na X najnovších.",
+              "delivered_filter_amount": "Počet dní alebo zásielok na zobrazenie."
+            }
+          },
+          "history": {
+            "name": "História zásielky",
+            "data": {
+              "include_history": "Zahrnúť históriu stavov"
+            },
+            "data_description": {
+              "include_history": "Pridá atribút histórie pre každú zásielku so všetkými aktualizáciami stavu (časová pečiatka, stav, pôvodný text). Predvolene vypnuté."
+            }
+          },
+          "polling": {
+            "name": "Kontrolovanie",
+            "data": {
+              "refresh_interval": "Obnovovať každých"
+            },
+            "data_description": {
+              "refresh_interval": "Ako často integrácia kontroluje aktualizácie zásielok v GLS. Možnosť „Automaticky“ (predvolená pre nové inštalácie) zrýchli pri očakávanom doručení a v noci spomalí; pevný interval kontroluje stále rovnakou frekvenciou."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Zásielky",
+          "settings": "Nastavenia"
+        }
+      },
+      "parcels": {
+        "title": "Zásielky",
+        "data": {
+          "tracking_codes": "Sledovacie kódy"
+        }
+      },
+      "settings": {
+        "title": "Nastavenia",
+        "data": {
+          "delivered_filter_type": "Doručené zásielky: filtrovať podľa",
+          "delivered_filter_amount": "Doručené zásielky: počet",
+          "include_history": "Zahrnúť históriu stavov",
+          "refresh_interval": "Obnovovať každých"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Toto nevyzerá ako číslo zásielky alebo sledovací kód GLS.",
+      "already_tracked": "Táto zásielka sa už sleduje."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "nl": "Holandsko",
+        "de": "Nemecko",
+        "cz": "Česká republika",
+        "sk": "Slovensko",
+        "at": "Rakúsko",
+        "ie": "Írsko",
+        "fr": "Francúzsko",
+        "si": "Slovinsko",
+        "hr": "Chorvátsko",
+        "it": "Taliansko"
+      }
+    },
+    "refresh_interval": {
+      "options": {
+        "auto": "Automaticky (odporúčané)",
+        "15": "15 minút",
+        "30": "30 minút",
+        "60": "60 minút",
+        "120": "120 minút",
+        "240": "240 minút"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dni",
+        "parcels": "Počet zásielok"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Sledovať zásielku",
+      "description": "Začať sledovať zásielku GLS podľa jej čísla.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledovací kód",
+          "description": "Číslo zásielky alebo sledovací kód GLS."
+        },
+        "postal_code": {
+          "name": "PSČ",
+          "description": "Doručovacie PSČ. Ak je nastavených viac hubov, vyberie správny; inak použije jediný hub."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Prestať sledovať zásielku",
+      "description": "Prestať sledovať zásielku GLS podľa jej čísla.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledovací kód",
+          "description": "Sledovacie číslo GLS, ktoré sa má prestať sledovať."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Zásielka bola zaregistrovaná",
+      "parcel_status_changed": "Stav zásielky sa zmenil",
+      "parcel_delivered": "Zásielka bola doručená",
+      "parcel_delivery_time_changed": "Očakávaný čas doručenia zásielky sa zmenil"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Obnoviť"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Doručenia"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Prichádzajúce zásielky",
+        "unit_of_measurement": "zásielky"
+      },
+      "next_delivery": {
+        "name": "Nasledujúce doručenie"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Na ceste do ParcelShopu",
+        "unit_of_measurement": "zásielky"
+      },
+      "awaiting_pickup": {
+        "name": "Čaká na vyzdvihnutie",
+        "unit_of_measurement": "zásielky"
+      },
+      "delivered_parcels": {
+        "name": "Doručené zásielky",
+        "unit_of_measurement": "zásielky"
+      },
+      "last_update": {
+        "name": "Posledná úspešná aktualizácia"
+      },
+      "parcel": {
+        "name": "Zásielka {barcode}"
+      }
+    }
+  }
+}

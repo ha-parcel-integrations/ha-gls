@@ -72,20 +72,20 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
 ## Integration-level carrier decisions
 
 - **Country model** (`CONF_COUNTRY` / `COUNTRIES`): each hub picks a country →
-  host/culture (or `group_locale`, see below)/postcode-regex. Three countries
-  are mapped today — **NL** (keyless national GET), **DE** (bearer-POST
-  guest-account, its own `countries/de/session.py`) and **CZ** (keyless
-  pan-EU group leaves, `rstt028`/`rstt029` — see `countries/cz/`'s
-  docstring). Adding a country = one `COUNTRIES` entry once a working
-  account-less endpoint is confirmed; the setup form links
+  host/culture (or `group_locale`, see below)/postcode-regex. **NL** uses a
+  keyless national GET, **DE** a bearer-POST guest-account with its own
+  `countries/de/session.py`, and **CZ**, **SK**, **AT**, **IE**, **FR**,
+  **SI**, **HR** and **IT** use the keyless pan-EU group leaves
+  (`rstt028`/`rstt029`, `countries/group/`). Adding a country = one
+  `COUNTRIES` entry once a working account-less endpoint is confirmed; the setup form links
   `NEW_COUNTRY_ISSUE_URL`. `unique_id` stays the bare postcode — fine while
   a postcode is unique per hub regardless of country.
 - **`culture` vs `group_locale`.** NL/DE's `culture` is a `nl-NL`-style
-  locale plugged into a *national* URL template. CZ's leaves are pan-EU and
+  locale plugged into a *national* URL template. The group-country leaves are pan-EU and
   partitioned by consignment record, not by country path — their
   `{ISO2}/{lang}` segment is a locale switch only, so it lives under its own
   `group_locale` key rather than overloading `culture`. A country row
-  without `culture` (CZ) falls back to `""` in `__init__.py` rather than
+  without `culture` (such as CZ or SK) falls back to `""` in `__init__.py` rather than
   `KeyError`.
 - **`CAPABILITIES_BY_VARIANT` holds one frozenset per country** (`"Netherlands"`,
   `"Germany"`, `"Other"` for CZ and any future group-leaf country), not a single

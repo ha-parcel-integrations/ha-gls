@@ -745,10 +745,10 @@ async def test_type_retry_both_fail_e206_returns_none():
 
 
 # ---------------------------------------------------------------------------
-# The six countries added past their §0 gate
-# (BUILD_PLAN_GROUP_COUNTRIES.md) — one real rstt029 AWB each, but every
-# rstt028 fixture below is the CZ-shaped body wearing that country's own
-# host/locale/AWB, not a real capture. Named accordingly.
+# The Group-leaf countries added past their §0 gate
+# (BUILD_PLAN_GROUP_COUNTRIES.md). Every fixture below is synthetic: it uses
+# the country-specific host/locale and a fake AWB, while the response remains
+# the CZ-shaped rstt028 stand-in described below.
 # ---------------------------------------------------------------------------
 
 
@@ -774,18 +774,21 @@ def _group_shaped_fixture(country: str, awb: str, *, status_info: str = "DELIVER
 @pytest.mark.parametrize(
     ("country", "awb", "postal_code"),
     [
-        ("AT", "999910341589", "1010"),
-        ("IE", "24500466685", "D02AF30"),
-        ("FR", "37464731521", "39100"),  # the real postcode from the E609 pair
-        ("SI", "91080834813", "1000"),
-        ("HR", "93842895801", "10000"),
+        ("AT", "ATTEST00001", "1010"),
+        ("SK", "SKTEST00001", "82101"),
+        ("IE", "IETEST00001", "D02AF30"),
+        ("FR", "FRTEST00001", "39100"),
+        ("SI", "SITEST00001", "1000"),
+        ("HR", "HRTEST00001", "10000"),
     ],
 )
 async def test_group_leaf_country_end_to_end(country, awb, postal_code):
-    """One real rstt029 AWB per country (BUILD_PLAN_GROUP_COUNTRIES.md §0),
-    fed through a CZ-shaped rstt028 fixture (that call is unverified for
-    every one of these countries) — exercises the transport with that
-    country's own host/group_locale/tracking_url end to end."""
+    """Exercise a synthetic parcel through each country's group-leaf wiring.
+
+    The fixture is CZ-shaped because the detail leaf is not captured for every
+    country. The AWBs are deliberately non-live test values; this test covers
+    country-specific host, locale and tracking-link dispatch only.
+    """
     host = COUNTRIES[country]["host"]
     group_locale = COUNTRIES[country]["group_locale"]
     fixture = _group_shaped_fixture(country, awb)

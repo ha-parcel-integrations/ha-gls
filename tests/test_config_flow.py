@@ -140,13 +140,13 @@ async def test_same_postcode_different_country_hub_allowed(hass):
 
 
 # ---------------------------------------------------------------------------
-# The six group-leaf countries added past their §0 gate
+# The Group-leaf countries added past their §0 gate
 # (BUILD_PLAN_GROUP_COUNTRIES.md) — postcode validation only; the transport
 # itself is covered in tests/countries/test_group.py.
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("country", ["AT", "IE", "FR", "SI", "HR", "IT"])
+@pytest.mark.parametrize("country", ["SK", "AT", "IE", "FR", "SI", "HR", "IT"])
 async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
     hass, country
 ):
@@ -160,10 +160,10 @@ async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
     )
     assert result["type"] == "create_entry"
     assert result["options"][CONF_COUNTRY] == country
-    assert result["options"][CONF_POSTAL_CODE] == example
+    assert result["options"][CONF_POSTAL_CODE] == example.replace(" ", "")
 
 
-@pytest.mark.parametrize("country", ["AT", "IE", "FR", "SI", "HR", "IT"])
+@pytest.mark.parametrize("country", ["SK", "AT", "IE", "FR", "SI", "HR", "IT"])
 async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}

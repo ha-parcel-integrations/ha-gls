@@ -6,7 +6,7 @@
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
-A custom Home Assistant integration that tracks your GLS parcels — Netherlands, Germany and Czech Republic today. No GLS account is needed — you enter the tracking number and delivery postal code yourself.
+A custom Home Assistant integration that tracks your GLS parcels in the Netherlands, Germany, Czech Republic, Slovakia, Austria, Ireland, France, Slovenia, Croatia and Italy. No GLS account is needed — you enter the tracking number and delivery postal code yourself.
 
 ## Contents
 
@@ -41,8 +41,9 @@ A custom Home Assistant integration that tracks your GLS parcels — Netherlands
 ## Requirements
 
 - A GLS parcel delivered to a supported country. The **Netherlands**,
-  **Germany** and **Czech Republic** are available today; the setup form
-  links to the
+  **Germany**, **Czech Republic**, **Slovakia**, **Austria**, **Ireland**,
+  **France**, **Slovenia**, **Croatia** and **Italy** are available today;
+  the setup form links to the
   [organisation discussion](https://github.com/ha-parcel-integrations/.github/discussions/new/choose)
   for requesting another country
 
