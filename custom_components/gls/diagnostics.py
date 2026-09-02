@@ -69,26 +69,34 @@ TO_REDACT = {
     "appInstanceId",
     "accessToken",
     "token",
+    # Group-leaf identifiers that carry the same parcel number as
+    # parcelNo/uniqueNo above (ha-gls#6): referenceNo/tuNo are flat
+    # top-level keys, redacted here directly; references[]'s UNITNO entry
+    # is typed by a sibling "type" field and handled in
+    # _redact_group_sensitive below alongside CUSTREF.
+    "referenceNo",
+    "tuNo",
 }
 
 
 def _redact_group_sensitive(data: Any) -> Any:
-    """Redact the group-leaf ``references[].value`` (CUSTREF) and ``signature.value``.
+    """Redact the group-leaf ``references[].value`` (CUSTREF/UNITNO) and ``signature.value``.
 
     Both live too deep/context-dependently for the flat ``TO_REDACT`` key set
     above: a ``references[]`` entry is typed by a sibling ``type`` field, so
     redacting every ``value`` key outright would also blank the harmless
-    UNITNO/WEIGHT ones; ``signature.value`` needs a nested, key-specific
-    match. Runs as its own recursive pass before ``async_redact_data`` so the
-    generic flat-key pass still handles ``postalCode``/``barcode``/``url``/…
-    untouched. A no-op for NL/DE data — neither ever carries a
-    ``references[]`` entry typed ``CUSTREF`` or a ``signature`` dict.
+    WEIGHT one; ``signature.value`` needs a nested, key-specific match. Runs
+    as its own recursive pass before ``async_redact_data`` so the generic
+    flat-key pass still handles ``postalCode``/``barcode``/``url``/… untouched.
+    A no-op for NL/DE data — neither ever carries a ``references[]`` entry
+    typed ``CUSTREF``/``UNITNO`` or a ``signature`` dict. ``UNITNO`` carries
+    the same parcel number as ``referenceNo``/``tuNo`` (ha-gls#6).
     """
     if isinstance(data, list):
         return [_redact_group_sensitive(item) for item in data]
     if isinstance(data, dict):
         redacted = dict(data)
-        if redacted.get("type") == "CUSTREF" and "value" in redacted:
+        if redacted.get("type") in ("CUSTREF", "UNITNO") and "value" in redacted:
             redacted["value"] = REDACTED
         signature = redacted.get("signature")
         if isinstance(signature, dict) and "value" in signature:

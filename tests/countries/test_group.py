@@ -214,6 +214,7 @@ def test_retour_flag_overrides_unmapped_without_warning(caplog):
         ("0.100", ParcelStatus.REGISTERED),
         ("0.0", ParcelStatus.IN_TRANSIT),
         ("2.0", ParcelStatus.IN_TRANSIT),
+        ("17.0", ParcelStatus.IN_TRANSIT),
         ("11.0", ParcelStatus.OUT_FOR_DELIVERY),
         ("3.0", ParcelStatus.DELIVERED),
         ("3.896", ParcelStatus.AT_PICKUP_POINT),
@@ -249,7 +250,9 @@ def test_normalize_captured_delivered_parcel():
     assert parcel["carrier"] == "GLS"
     assert parcel["barcode"] == AWB
     assert parcel["status"] == ParcelStatus.DELIVERED
-    assert parcel["raw_status"] == "Delivered"
+    # Newest history entry's evtDscr, not progressBar.statusText's heading
+    # ("Delivered") — ha-gls#6.
+    assert parcel["raw_status"] == "The parcel has been delivered."
     assert parcel["delivered"] is True
     # Newest history entry, NOT the top-level "date" (consignment date trap).
     assert parcel["delivered_at"] == "2026-06-25T13:38:31"
@@ -320,6 +323,10 @@ def test_normalize_pickup_at_pickup_point():
     assert parcel["delivered"] is False
     assert parcel["delivered_at"] is None  # only computed when delivered
     assert parcel["pickup_point"] is None  # never structured
+    # progressBar.statusText stays "Delivered" (the progress bar's own
+    # heading) regardless of status_info override — raw_status must come
+    # from the newest history event instead, never that heading (ha-gls#6).
+    assert parcel["raw_status"] != "Delivered"
 
 
 def test_normalize_retour_flag_overrides_status():

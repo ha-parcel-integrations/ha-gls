@@ -90,10 +90,12 @@ async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
 
 
 async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
-    """CUSTREF (the sender's own order reference) and signature.value are the
-    two genuinely sensitive CZ fields (BUILD_PLAN_CZ.md §7) — UNITNO's own
-    value must survive untouched, proving the redaction is type-scoped, not a
-    blanket "value" key match."""
+    """CUSTREF (the sender's own order reference), UNITNO (the parcel number
+    under another name, ha-gls#6) and signature.value are the genuinely
+    sensitive CZ fields — a WEIGHT reference's own value must survive
+    untouched, proving the redaction is type-scoped, not a blanket "value"
+    key match. referenceNo/tuNo carry the same parcel number as UNITNO
+    (ha-gls#6) and are redacted by the flat TO_REDACT key set."""
     entry = MagicMock()
     entry.data = {}
     entry.options = {"country": "CZ", "parcels": []}
@@ -102,10 +104,13 @@ async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
             "barcode": "5036234901",
             "raw": {
                 "postalCode": "25401",
+                "referenceNo": "5036234901",
+                "tuNo": "5036234901",
                 "signature": {"validate": True, "name": "Signature:", "value": "true"},
                 "references": [
                     {"type": "UNITNO", "name": "Parcel number:", "value": "5036234901"},
                     {"type": "CUSTREF", "name": "Reference no:", "value": "order-42"},
+                    {"type": "WEIGHT", "name": "Weight:", "value": "0.9 kg"},
                 ],
             },
         }
@@ -118,7 +123,10 @@ async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
 
     incoming_raw = result["incoming"][0]["raw"]
     assert incoming_raw["postalCode"] == "**REDACTED**"
+    assert incoming_raw["referenceNo"] == "**REDACTED**"
+    assert incoming_raw["tuNo"] == "**REDACTED**"
     assert incoming_raw["signature"]["value"] == "**REDACTED**"
     references = {r["type"]: r["value"] for r in incoming_raw["references"]}
     assert references["CUSTREF"] == "**REDACTED**"
-    assert references["UNITNO"] == "5036234901"  # never touched
+    assert references["UNITNO"] == "**REDACTED**"
+    assert references["WEIGHT"] == "0.9 kg"  # never touched

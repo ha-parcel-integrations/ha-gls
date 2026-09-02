@@ -492,6 +492,7 @@ _EVENT_STATUS_MAP: dict[str, ParcelStatus] = {
     "0.0": ParcelStatus.IN_TRANSIT,      # handed over to GLS
     "2.0": ParcelStatus.IN_TRANSIT,      # reached a parcel center
     "11.0": ParcelStatus.OUT_FOR_DELIVERY,
+    "17.0": ParcelStatus.IN_TRANSIT,     # picked up from the sender by the courier
     "3.0": ParcelStatus.DELIVERED,
     "3.896": ParcelStatus.AT_PICKUP_POINT,  # deposited into a ParcelLocker
 }
@@ -685,7 +686,13 @@ def normalize_parcel_group(
 
     history = _build_history_group(raw_history) if include_history else None
 
-    status_text = progress.get("statusText")
+    # progressBar.statusText is the progress bar's heading ("Delivered"),
+    # not a description of the latest event — it stays "Delivered" once a
+    # ParcelLocker drop-off (DELIVEREDPS) is reached, contradicting the
+    # canonical at_pickup_point status (ha-gls#6). The newest history[]
+    # entry's evtDscr is the precise, per-event wording instead.
+    event_status_text = newest_event.get("evtDscr") if newest_event else None
+    status_text = event_status_text or progress.get("statusText")
     raw_status = html.unescape(status_text) if status_text else None
 
     barcode = parcel_no or raw.get("referenceNo") or raw.get("tuNo")
