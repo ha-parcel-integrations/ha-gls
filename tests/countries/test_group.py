@@ -31,8 +31,8 @@ from custom_components.gls.countries.group import (
     normalize_parcel_group,
 )
 
-AWB = "5036234901"
-POSTAL_CODE = "25401"
+AWB = "1234567890"
+POSTAL_CODE = "11000"
 
 
 @pytest.fixture(autouse=True)
@@ -505,9 +505,9 @@ async def test_transport_returns_body_on_200():
 
 async def test_transport_strips_whitespace_from_postal_code():
     session = _session_with(_get_ctx(200, _json.dumps(captured_sample_cz())))
-    await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, "254 01")
+    await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, "110 00")
     url = session.get.call_args[0][0]
-    assert "postalCode=25401" in url
+    assert "postalCode=11000" in url
 
 
 async def test_transport_e800_returns_none_and_warns_once(caplog):

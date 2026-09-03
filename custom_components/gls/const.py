@@ -230,7 +230,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "host": "gls-group.com",  # .eu and .com are interchangeable (group-rest.md)
         "group_locale": "CZ/en",
         "postcode_regex": r"^\d{3}\s?\d{2}$",
-        "postcode_example": "254 01",
+        "postcode_example": "110 00",
         "tracking_url": (
             "https://gls-group.eu/CZ/en/parcel-tracking?match={parcel_no}"
         ),

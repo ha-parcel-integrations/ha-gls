@@ -101,14 +101,14 @@ async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
     entry.options = {"country": "CZ", "parcels": []}
     entry.runtime_data.coordinator.data = [
         {
-            "barcode": "5036234901",
+            "barcode": "1234567890",
             "raw": {
-                "postalCode": "25401",
-                "referenceNo": "5036234901",
-                "tuNo": "5036234901",
+                "postalCode": "11000",
+                "referenceNo": "1234567890",
+                "tuNo": "1234567890",
                 "signature": {"validate": True, "name": "Signature:", "value": "true"},
                 "references": [
-                    {"type": "UNITNO", "name": "Parcel number:", "value": "5036234901"},
+                    {"type": "UNITNO", "name": "Parcel number:", "value": "1234567890"},
                     {"type": "CUSTREF", "name": "Reference no:", "value": "order-42"},
                     {"type": "WEIGHT", "name": "Weight:", "value": "0.9 kg"},
                 ],

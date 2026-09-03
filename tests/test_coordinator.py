@@ -560,11 +560,11 @@ async def test_update_threads_parcel_no_into_normalize_parcel_cz(hass):
         domain=DOMAIN,
         options={
             CONF_COUNTRY: "CZ",
-            CONF_PARCELS: [{CONF_PARCEL_NO: "5036234901", CONF_POSTAL_CODE: "25401"}],
+            CONF_PARCELS: [{CONF_PARCEL_NO: "1234567890", CONF_POSTAL_CODE: "11000"}],
             CONF_DELIVERED_FILTER_TYPE: "parcels",
             CONF_DELIVERED_FILTER_AMOUNT: 100,
         },
-        unique_id="25401",
+        unique_id="11000",
     )
     entry.add_to_hass(hass)
     client = AsyncMock()
@@ -584,5 +584,5 @@ async def test_update_threads_parcel_no_into_normalize_parcel_cz(hass):
 
     data = await coordinator._async_update_data()
 
-    assert data[0]["barcode"] == "5036234901"
+    assert data[0]["barcode"] == "1234567890"
     assert data[0]["status"] == ParcelStatus.IN_TRANSIT

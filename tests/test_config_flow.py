@@ -78,11 +78,11 @@ async def test_cz_user_flow_creates_hub_with_spaced_postcode(hass):
         DOMAIN, context={"source": "user"}
     )
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_COUNTRY: "cz", CONF_POSTAL_CODE: "254 01"}
+        result["flow_id"], {CONF_COUNTRY: "cz", CONF_POSTAL_CODE: "110 00"}
     )
     assert result["type"] == "create_entry"
     assert result["options"][CONF_COUNTRY] == "CZ"
-    assert result["options"][CONF_POSTAL_CODE] == "25401"
+    assert result["options"][CONF_POSTAL_CODE] == "11000"
 
 
 async def test_cz_user_flow_invalid_postcode(hass):
@@ -93,7 +93,7 @@ async def test_cz_user_flow_invalid_postcode(hass):
         result["flow_id"], {CONF_COUNTRY: "cz", CONF_POSTAL_CODE: "nope"}
     )
     assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
-    assert result["description_placeholders"]["postcode_example"] == "254 01"
+    assert result["description_placeholders"]["postcode_example"] == "110 00"
 
 
 async def test_same_postcode_hub_rejected(hass):

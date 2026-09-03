@@ -283,11 +283,11 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
     """
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="CZ:25401",
+        unique_id="CZ:11000",
         options={
             CONF_COUNTRY: "CZ",
             CONF_PARCELS: [
-                {CONF_PARCEL_NO: "5036234901", CONF_POSTAL_CODE: "25401"}
+                {CONF_PARCEL_NO: "1234567890", CONF_POSTAL_CODE: "11000"}
             ],
             CONF_DELIVERED_FILTER_TYPE: "parcels",
             CONF_DELIVERED_FILTER_AMOUNT: 100,
@@ -296,8 +296,8 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
     entry.add_to_hass(hass)
 
     cz_payload = {
-        "tuNo": "5036234901",
-        "referenceNo": "5036234901",
+        "tuNo": "1234567890",
+        "referenceNo": "1234567890",
         "date": "2026-06-24",
         "progressBar": {
             "statusInfo": "INTRANSIT",
@@ -317,10 +317,10 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
         mock_transport.call_args.args[0],
         "gls-group.com",
         "CZ/en",
-        "5036234901",
-        "25401",
+        "1234567890",
+        "11000",
         country="CZ",
     )
 
-    incoming = hass.states.get("sensor.gls_cz_25401_incoming_parcels")
+    incoming = hass.states.get("sensor.gls_cz_11000_incoming_parcels")
     assert incoming is not None

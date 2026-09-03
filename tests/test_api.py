@@ -103,16 +103,16 @@ async def test_cz_dispatch_delegates_to_the_group_transport():
     )
     with patch(
         "custom_components.gls.api.async_get_parcel_group",
-        new=AsyncMock(return_value={"tuNo": "5036234901"}),
+        new=AsyncMock(return_value={"tuNo": "1234567890"}),
     ) as mock_transport:
-        result = await client.async_get_parcel("5036234901", "25401")
-    assert result == {"tuNo": "5036234901"}
+        result = await client.async_get_parcel("1234567890", "11000")
+    assert result == {"tuNo": "1234567890"}
     mock_transport.assert_awaited_once_with(
         client._session,
         "gls-group.com",
         "CZ/en",
-        "5036234901",
-        "25401",
+        "1234567890",
+        "11000",
         country="CZ",
     )
 
