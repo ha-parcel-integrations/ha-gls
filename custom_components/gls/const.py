@@ -99,8 +99,7 @@ PARCEL_DETAILS_URL = (
 
 # GLS Germany has no keyless endpoint: every route on the national parcel
 # backend needs the anonymous bearer token ``countries/de/session.py`` mints
-# (``guest-account``, not ``auth: none`` — see
-# carrier-research/api/gls/germany.md). Two hosts: the parcel backend, and a
+# (``guest-account``, not ``auth: none``). Two hosts: the parcel backend, and a
 # group-wide identity service with no country in its path.
 GLS_DE_TRACKINGS_HOST = "gls-pakete-de-backend-app.ooh.glsnxt.com"
 # Adds a parcel to the app instance *and* returns its full details in the
@@ -122,12 +121,12 @@ GLS_DE_VALIDATE_URL = (
     f"https://{GLS_DE_IDENTITY_HOST}/ecosystem/user-service/v1/users/validate"
 )
 
-# The pan-EU GLS group leaves behind the web tracker (group-rest.md) — keyless,
+# The pan-EU GLS group leaves behind the web tracker — keyless,
 # host-agnostic, and partitioned by the *consignment record*, not by the
 # ``{ISO2}/{lang}`` path segment (a locale switch only). CZ was the first
 # ``COUNTRIES`` row routed here (the transport is ``countries/group/``,
-# named for the surface rather than for CZ once AT/IE/FR/SI/HR/IT joined it
-# too — BUILD_PLAN_GROUP_COUNTRIES.md §1), but nothing below names any one
+# named for the surface rather than for CZ once AT/IE/FR/SI/HR/IT joined
+# it), but nothing below names any one
 # country: a later group-leaf country is meant to be one more ``COUNTRIES``
 # row pointing at the same transport, not a copy of it. ``rstt028``
 # (primary) additionally carries ``history``/weight/references and needs
@@ -142,7 +141,7 @@ GLS_GROUP_RSTT028_URL = (
 )
 # ``type=`` is empty for every plain-numeric AWB seen, but not universal: a
 # non-plain-numeric code can need ``type=NAT`` instead, sometimes after an
-# outright ``HTTP 500`` on the empty value (group-rest.md § type=NAT). The
+# outright ``HTTP 500`` on the empty value. The
 # ``{type}`` placeholder lets ``countries/group/``'s fallback retry once with
 # the other value on a ``5xx``/``404 E206`` — see its
 # ``_async_get_parcel_group_fallback`` and ``COUNTRIES[cc]["group_type"]``.
@@ -174,14 +173,14 @@ DEFAULT_COUNTRY = "NL"
 # but its transport (``countries/de.py``) does not build a URL from them the
 # way NL's ``{host}``/``{culture}`` PARCEL_DETAILS_URL does — DE is a bearer
 # POST against GLS_DE_TRACKINGS_ADD_URL, and ``culture`` only pins the
-# ``Accept-Language`` header (germany.md: the event text is localized by it,
-# and logic must never key off that text). DE has no ``tracking_url`` entry:
-# BUILD_PLAN_DE.md §4 says its ``url`` reuses the generic ``TRACKING_URL``
-# fallback below directly, keyed on ``parcelNumber``.
+# ``Accept-Language`` header — the event text is localized by it, and logic
+# must never key off that text. DE has no ``tracking_url`` entry: its ``url``
+# reuses the generic ``TRACKING_URL`` fallback below directly, keyed on
+# ``parcelNumber``.
 #
 # CZ has no ``culture`` key at all — deliberately. For NL/DE, ``culture`` is a
 # ``nl-NL``-style locale in a *national* URL template; on the group leaves
-# (group-rest.md) the ``{ISO2}/{lang}`` path segment is a locale switch over
+# the ``{ISO2}/{lang}`` path segment is a locale switch over
 # the *same* pan-EU index, not a data partition, and status mapping keys off
 # the locale-independent ``progressBar.statusInfo``. Overloading ``culture``
 # for that would blur two different concepts, so group-leaf countries get
@@ -196,19 +195,17 @@ DEFAULT_COUNTRY = "NL"
 #
 # ``group_type`` is optional (default ``""``) and names the ``type=`` value
 # ``countries/group/``'s ``rstt029`` fallback should try *first*, before the
-# other one — group-rest.md's sweep found two non-plain-numeric codes that
+# other one — the code sweep found two non-plain-numeric codes that
 # only resolved with ``type=NAT`` (one after an outright ``HTTP 500`` on the
 # empty value). Only Italy sets it; every other row is unaffected by its
-# absence, since the fallback always tries both values regardless
-# (BUILD_PLAN_GROUP_COUNTRIES.md §3).
+# absence, since the fallback always tries both values regardless.
 #
-# AT/IE/SI/HR/IT shipped past the §0 gate (maintainer decision, 2026-08-24,
+# AT/IE/SI/HR/IT shipped past the research gate (maintainer decision, 2026-08-24,
 # same precedent as DE in 1.4.0): each has one real ``rstt029`` pair, but
 # ``rstt028`` — the call that actually carries history/weight/references —
 # is unverified for all of them. FR ships too, with the strongest evidence
 # of the six (`E609` proves the pair check runs) though it has never seen an
-# `rstt028` `200` either. See BUILD_PLAN_GROUP_COUNTRIES.md §0 and the
-# release notes for the per-country detail.
+# `rstt028` `200` either. See the release notes for the per-country detail.
 COUNTRIES: dict[str, dict[str, str]] = {
     "NL": {
         "host": "apm.gls.nl",
@@ -227,7 +224,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "postcode_example": "12345",
     },
     "CZ": {
-        "host": "gls-group.com",  # .eu and .com are interchangeable (group-rest.md)
+        "host": "gls-group.com",  # .eu and .com are interchangeable
         "group_locale": "CZ/en",
         "postcode_regex": r"^\d{3}\s?\d{2}$",
         "postcode_example": "110 00",
@@ -257,7 +254,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "host": "gls-group.com",
         "group_locale": "IE/en",
         # Loose on purpose — written from the Eircode format, not from a
-        # probe (BUILD_PLAN_GROUP_COUNTRIES.md §2). Space-stripped/upper-cased
+        # probe. Space-stripped/upper-cased
         # before matching, so "D02 AF30" -> "D02AF30".
         "postcode_regex": r"^[A-Z0-9]{3}[A-Z0-9]{4}$",
         "postcode_example": "D02AF30",
@@ -274,8 +271,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         # only ever holds numeric AWBs for France, moncolis' alphanumeric
         # reference format never becomes a tracked parcel here (rejected
         # outright by both group leaves), and moncolis'
-        # {numeric AWB}-shaped URL has never been probed
-        # (BUILD_PLAN_GROUP_COUNTRIES.md § "and the French exception").
+        # {numeric AWB}-shaped URL has never been probed.
         "tracking_url": (
             "https://gls-group.com/FR/fr/suivi-de-colis/?match={parcel_no}"
         ),
@@ -308,8 +304,8 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "?match={parcel_no}&type=NAT"
         ),
         # Italy's own consumer deep-link carries type=NAT unconditionally
-        # (evidence for the "per-country convention" hypothesis in
-        # group-rest.md § type=NAT), and the one real Italian AWB probed
+        # (evidence for the "per-country convention" hypothesis), and the
+        # one real Italian AWB probed
         # only resolved on rstt029 with type=NAT (an HTTP 500 on type=).
         "group_type": "NAT",
     },
@@ -350,7 +346,7 @@ CONF_POSTAL_CODE = "postal_code"
 # cache before polling.
 CONF_DE_PARCEL_NUMBER = "de_parcel_number"
 
-# DE only. The self-minted anonymous ``appInstanceId`` (BUILD_PLAN_DE.md §3)
+# DE only. The self-minted anonymous ``appInstanceId``
 # lives in ``entry.data``, not ``entry.options`` — it is not a user
 # preference, options are rewritten on every parcel add/remove, and
 # ``entry.data`` is what ``async_migrate_entry`` already knows how to move.
@@ -376,8 +372,7 @@ DEFAULT_REFRESH_INTERVAL = 30  # minutes — default for entries that predate "a
 # an existing entry keeps whatever it already has, numeric or "auto".
 DEFAULT_NEW_REFRESH_INTERVAL = REFRESH_INTERVAL_AUTO
 
-# Dynamic, status-driven polling — selected via "auto" above. See
-# carrier-research/dynamic-polling.md for the full algorithm and reasoning.
+# Dynamic, status-driven polling — selected via "auto" above.
 #
 # Quiet window: no polling between these local hours except the two anchors
 # below, for overnight / end-of-day catch-up.

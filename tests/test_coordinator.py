@@ -42,7 +42,7 @@ from .payloads import active_sample, delivered_sample
 
 # NL's own map_parcel_status_nl/map_event_status/build_history/
 # normalize_parcel_nl unit tests moved to tests/countries/test_nl.py as part
-# of the countries/ restructure (BUILD_PLAN_DE.md's structural decision).
+# of the countries/ restructure.
 # What's left here is GlsCoordinator integration behaviour, plus the two
 # generic (country-agnostic) helpers `normalize_parcel` (the dispatcher) and
 # `sort_parcels_by_ts` that `coordinator.py` itself imports from `parcels.py`.
@@ -569,8 +569,7 @@ async def test_update_threads_parcel_no_into_normalize_parcel_cz(hass):
     entry.add_to_hass(hass)
     client = AsyncMock()
     # tuNo/referenceNo deliberately do NOT match the tracked parcel_no, the
-    # way group-rest.md documents happening for a non-Czech consignment on
-    # the same leaves.
+    # way a non-Czech consignment behaves on the same leaves.
     client.async_get_parcel.return_value = {
         "tuNo": "UNRELATED-ID",
         "referenceNo": "UNRELATED-ID",

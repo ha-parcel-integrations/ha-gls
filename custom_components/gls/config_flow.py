@@ -167,8 +167,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
 
                 # DE has no keyless route — mint the anonymous app-instance
-                # identity now (guest-account, BUILD_PLAN_DE.md §3) so the
-                # hub can poll from the moment it's created. The id goes in
+                # identity now (guest-account) so the hub can poll from the moment it's created. The id goes in
                 # entry.data, never entry.options: it isn't a user
                 # preference, options get rewritten on every parcel
                 # add/remove, and entry.data is what async_migrate_entry

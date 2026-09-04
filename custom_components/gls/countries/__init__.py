@@ -7,7 +7,6 @@ themselves. Every country is a package here (``countries/<code>/__init__.py``).
 A country gets an *extra* submodule beyond its ``__init__.py`` (e.g. DE's
 ``session.py``) once its transport, payload shape or status vocabulary
 structurally diverges from NL — not merely because a second country exists.
-See ``ha-gls``'s own ``CLAUDE.md`` for the trigger and
-``carrier-research/api/gls/BUILD_PLAN_DE.md`` for the decision that
+See ``ha-gls``'s own ``CLAUDE.md`` for the trigger and the decision that
 introduced this package.
 """

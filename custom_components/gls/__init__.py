@@ -70,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
         postal_code = legacy_postcode
 
     # unique_id migrations, oldest scheme first, both converging on today's
-    # f"{country}:{postal_code}" (BUILD_PLAN_GROUP_COUNTRIES.md §4): entries
+    # f"{country}:{postal_code}": entries
     # from before the multi-hub redesign carry unique_id == DOMAIN, and
     # entries from 1.5.1 and earlier carry a bare postcode. Six new countries
     # made a bare-postcode collision ordinary rather than theoretical (French
@@ -86,7 +86,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     # The endpoint host + culture come from the hub country; entries created
     # before the country option default to the Netherlands. NL is keyless
     # (the HA-managed session is enough); DE needs its own anonymous
-    # guest-account session (BUILD_PLAN_DE.md §3) — self-minted, not shared,
+    # guest-account session — self-minted, not shared,
     # so it still clears the shared-secret refusal.
     country_cfg = COUNTRIES.get(country, COUNTRIES[DEFAULT_COUNTRY])
 

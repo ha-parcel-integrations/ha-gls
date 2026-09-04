@@ -112,7 +112,7 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
 async def test_legacy_unique_id_migrates_to_country_scoped_postcode(hass):
     """Pre-multi-hub entries (unique_id == DOMAIN) migrate straight to the
     country-scoped f"{country}:{postal_code}" unique_id
-    (BUILD_PLAN_GROUP_COUNTRIES.md §4) in one hop — not to the bare postcode
+ in one hop — not to the bare postcode
     as an intermediate step — so the flow's per-postcode-and-country
     duplicate guard also covers them.
     """
@@ -147,7 +147,7 @@ async def test_legacy_unique_id_migrates_to_country_scoped_postcode(hass):
 async def test_bare_postcode_unique_id_migrates_to_country_scoped(hass):
     """1.5.1-and-earlier entries carry a bare-postcode unique_id (no legacy
     DOMAIN id involved) — these must also re-key to
-    f"{country}:{postal_code}" (§4), the migration this build adds.
+    f"{country}:{postal_code}", the migration this build adds.
     """
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -191,7 +191,7 @@ async def test_already_country_scoped_unique_id_is_left_alone(hass):
 
 
 async def test_same_postcode_different_country_hubs_do_not_collide(hass):
-    """The exact collision §4 exists to fix: French and Italian postcodes can
+    """The exact collision the country-scoped unique_id exists to fix: French and Italian postcodes can
     both read "39100" (both ``^\\d{5}$``) — a bare-postcode unique_id would
     reject the second hub as a duplicate of the first. Country-scoping must
     let both stand. (DE is avoided here since its setup step performs a live

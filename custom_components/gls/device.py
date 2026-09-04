@@ -21,8 +21,7 @@ def build_device_info(entry: ConfigEntry) -> DeviceInfo:
     and work) stay distinguishable — mirroring the account-in-name pattern
     of the other carriers. The country joined it once a bare postcode
     stopped uniquely identifying a hub: French and German postcodes can both
-    read "39100" (BUILD_PLAN_GROUP_COUNTRIES.md §4, alongside the unique_id
-    migration this label change accompanies).
+    read "39100".
     """
     postal_code = entry.options.get(CONF_POSTAL_CODE, "")
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)

@@ -1,16 +1,15 @@
 """Tests for the GLS group-leaf transport, normalize_parcel_group and map_parcel_status_group.
 
 The ``rstt028`` fixture is built from the real captured CZ body in
-group-rest.md's "Payload — rstt028, CAPTURED 2026-08-23" section (the
-``CUSTREF`` order reference is redacted there and stays redacted here). The
+the one captured ``rstt028`` body, 2026-08-23 (its ``CUSTREF`` order
+reference was redacted at capture and stays redacted here). The
 exact ``progressBar.statusText`` string for this consignment was never
 transcribed in the mechanics doc (only "identical shape to rstt029's" is
 recorded) — the fixture uses the top-level ``status: "Delivered"`` string
 already captured as a reasonable stand-in; it is not itself wire-verified.
 
-The bottom section covers AT/IE/FR/SI/HR/IT
-(BUILD_PLAN_GROUP_COUNTRIES.md) — every one of those rows shipped past its
-§0 gate, so their fixtures are honestly the CZ-shaped body wearing that
+The bottom section covers AT/IE/FR/SI/HR/IT — every one of those rows
+shipped past its research gate, so their fixtures are honestly the CZ-shaped body wearing that
 country's own host/locale/AWB, **not** a real capture — see each test's
 docstring.
 """
@@ -58,7 +57,7 @@ def _reset_one_shot_state():
 
 
 # ---------------------------------------------------------------------------
-# Fixture — the captured rstt028 body (group-rest.md, 2026-08-23)
+# Fixture — the captured rstt028 body
 # ---------------------------------------------------------------------------
 
 
@@ -376,7 +375,7 @@ def test_normalize_url_none_without_a_barcode():
 
 
 # ---------------------------------------------------------------------------
-# §8 WARNING obligations (already-shipped CZ ones)
+# WARNING obligations (already-shipped CZ ones)
 # ---------------------------------------------------------------------------
 
 
@@ -425,7 +424,7 @@ def test_unparseable_timestamp_warns_once(caplog):
 
 def test_yy_mm_dd_date_variant_is_accepted():
     raw = captured_sample_cz()
-    raw["history"][0]["date"] = "26-06-25"  # YY-MM-DD, per group-rest.md's caution
+    raw["history"][0]["date"] = "26-06-25"  # YY-MM-DD, the ambiguous case
     parcel = normalize_parcel_group(raw, parcel_no=AWB)
     assert parcel["delivered_at"] == "2026-06-25T13:38:31"
 
@@ -512,8 +511,7 @@ async def test_transport_strips_whitespace_from_postal_code():
 
 async def test_transport_e800_returns_none_and_warns_once(caplog):
     """E800 usually means absence — it stays a semantic "not found" — but
-    now fires a one-shot WARNING per parcel (BUILD_PLAN_GROUP_COUNTRIES.md
-    §6/§8), since one Spanish code proved E800 isn't always absence."""
+    now fires a one-shot WARNING per parcel, since one Spanish code proved E800 isn't always absence."""
     session = _session_with(
         _get_ctx(404, '{"lastError":"E800","exceptionText":"x"}'),
         _get_ctx(404, '{"lastError":"E800","exceptionText":"x"}'),
@@ -625,7 +623,7 @@ async def test_transport_raises_gls_api_error_on_unexpected_status():
 
 async def test_transport_raises_on_malformed_postcode_field_exception():
     """A 400 with a valid JSON body but no ``lastError`` (a malformed-postcode
-    field exception, group-rest.md) is still a hard error, not a semantic miss."""
+    field exception) is still a hard error, not a semantic miss."""
     body = (
         '{"fieldExceptions":[{"attribute":"zipcode","exceptionText":"x"}],'
         '"exceptionText":"x"}'
@@ -644,7 +642,7 @@ async def test_transport_empty_body_is_treated_as_outage():
 async def test_transport_primary_5xx_with_json_body_warns_once_and_raises(caplog):
     """A 5xx on the *primary* rstt028 call (JSON body, no lastError) must not
     be read as "not found" — it's the same class of fault as Italy's
-    rstt029 500 (BUILD_PLAN_GROUP_COUNTRIES.md §3), so it also fires the
+    rstt029 500, so it also fires the
     one-shot 5xx WARNING and still raises GlsApiError so the coordinator's
     transient handling applies."""
     session = _session_with(
@@ -661,7 +659,7 @@ async def test_transport_primary_5xx_with_json_body_warns_once_and_raises(caplog
 
 
 # ---------------------------------------------------------------------------
-# §3 — the type=/type=NAT retry on the rstt029 fallback
+# The type=/type=NAT retry on the rstt029 fallback
 # ---------------------------------------------------------------------------
 
 
@@ -690,7 +688,7 @@ async def test_type_retry_preferred_first_hit_no_warning(caplog):
 
 async def test_type_retry_fallback_hit_after_500_warns_once(caplog):
     """type= 500s, type=NAT resolves it — the exact Italian M-prefixed-AWB
-    shape from group-rest.md's sweep. Fires the one-shot type-retry WARNING."""
+    shape from the code sweep. Fires the one-shot type-retry WARNING."""
     session = _session_with(
         _get_ctx(404, '{"lastError":"E609"}'),  # primary -> fallback
         _get_ctx(500, '{"exceptionText":"Errore di sistema"}'),  # type= fails
@@ -752,8 +750,8 @@ async def test_type_retry_both_fail_e206_returns_none():
 
 
 # ---------------------------------------------------------------------------
-# The Group-leaf countries added past their §0 gate
-# (BUILD_PLAN_GROUP_COUNTRIES.md). Every fixture below is synthetic: it uses
+# The Group-leaf countries added past their research gate
+#. Every fixture below is synthetic: it uses
 # the country-specific host/locale and a fake AWB, while the response remains
 # the CZ-shaped rstt028 stand-in described below.
 # ---------------------------------------------------------------------------
@@ -762,11 +760,10 @@ async def test_type_retry_both_fail_e206_returns_none():
 def _group_shaped_fixture(country: str, awb: str, *, status_info: str = "DELIVERED") -> dict:
     """A CZ-shaped rstt028 body for ``country``/``awb`` — NOT a real capture.
 
-    group-rest.md's sweep found no shape difference across every country
+    the code sweep found no shape difference across every country
     that answered rstt029, and every one of them read statusInfo:
     DELIVERED, so this is the most honest stand-in available for a country
-    whose rstt028 has never actually returned 200 (BUILD_PLAN_GROUP_COUNTRIES.md
-    §0/§10).
+    whose rstt028 has never actually returned 200.
     """
     raw = captured_sample_cz(status_info=status_info)
     raw["tuNo"] = awb

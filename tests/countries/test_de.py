@@ -1,10 +1,10 @@
 """Tests for GLS Germany transport, normalize_parcel_de and map_parcel_status_de.
 
-Fixtures are built from the captured delivered-parcel body in germany.md
+Fixtures are built from the one captured delivered-parcel body
 (redacted AWB/UUID, ``latestStatusText: ""``, no status field at all) — the
 only wire evidence that exists for this branch. Anywhere a status *enum*
-string is exercised, it is clearly marked synthetic: BUILD_PLAN_DE.md §5's
-enum table has never been seen on the wire, and the derivation
+string is exercised, it is clearly marked synthetic: the enum table has
+never been seen on the wire, and the derivation
 (``deliveredAt``/``hasDeliveryAttemptFailed``) is what actually governs
 production behaviour — the maintainer's explicit build-past-the-gate
 decision.
@@ -45,7 +45,7 @@ def _reset_one_shot_state():
 
 
 # ---------------------------------------------------------------------------
-# Fixture — the captured delivered-parcel body (germany.md, 2026-08-10)
+# Fixture — the captured delivered-parcel body
 # ---------------------------------------------------------------------------
 
 
@@ -97,15 +97,15 @@ def delivered_sample_de_with_status_text(
 ) -> dict:
     """A third real (maintainer-redacted) captured body, 2026-08-11.
 
-    Still delivered (``deliveredAt`` set) — does not satisfy BUILD_PLAN_DE.md
-    §0's actual gate (an in-transit parcel). What it *does* show, unlike the
+    Still delivered (``deliveredAt`` set) — does not satisfy the actual gate
+    (an in-transit parcel). What it *does* show, unlike the
     first two captures: ``latestStatusText`` can be non-empty free text, so
     ``raw_status`` must use it directly rather than falling back to
     ``deliveryEvents[]``. All top-level keys and the general shape (no status
     enum field, ``unlocked: false``, no
     ``realTimeTrackingInformation``/``shopInformation``/
     ``consigneeInformation``/``senderInformation``) match the first two
-    captures — see germany.md.
+    captures.
     """
     return {
         "id": "25b9837b-00c2-4338-9111-8ed2d769cf85",
@@ -186,7 +186,7 @@ def delivered_sample_de_with_status_text(
 
 
 # ---------------------------------------------------------------------------
-# map_parcel_status_de — derivation-first (§5)
+# map_parcel_status_de — derivation-first
 # ---------------------------------------------------------------------------
 
 
@@ -223,7 +223,7 @@ def test_no_signal_at_all_is_unknown():
 
 
 def test_synthetic_enum_is_consulted_only_when_derivation_is_unknown(caplog):
-    """The §5 override layer — clearly synthetic, not wire-verified."""
+    """The enum override layer — clearly synthetic, not wire-verified."""
     status = map_parcel_status_de(
         "OUT_FOR_DELIVERY",
         delivered_at=None,
@@ -303,8 +303,8 @@ def test_normalize_captured_delivered_parcel():
     assert parcel["carrier"] == "GLS"
     assert parcel["barcode"] == "075624238061"  # trackingReference, not parcelNumber
     assert parcel["status"] == ParcelStatus.DELIVERED  # via deliveredAt, not an enum
-    # "" -> falls back to the newest deliveryEvents[].description (germany.md's
-    # canonical mapping — "the fallback is not optional"; see the dedicated
+    # "" -> falls back to the newest deliveryEvents[].description (the
+    # canonical mapping — the fallback is not optional; see the dedicated
     # fallback tests below for the empty/no-events edge cases).
     assert parcel["raw_status"] == (
         "Handing over the parcel to the recipient at the GLS ParcelShop."
@@ -333,14 +333,14 @@ def test_normalize_history_opt_in_is_reversed_to_oldest_first():
     assert "delivered at the ParcelShop" in parcel["history"][0]["raw_status"]
     assert "Handing over" in parcel["history"][1]["raw_status"]
     assert parcel["history"][0]["timestamp"] == "2026-05-29T08:03:41+00:00"
-    # §5: never infer status from localized event description text.
+    # Never infer status from localized event description text.
     assert parcel["history"][0]["status"] is None
     assert parcel["history"][1]["status"] is None
 
 
 # ---------------------------------------------------------------------------
-# raw_status fallback — germany.md: "latestStatusText, else the newest
-# deliveryEvents[].description ... the fallback is not optional" (was
+# raw_status fallback — latestStatusText, else the newest
+# deliveryEvents[].description; the fallback is not optional (was
 # missing; found via a third real capture with a non-empty latestStatusText,
 # 2026-08-11).
 # ---------------------------------------------------------------------------
@@ -468,14 +468,14 @@ def delivered_sample_de_full_lifecycle(
 ) -> dict:
     """A fifth real (redacted) captured body, 2026-08-16 — full payload.
 
-    Still delivered — the §0 in-transit gate stays open — but the richest
+    Still delivered — the in-transit gate stays open — but the richest
     capture yet: nine ``deliveryEvents`` in German (``Accept-Language:
     de-DE``, the production default), and real (falsy) values for four keys
     the 2026-08-11 signal had only ever reported as ``key: type`` with no
     value (``failedDeliveryAttempt``, ``isEvDelivery``, ``recipientName``,
     ``pickedUpFromDepot``). Also the first sighting of ``changeDeliveryUrl``
     and of ``isInternational`` co-occurring with ``international`` as its
-    own distinct key — see germany.md.
+    own distinct key.
     """
     return {
         "id": "22222222-2222-2222-2222-222222222222",
@@ -616,7 +616,7 @@ def test_synthetic_delivered_to_unrecognised_member_warns_only_once(caplog):
 
 
 # ---------------------------------------------------------------------------
-# §6 WARNING obligations
+# WARNING obligations
 # ---------------------------------------------------------------------------
 
 

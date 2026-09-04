@@ -1,9 +1,9 @@
 """GLS group-leaf countries: the pan-EU transport, payload mapping and status map.
 
 Serves every ``COUNTRIES`` row whose numbering lives in the pan-EU group
-tracking index documented in group-rest.md (``rstt028``/``rstt029``), rather
-than a national backend: CZ (1.5.0), then AT/IE/FR/SI/HR/IT
-(BUILD_PLAN_GROUP_COUNTRIES.md). Nothing below is hardcoded to any one
+tracking index (``rstt028``/``rstt029``), rather
+than a national backend: CZ (1.5.0), then AT/IE/FR/SI/HR/IT. Nothing below
+is hardcoded to any one
 country: ``host``/``group_locale``/the tracking-url template/the preferred
 ``type=`` value all come from ``COUNTRIES[country]``, exactly like NL's
 ``host``/``culture``. A later group-leaf country is meant to be one more
@@ -48,7 +48,7 @@ class GlsGroupMaintenanceError(GlsApiError):
 
     Both group hosts can go down together and answer every path — including
     one known to return real data — with an ``HTTP/1.0 200 OK``
-    ``text/html`` "Maintenance" page (group-rest.md). Subclassing
+    ``text/html`` "Maintenance" page. Subclassing
     :class:`~...const.GlsApiError` means ``coordinator.py``'s existing
     ``except (GlsApiError, aiohttp.ClientError)`` branch treats this exactly
     like any other transient failure — cached data kept, retried next poll —
@@ -76,8 +76,8 @@ _history_order_warned = False
 _unparseable_timestamp_warned = False
 _weight_format_logged: set[str] = set()
 _unexpected_info_type_logged: set[str] = set()
-# The three additions for the six countries shipped past their §0 gate
-# (BUILD_PLAN_GROUP_COUNTRIES.md §6/§8) — country-agnostic, same as the ones
+# The three additions for the six countries shipped past their research gate
+# — country-agnostic, same as the ones
 # above, so CZ gets them for free too.
 _e800_warned: set[str] = set()
 _type_retry_warned: set[str] = set()
@@ -118,10 +118,9 @@ def _warn_e800_once(parcel_no: str) -> None:
     """One-shot per parcel: an E800 on rstt028 for a parcel that may still be live.
 
     E800 usually means "this leaf does not carry the consignment", but one
-    Spanish code proved that isn't always true (group-rest.md § Spain) —
+    Spanish code proved that isn't always true —
     this is the mechanism that would justify widening the E609-only retry
-    trigger, so it stays a WARNING rather than silence
-    (BUILD_PLAN_GROUP_COUNTRIES.md §6/§8).
+    trigger, so it stays a WARNING rather than silence.
     """
     if parcel_no in _e800_warned:
         return
@@ -139,7 +138,7 @@ def _warn_type_retry_once(parcel_no: str) -> None:
     """One-shot per parcel: the empty-``type=`` call failed and ``type=NAT`` resolved it.
 
     The only way to learn whether the ``NAT`` requirement is a code-format
-    or a per-country thing (BUILD_PLAN_GROUP_COUNTRIES.md §3/§8).
+    or a per-country thing.
     """
     if parcel_no in _type_retry_warned:
         return
@@ -154,7 +153,7 @@ def _warn_type_retry_once(parcel_no: str) -> None:
 
 
 def _warn_unexpected_5xx_once() -> None:
-    """One-shot: the first ``5xx`` seen from either group leaf (BUILD_PLAN_GROUP_COUNTRIES.md §3)."""
+    """One-shot: the first ``5xx`` seen from either group leaf."""
     global _unexpected_5xx_warned
     if _unexpected_5xx_warned:
         return
@@ -316,7 +315,7 @@ async def _async_get_parcel_group_fallback(
     ``normalize_parcel_group`` reports those as absent exactly as it would
     for any body missing those keys.
 
-    ``type=`` is retried once (BUILD_PLAN_GROUP_COUNTRIES.md §3): most codes
+    ``type=`` is retried once: most codes
     resolve on the first value tried, but a non-plain-numeric AWB can need
     the other one — an ``HTTP 5xx`` or a ``404 lastError E206`` is the
     trigger, not a per-country prediction. ``COUNTRIES[country]["group_type"]``
@@ -387,9 +386,9 @@ async def async_get_parcel_group(
     (malformed reference) reports as ``None``, the same "not found" signal
     NL's ``204`` uses. ``E800`` (AWB not in the group index) also reports as
     ``None`` but fires a one-shot WARNING first — it usually means absence,
-    but not always (group-rest.md § Spain), and that WARNING is the
-    mechanism that would justify widening the retry trigger one day
-    (BUILD_PLAN_GROUP_COUNTRIES.md §6). Any other non-2xx status raises
+    but not always, and that WARNING is the
+    mechanism that would justify widening the retry trigger one day. Any
+    other non-2xx status raises
     :class:`~...const.GlsApiError`; a non-JSON body raises
     :class:`GlsGroupMaintenanceError`.
     """
@@ -456,7 +455,7 @@ def map_parcel_status_group(
     Kept entirely separate from NL's numeric ``_STATE_MAP`` and DE's
     derivation-based path — a different mechanism, a different vocabulary,
     no shared dict. Country-independent: the sweep found no shape
-    difference across CZ/AT/IE/FR/SI/HR/IT (group-rest.md).
+    difference across CZ/AT/IE/FR/SI/HR/IT.
 
     ``retour_flag`` (``progressBar.retourFlag``) overrides to ``returning``
     unconditionally, whatever ``status_info`` says — checked first here,
@@ -486,7 +485,7 @@ def map_parcel_status_group(
 # though whether a parcel *sitting* in a locker reports parcel-level
 # ``at_pickup_point`` is a separate, still-open question that this per-event
 # map does not answer — ``map_parcel_status_group`` (parcel-level, keyed on
-# ``progressBar.statusInfo``) is untouched (group-rest.md).
+# ``progressBar.statusInfo``) is untouched.
 _EVENT_STATUS_MAP: dict[str, ParcelStatus] = {
     "0.100": ParcelStatus.REGISTERED,    # parcel data entered, not yet handed over
     "0.0": ParcelStatus.IN_TRANSIT,      # handed over to GLS
@@ -548,7 +547,7 @@ def _parse_group_datetime(date_value: Any, time_value: Any) -> str | None:
     """Parse a ``date`` + ``time`` pair into a canonical (naive) ISO string.
 
     Defensive against an unconfirmed ``YY-MM-DD`` variant existing alongside
-    the ``YYYY-MM-DD`` seen on the captured CZ parcel (group-rest.md) —
+    the ``YYYY-MM-DD`` seen on the captured CZ parcel —
     tries both, warns once on total failure rather than raising.
     """
     if not date_value or not time_value:
@@ -655,9 +654,9 @@ def normalize_parcel_group(
     ``barcode`` is built from — never trusted from the response's own
     ``tuNo``/``referenceNo``. Those happened to equal the AWB for the
     captured Czech consignment but are an unrelated identifier for a Danish
-    one (and a space-inserted variant for an Italian one) on the same leaves
-    (group-rest.md), so they are only a last-resort fallback here, for a
-    caller that has no AWB of its own to pass.
+    one (and a space-inserted variant for an Italian one) on the same leaves,
+    so they are only a last-resort fallback here, for a caller that has no
+    AWB of its own to pass.
 
     ``sender``/``receiver``/``pickup_point``/``planned_from``/``planned_to``/
     ``dimensions`` are always ``None`` — neither group leaf carries them.

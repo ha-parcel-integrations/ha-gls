@@ -1,7 +1,7 @@
 """GLS Netherlands: the keyless ``GET`` transport, payload mapping and status map.
 
 Moved out of the former ``api.py``/``parcels.py`` as part of the
-``countries/`` restructure (BUILD_PLAN_DE.md's "structural decision") — pure
+``countries/`` restructure — pure
 relocation, no behaviour change. ``api.py`` and ``parcels.py`` now dispatch to
 this module by ``CONF_COUNTRY``. Packaged as ``countries/nl/`` for symmetry
 with ``countries/de/`` rather than because NL needs an extra submodule of its

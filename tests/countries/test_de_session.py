@@ -240,7 +240,7 @@ async def test_register_propagates_network_error():
 
 
 # ---------------------------------------------------------------------------
-# §6 WARNING obligations: token lifetime anomaly, reCAPTCHA mentions
+# WARNING obligations: token lifetime anomaly, reCAPTCHA mentions
 # ---------------------------------------------------------------------------
 
 

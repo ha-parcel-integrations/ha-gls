@@ -41,7 +41,7 @@ TO_REDACT = {
     # parcelNo/uniqueNo/gpNo above.
     "de_parcel_number",
     "parcelNumber",
-    # DE's stable cross-app-instance parcel uuid (germany.md) — same
+    # DE's stable cross-app-instance parcel uuid — same
     # identifier class as parcelNumber above.
     "id",
     # The *canonical* (normalize_parcel_*) top-level fields, not just the
@@ -57,7 +57,7 @@ TO_REDACT = {
     "receiver",
     "pickup_point",
     "url",
-    # GLS Germany's guest-account identity (BUILD_PLAN_DE.md §3). Not a
+    # GLS Germany's guest-account identity. Not a
     # secret in the credential sense (anyone can mint one), but it's a
     # stable per-install identifier — redact it anyway. It lives in
     # entry.data (de_app_instance_id) and, defensively, under any of these

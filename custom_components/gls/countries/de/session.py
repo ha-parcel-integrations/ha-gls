@@ -5,8 +5,7 @@ on the parcel backend requires a ``Authorization: Bearer`` token. What makes
 it buildable at all is that the token is **self-minted**: an integration
 generates its own ``appInstanceId`` and exchanges it for a token nobody had
 to hand us. That is a ``guest-account`` credential (a credential with a
-lifecycle), not ``auth: none`` — see
-``carrier-research/api/gls/germany.md``.
+lifecycle), not ``auth: none``.
 
 There is exactly one unauthenticated route in the whole DE surface,
 ``/users/validate`` — the decompiled app's own auth interceptor hardcodes
@@ -15,7 +14,7 @@ exception:
 
 - **At config-entry creation**, ``async_register()`` mints a fresh
   ``appInstanceId`` and stores it in ``entry.data`` (the caller's job, not
-  this module's — see BUILD_PLAN_DE.md §3's "where the appInstanceId lives").
+  this module's).
 - **Before every poll**, ``async_get_token()`` refreshes the cached token via
   ``validate`` once it is within :data:`TOKEN_REFRESH_MARGIN` of expiry — a
   generous 6h, not 60s, because HA restarts and sleeps.
@@ -24,8 +23,8 @@ exception:
   and then gives up. This module never loops on its own.
 - **On a 404 from validate**, the anonymous instance is gone server-side:
   this module re-registers a new one automatically, logs a WARNING (twice —
-  once for the 404 itself, once for the successful recovery, per
-  BUILD_PLAN_DE.md §6's "the identity" row), and sets :attr:`reregistered`
+  once for the 404 itself, once for the successful recovery), and sets
+  :attr:`reregistered`
   so the caller knows to re-``POST`` every tracked parcel (the carrier-side
   list was reset, the user's tracked list was not).
 
@@ -56,13 +55,13 @@ VALIDATE_URL = GLS_DE_VALIDATE_URL
 
 # Refresh a cached token this long before it actually expires. Deliberately
 # generous — HA restarts and sleeps mean "expires in 60s" is not a safe
-# margin (BUILD_PLAN_DE.md §3.2).
+# margin.
 TOKEN_REFRESH_MARGIN = timedelta(hours=6)
 
 # The token's observed lifetime on 2026-08-10 was ~60h (`exp - iat` ≈
 # 216 000s). Used as the fallback expiry when a response's own
 # issuedAt/expiresAt can't be parsed, and as the baseline for the "materially
-# different" anomaly warning (§6).
+# different" anomaly warning.
 _EXPECTED_TOKEN_LIFETIME = timedelta(hours=60)
 _TOKEN_LIFETIME_TOLERANCE = timedelta(hours=12)
 
@@ -120,7 +119,7 @@ def _parse_identity_timestamp(value: Any) -> datetime | None:
 
 
 def _warn_token_lifetime_anomaly(lifetime: timedelta) -> None:
-    """One-shot-per-value warning when a token's lifetime is far from ~60h (§6)."""
+    """One-shot-per-value warning when a token's lifetime is far from ~60h."""
     hours = round(lifetime.total_seconds() / 3600)
     if hours in _token_lifetime_warned_hours:
         return
@@ -232,8 +231,7 @@ class GlsDeSession:
         """Force one refresh after a 401 from the parcel backend.
 
         Callers must retry the failing request exactly once with the
-        returned token and then give up — never loop
-        (BUILD_PLAN_DE.md §3.3).
+        returned token and then give up — never loop.
         """
         if self.app_instance_id is None:
             raise GlsDeSessionError(

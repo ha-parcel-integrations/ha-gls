@@ -72,7 +72,7 @@ async def test_user_flow_invalid_postcode_keeps_selected_country(hass):
 
 async def test_cz_user_flow_creates_hub_with_spaced_postcode(hass):
     """CZ postcodes are written with or without the internal space; either
-    form must be accepted and stored space-stripped (group-rest.md: the
+    form must be accepted and stored space-stripped (the
     unspaced form is the verified-working one sent on the wire)."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
@@ -98,7 +98,7 @@ async def test_cz_user_flow_invalid_postcode(hass):
 
 async def test_same_postcode_hub_rejected(hass):
     """A second hub for the same postcode+country aborts (unique_id is now
-    f"{country}:{postal_code}" — BUILD_PLAN_GROUP_COUNTRIES.md §4)."""
+    f"{country}:{postal_code}")."""
     MockConfigEntry(domain=DOMAIN, unique_id="NL:1234AB").add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
@@ -125,9 +125,7 @@ async def test_second_hub_different_postcode_allowed(hass):
 
 async def test_same_postcode_different_country_hub_allowed(hass):
     """The same postcode string in a different country is a different hub —
-    French and German postcodes can both read "39100"
-    (BUILD_PLAN_GROUP_COUNTRIES.md §4, the collision unique_id-scoping
-    fixes)."""
+    French and German postcodes can both read "39100"."""
     MockConfigEntry(domain=DOMAIN, unique_id="DE:39100").add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
@@ -140,8 +138,8 @@ async def test_same_postcode_different_country_hub_allowed(hass):
 
 
 # ---------------------------------------------------------------------------
-# The Group-leaf countries added past their §0 gate
-# (BUILD_PLAN_GROUP_COUNTRIES.md) — postcode validation only; the transport
+# The Group-leaf countries added past their research gate
+# — postcode validation only; the transport
 # itself is covered in tests/countries/test_group.py.
 # ---------------------------------------------------------------------------
 
@@ -181,7 +179,7 @@ async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
 
 async def test_ie_eircode_accepts_spaced_form(hass):
     """Eircodes are written with an internal space; the regex normalises it
-    away first (space-stripped, upper-cased) — the shakiest entry in §2."""
+    away first (space-stripped, upper-cased) — the shakiest entry in COUNTRIES."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )

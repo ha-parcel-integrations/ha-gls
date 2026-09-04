@@ -44,9 +44,7 @@ class GlsApiClient:
     Wiring a real DE hub through end-to-end (``__init__.py`` constructing
     this with ``country="DE"`` + a live ``GlsDeSession``, and
     ``config_flow.py`` minting/persisting the ``appInstanceId`` that session
-    needs) is deliberately **not** part of this change — see
-    BUILD_PLAN_DE.md §1's file table for what still touches
-    ``coordinator.py``/``config_flow.py``.
+    needs) is deliberately **not** part of this change.
     """
 
     def __init__(
