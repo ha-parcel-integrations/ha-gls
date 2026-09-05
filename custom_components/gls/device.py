@@ -13,6 +13,8 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import CONF_COUNTRY, CONF_POSTAL_CODE, DEFAULT_COUNTRY, DOMAIN
 
+ATTRIBUTION = "Data provided by GLS"
+
 
 def build_device_info(entry: ConfigEntry) -> DeviceInfo:
     """Return the DeviceInfo shared by every entity for this GLS hub.

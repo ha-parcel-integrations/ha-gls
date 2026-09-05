@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import GlsConfigEntry
-from .device import build_device_info
+from .device import ATTRIBUTION, build_device_info
 
 # A manual refresh is a single API round-trip per tracked parcel; HA's
 # per-entity throttling adds nothing here.
@@ -29,7 +29,7 @@ class GlsRefreshButton(ButtonEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "refresh"
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(self, entry: GlsConfigEntry) -> None:
         """Initialize the button."""

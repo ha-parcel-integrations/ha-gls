@@ -20,7 +20,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import GlsConfigEntry
 from .const import DOMAIN, ParcelStatus
 from .coordinator import GlsCoordinator
-from .device import build_device_info
+from .device import ATTRIBUTION, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class GlsIncomingParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "incoming_parcels"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(
@@ -156,7 +156,7 @@ class GlsParcelSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "parcel"
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"raw", "history"})
 
     def __init__(
@@ -195,7 +195,7 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "next_delivery"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -244,7 +244,7 @@ class GlsEnRouteToParcelShopSensor(CoordinatorEntity[GlsCoordinator], SensorEnti
     _attr_has_entity_name = True
     _attr_translation_key = "en_route_to_parcel_shop"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
@@ -276,7 +276,7 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "awaiting_pickup"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
@@ -308,7 +308,7 @@ class GlsDeliveredParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity)
     _attr_has_entity_name = True
     _attr_translation_key = "delivered_parcels"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
@@ -335,7 +335,7 @@ class GlsLastUpdateSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_translation_key = "last_update"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""

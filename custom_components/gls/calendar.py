@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from . import GlsConfigEntry
 from .coordinator import GlsCoordinator
-from .device import build_device_info
+from .device import ATTRIBUTION, build_device_info
 
 PARALLEL_UPDATES = 0
 
@@ -52,7 +52,7 @@ class GlsDeliveriesCalendar(CoordinatorEntity[GlsCoordinator], CalendarEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "deliveries"
-    _attr_attribution = "Data provided by GLS"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         """Initialize the calendar."""
