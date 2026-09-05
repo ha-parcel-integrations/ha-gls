@@ -74,8 +74,9 @@ GLS has **no consumer account / feed** — the user enters tracking codes.
 - **Country model** (`CONF_COUNTRY` / `COUNTRIES`): each hub picks a country →
   host/culture (or `group_locale`, see below)/postcode-regex. **NL** uses a
   keyless national GET, **DE** a bearer-POST guest-account with its own
-  `countries/de/session.py`, and **CZ**, **SK**, **AT**, **IE**, **FR**,
-  **SI**, **HR** and **IT** use the keyless pan-EU group leaves
+  `countries/de/session.py`, and **BE**, **CZ**, **DK**, **FI**, **HU**,
+  **SK**, **AT**, **IE**, **FR**, **LU**, **RS**, **SI**, **HR** and **IT** use
+  the keyless pan-EU group leaves
   (`rstt028`/`rstt029`, `countries/group/`). Adding a country = one
   `COUNTRIES` entry once a working account-less endpoint is confirmed; the setup form links
   `NEW_COUNTRY_ISSUE_URL`. `unique_id` stays the bare postcode — fine while

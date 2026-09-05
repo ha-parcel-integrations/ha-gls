@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Nastavitev GLS",
-        "description": "Izberite državo dostave vaših pošiljk in poštno številko, kamor običajno prihajajo. Pošiljke dodate po nastavitvi.\n\nTrenutno so podprte Nizozemska, Nemčija, Češka, Slovaška, Avstrija, Irska, Francija, Slovenija, Hrvaška in Italija — [zahtevajte drugo državo]({issue_url}).",
+        "description": "Izberite državo dostave vaših pošiljk in poštno številko, kamor običajno prihajajo. Pošiljke dodate po nastavitvi.\n\nTrenutno so podprte Belgija, Danska, Finska, Francija, Nemčija, Madžarska, Irska, Italija, Luksemburg, Nizozemska, Avstrija, Hrvaška, Češka, Srbija, Slovaška in Slovenija — [zahtevajte drugo državo]({issue_url}).",
         "data": {
           "country": "Država",
           "postal_code": "Poštna številka"
@@ -107,7 +107,13 @@
         "fr": "Francija",
         "si": "Slovenija",
         "hr": "Hrvaška",
-        "it": "Italija"
+        "it": "Italija",
+        "be": "Belgija",
+        "dk": "Danska",
+        "fi": "Finska",
+        "hu": "Madžarska",
+        "lu": "Luksemburg",
+        "rs": "Srbija"
       }
     },
     "refresh_interval": {

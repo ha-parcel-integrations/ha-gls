@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configura GLS",
-        "description": "Scegli il paese di consegna dei tuoi pacchi e il CAP abituale. I pacchi si aggiungono dopo la configurazione.\n\nPaesi Bassi, Germania, Repubblica Ceca, Slovacchia, Austria, Irlanda, Francia, Slovenia, Croazia e Italia sono supportati oggi — [richiedi un altro paese]({issue_url}).",
+        "description": "Scegli il paese di consegna dei tuoi pacchi e il CAP abituale. I pacchi si aggiungono dopo la configurazione.\n\nBelgio, Danimarca, Finlandia, Francia, Germania, Ungheria, Irlanda, Italia, Lussemburgo, Paesi Bassi, Austria, Croazia, Repubblica Ceca, Serbia, Slovacchia e Slovenia sono supportati oggi — [richiedi un altro paese]({issue_url}).",
         "data": {
           "country": "Paese",
           "postal_code": "CAP"
@@ -107,7 +107,13 @@
         "fr": "Francia",
         "si": "Slovenia",
         "hr": "Croazia",
-        "it": "Italia"
+        "it": "Italia",
+        "be": "Belgio",
+        "dk": "Danimarca",
+        "fi": "Finlandia",
+        "hu": "Ungheria",
+        "lu": "Lussemburgo",
+        "rs": "Serbia"
       }
     },
     "refresh_interval": {

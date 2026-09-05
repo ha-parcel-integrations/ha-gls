@@ -6,7 +6,7 @@
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
-A custom Home Assistant integration that tracks your GLS parcels in the Netherlands, Germany, Czech Republic, Slovakia, Austria, Ireland, France, Slovenia, Croatia and Italy. No GLS account is needed — you enter the tracking number and delivery postal code yourself.
+A custom Home Assistant integration that tracks your GLS parcels in Austria, Belgium, Croatia, the Czech Republic, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Luxembourg, the Netherlands, Serbia, Slovakia and Slovenia. No GLS account is needed — you enter the tracking number and delivery postal code yourself.
 
 ## Contents
 
@@ -40,9 +40,10 @@ A custom Home Assistant integration that tracks your GLS parcels in the Netherla
 
 ## Requirements
 
-- A GLS parcel delivered to a supported country. The **Netherlands**,
-  **Germany**, **Czech Republic**, **Slovakia**, **Austria**, **Ireland**,
-  **France**, **Slovenia**, **Croatia** and **Italy** are available today;
+- A GLS parcel delivered to a supported country. **Austria**, **Belgium**,
+  **Croatia**, **the Czech Republic**, **Denmark**, **Finland**, **France**,
+  **Germany**, **Hungary**, **Ireland**, **Italy**, **Luxembourg**, **the
+  Netherlands**, **Serbia**, **Slovakia** and **Slovenia** are available today;
   the setup form links to the
   [organisation discussion](https://github.com/ha-parcel-integrations/.github/discussions/new/choose)
   for requesting another country
@@ -172,7 +173,7 @@ sensor attribute uses the same carrier-agnostic shape regardless:
 | `sender` | string \| null | Sender name |
 | `receiver` | string \| null | Recipient name |
 | `status` | `ParcelStatus` | Canonical status — see the [status reference](#parcel-status-reference) |
-| `raw_status` | string \| null | Original GLS status description (Dutch) |
+| `raw_status` | string \| null | Original GLS status description |
 | `delivered` | bool | Whether the parcel has been delivered |
 | `delivered_at` | ISO 8601 \| null | Delivery moment, if known |
 | `planned_from` | ISO 8601 \| null | Expected delivery window start |

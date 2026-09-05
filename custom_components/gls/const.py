@@ -45,8 +45,9 @@ KNOWN_CAPABILITIES = frozenset(
 #   Germany      — weight/dimensions are not in the DTO (confirmed absent by
 #                  capture) and there is no delivery-window field either;
 #                  pickup_point, url and history still populate.
-#   Other        — the pan-EU group-leaf backend (CZ, AT, IE, FR, SI, HR and
-#                  IT all route through it — countries/group/). Populates
+#   Other        — the pan-EU group-leaf backend (BE, CZ, DK, FI, HU, SK, AT,
+#                  IE, FR, LU, RS, SI, HR and IT all route through it —
+#                  countries/group/). Populates
 #                  weight (infos[] WEIGHT) and url/history, but not
 #                  dimensions, delivery_window or pickup_point — the leaf
 #                  response has no dimensions/ETA field, and a locker/shop
@@ -200,12 +201,11 @@ DEFAULT_COUNTRY = "NL"
 # empty value). Only Italy sets it; every other row is unaffected by its
 # absence, since the fallback always tries both values regardless.
 #
-# AT/IE/SI/HR/IT shipped past the research gate (maintainer decision, 2026-08-24,
-# same precedent as DE in 1.4.0): each has one real ``rstt029`` pair, but
-# ``rstt028`` — the call that actually carries history/weight/references —
-# is unverified for all of them. FR ships too, with the strongest evidence
-# of the six (`E609` proves the pair check runs) though it has never seen an
-# `rstt028` `200` either. See the release notes for the per-country detail.
+# The original group-country batch shipped past the research gate on
+# 2026-08-24. The later additions use the same confirmed keyless overview
+# route; their detail leaf remains a real-parcel follow-up. ``rstt028`` — the
+# call that actually carries history/weight/references — is unverified for all
+# group countries except CZ. See the release notes for the per-country detail.
 COUNTRIES: dict[str, dict[str, str]] = {
     "NL": {
         "host": "apm.gls.nl",
@@ -309,6 +309,60 @@ COUNTRIES: dict[str, dict[str, str]] = {
         # only resolved on rstt029 with type=NAT (an HTTP 500 on type=).
         "group_type": "NAT",
     },
+    "BE": {
+        "host": "gls-group.com",
+        "group_locale": "BE/en",
+        "postcode_regex": r"^\d{4}$",
+        "postcode_example": "1000",
+        "tracking_url": (
+            "https://gls-group.com/BE/vl/pakket-volgen/?match={parcel_no}"
+        ),
+    },
+    "DK": {
+        "host": "gls-group.com",
+        "group_locale": "DK/en",
+        "postcode_regex": r"^\d{4}$",
+        "postcode_example": "1000",
+        "tracking_url": (
+            "https://gls-group.com/DK/en/parcel-tracking/?match={parcel_no}"
+        ),
+    },
+    "FI": {
+        "host": "gls-group.com",
+        "group_locale": "FI/en",
+        "postcode_regex": r"^\d{5}$",
+        "postcode_example": "00100",
+        "tracking_url": (
+            "https://gls-group.com/FI/fi/laehetysseuranta/?match={parcel_no}"
+        ),
+    },
+    "HU": {
+        "host": "gls-group.com",
+        "group_locale": "HU/en",
+        "postcode_regex": r"^\d{4}$",
+        "postcode_example": "1011",
+        "tracking_url": (
+            "https://gls-group.com/HU/hu/csomagkovetes/?match={parcel_no}"
+        ),
+    },
+    "LU": {
+        "host": "gls-group.com",
+        "group_locale": "LU/en",
+        "postcode_regex": r"^\d{4}$",
+        "postcode_example": "1009",
+        "tracking_url": (
+            "https://gls-group.com/LU/en/track-trace/?match={parcel_no}"
+        ),
+    },
+    "RS": {
+        "host": "gls-group.eu",
+        "group_locale": "RS/en",
+        "postcode_regex": r"^\d{5}$",
+        "postcode_example": "11000",
+        "tracking_url": (
+            "https://gls-group.eu/RS/sr/pracenje-paketa/?match={parcel_no}"
+        ),
+    },
 }
 
 # Every ``COUNTRIES`` row served by the pan-EU group-leaf transport
@@ -316,7 +370,9 @@ COUNTRIES: dict[str, dict[str, str]] = {
 # ``parcels.py`` and ``api.py`` route on membership here instead of a bare
 # ``country == "CZ"`` special case, so a later group-leaf country only needs
 # a ``COUNTRIES`` row plus one more entry here.
-GROUP_LEAF_COUNTRIES = frozenset({"CZ", "SK", "AT", "IE", "FR", "SI", "HR", "IT"})
+GROUP_LEAF_COUNTRIES = frozenset(
+    {"BE", "CZ", "DK", "FI", "HU", "SK", "AT", "IE", "FR", "LU", "RS", "SI", "HR", "IT"}
+)
 
 # Linked from the setup form so users can ask for a country we don't cover
 # yet. Country/carrier requests go through the organisation discussion (the

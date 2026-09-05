@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "GLS einrichten",
-        "description": "Wähle das Land, in das deine Pakete geliefert werden, und die Postleitzahl, an die sie normalerweise gehen. Pakete fügst du nach der Einrichtung hinzu.\n\nDie Niederlande, Deutschland, Tschechien, die Slowakei, Österreich, Irland, Frankreich, Slowenien, Kroatien und Italien werden aktuell unterstützt — [ein weiteres Land anfragen]({issue_url}).",
+        "description": "Wähle das Land, in das deine Pakete geliefert werden, und die Postleitzahl, an die sie normalerweise gehen. Pakete fügst du nach der Einrichtung hinzu.\n\nBelgien, Dänemark, Finnland, Frankreich, Deutschland, Ungarn, Irland, Italien, Luxemburg, die Niederlande, Österreich, Kroatien, Tschechien, Serbien, die Slowakei und Slowenien werden aktuell unterstützt — [ein weiteres Land anfragen]({issue_url}).",
         "data": {
           "country": "Land",
           "postal_code": "Postleitzahl"
@@ -107,7 +107,13 @@
         "fr": "Frankreich",
         "si": "Slowenien",
         "hr": "Kroatien",
-        "it": "Italien"
+        "it": "Italien",
+        "be": "Belgien",
+        "dk": "Dänemark",
+        "fi": "Finnland",
+        "hu": "Ungarn",
+        "lu": "Luxemburg",
+        "rs": "Serbien"
       }
     },
     "refresh_interval": {
