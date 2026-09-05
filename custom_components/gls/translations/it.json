@@ -1,0 +1,203 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configura GLS",
+        "description": "Scegli il paese di consegna dei tuoi pacchi e il CAP abituale. I pacchi si aggiungono dopo la configurazione.\n\nPaesi Bassi, Germania, Repubblica Ceca, Slovacchia, Austria, Irlanda, Francia, Slovenia, Croazia e Italia sono supportati oggi — [richiedi un altro paese]({issue_url}).",
+        "data": {
+          "country": "Paese",
+          "postal_code": "CAP"
+        },
+        "data_description": {
+          "postal_code": "es. {postcode_example}. Usato come indirizzo di consegna predefinito per i pacchi che aggiungi."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile raggiungere GLS. Controlla la tua connessione di rete.",
+      "invalid_parcel_no": "Non sembra un numero di pacco o un codice di tracciamento GLS.",
+      "invalid_postcode": "Inserisci un CAP valido per il paese selezionato, es. {postcode_example}.",
+      "de_registration_failed": "Impossibile registrare una sessione GLS Germania anonima. Controlla la tua connessione di rete e riprova."
+    },
+    "abort": {
+      "already_configured": "Un hub GLS per questo CAP è già configurato."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni GLS",
+        "sections": {
+          "parcels": {
+            "name": "Pacchi",
+            "data": {
+              "add": "Aggiungi un pacco",
+              "remove": "Rimuovi pacchi"
+            },
+            "data_description": {
+              "add": "Inserisci un numero di pacco o un codice di tracciamento GLS per iniziare a monitorarlo. Viene usato il CAP dell'hub."
+            }
+          },
+          "delivered": {
+            "name": "Pacchi consegnati",
+            "data": {
+              "delivered_filter_type": "Filtra per",
+              "delivered_filter_amount": "Quantità"
+            },
+            "data_description": {
+              "delivered_filter_type": "Mostra i pacchi consegnati negli ultimi X giorni, oppure limita ai X più recenti.",
+              "delivered_filter_amount": "Numero di giorni o pacchi da mostrare."
+            }
+          },
+          "history": {
+            "name": "Cronologia pacchi",
+            "data": {
+              "include_history": "Includi la cronologia degli stati"
+            },
+            "data_description": {
+              "include_history": "Aggiunge un attributo di cronologia per pacco che elenca ogni aggiornamento di stato (data/ora, stato, testo originale). Disattivato per impostazione predefinita."
+            }
+          },
+          "polling": {
+            "name": "Interrogazione",
+            "data": {
+              "refresh_interval": "Aggiorna ogni"
+            },
+            "data_description": {
+              "refresh_interval": "Con quale frequenza l'integrazione controlla GLS per gli aggiornamenti dei pacchi. \"Automatico\" (predefinito per le nuove installazioni) accelera in prossimità delle consegne previste e rallenta di notte; un intervallo fisso interroga a un ritmo costante 24 ore su 24."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Pacchi",
+          "settings": "Impostazioni"
+        }
+      },
+      "parcels": {
+        "title": "Pacchi",
+        "data": {
+          "tracking_codes": "Codici di tracciamento"
+        }
+      },
+      "settings": {
+        "title": "Impostazioni",
+        "data": {
+          "delivered_filter_type": "Pacchi consegnati: filtra per",
+          "delivered_filter_amount": "Pacchi consegnati: quantità",
+          "include_history": "Includi la cronologia degli stati",
+          "refresh_interval": "Aggiorna ogni"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Non sembra un numero di pacco o un codice di tracciamento GLS.",
+      "already_tracked": "Questo pacco è già monitorato."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "nl": "Paesi Bassi",
+        "de": "Germania",
+        "cz": "Repubblica Ceca",
+        "sk": "Slovacchia",
+        "at": "Austria",
+        "ie": "Irlanda",
+        "fr": "Francia",
+        "si": "Slovenia",
+        "hr": "Croazia",
+        "it": "Italia"
+      }
+    },
+    "refresh_interval": {
+      "options": {
+        "auto": "Automatico (consigliato)",
+        "15": "15 minuti",
+        "30": "30 minuti",
+        "60": "60 minuti",
+        "120": "120 minuti",
+        "240": "240 minuti"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Giorni",
+        "parcels": "Numero di pacchi"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Monitora pacco",
+      "description": "Inizia a monitorare un pacco GLS tramite il suo numero.",
+      "fields": {
+        "tracking_code": {
+          "name": "Codice di tracciamento",
+          "description": "Il numero di pacco o il codice di tracciamento GLS."
+        },
+        "postal_code": {
+          "name": "CAP",
+          "description": "CAP di consegna. Seleziona l'hub quando ne sono configurati diversi; altrimenti usa l'unico hub disponibile."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Interrompi monitoraggio pacco",
+      "description": "Interrompe il monitoraggio di un pacco GLS tramite il suo numero.",
+      "fields": {
+        "tracking_code": {
+          "name": "Codice di tracciamento",
+          "description": "Il numero di tracciamento GLS da smettere di monitorare."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Un pacco è stato registrato",
+      "parcel_status_changed": "Lo stato di un pacco è cambiato",
+      "parcel_delivered": "Un pacco è stato consegnato",
+      "parcel_delivery_time_changed": "L'orario di consegna previsto di un pacco è cambiato"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Aggiorna"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Consegne"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Pacchi in arrivo",
+        "unit_of_measurement": "pacchi"
+      },
+      "next_delivery": {
+        "name": "Prossima consegna"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "In viaggio verso il punto di ritiro",
+        "unit_of_measurement": "pacchi"
+      },
+      "awaiting_pickup": {
+        "name": "In attesa di ritiro",
+        "unit_of_measurement": "pacchi"
+      },
+      "delivered_parcels": {
+        "name": "Pacchi consegnati",
+        "unit_of_measurement": "pacchi"
+      },
+      "last_update": {
+        "name": "Ultimo aggiornamento riuscito"
+      },
+      "parcel": {
+        "name": "Pacco {barcode}"
+      }
+    }
+  }
+}

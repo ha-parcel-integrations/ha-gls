@@ -1,0 +1,203 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Postavljanje GLS-a",
+        "description": "Odaberite državu isporuke vaših paketa i poštanski broj u koji obično stižu. Pakete dodajete nakon postavljanja.\n\nTrenutno su podržani Nizozemska, Njemačka, Češka, Slovačka, Austrija, Irska, Francuska, Slovenija, Hrvatska i Italija — [zatražite drugu državu]({issue_url}).",
+        "data": {
+          "country": "Država",
+          "postal_code": "Poštanski broj"
+        },
+        "data_description": {
+          "postal_code": "npr. {postcode_example}. Koristi se kao zadana adresa dostave za pakete koje dodate."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "GLS nije dostupan. Provjerite mrežnu vezu.",
+      "invalid_parcel_no": "Ovo ne izgleda kao broj paketa ili GLS pratni broj.",
+      "invalid_postcode": "Unesite valjani poštanski broj za odabranu državu, npr. {postcode_example}.",
+      "de_registration_failed": "Nije moguće registrirati anonimnu GLS Njemačka sesiju. Provjerite mrežnu vezu i pokušajte ponovno."
+    },
+    "abort": {
+      "already_configured": "Čvor GLS za ovaj poštanski broj već je postavljen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcije GLS-a",
+        "sections": {
+          "parcels": {
+            "name": "Paketi",
+            "data": {
+              "add": "Dodaj paket",
+              "remove": "Ukloni pakete"
+            },
+            "data_description": {
+              "add": "Unesite broj paketa ili GLS pratni broj da biste ga počeli pratiti. Koristi se poštanski broj čvora."
+            }
+          },
+          "delivered": {
+            "name": "Dostavljeni paketi",
+            "data": {
+              "delivered_filter_type": "Filtriraj po",
+              "delivered_filter_amount": "Količina"
+            },
+            "data_description": {
+              "delivered_filter_type": "Prikaži dostavljene pakete iz zadnjih X dana ili ograniči na X najnovijih.",
+              "delivered_filter_amount": "Broj dana ili paketa za prikaz."
+            }
+          },
+          "history": {
+            "name": "Povijest paketa",
+            "data": {
+              "include_history": "Uključi povijest statusa"
+            },
+            "data_description": {
+              "include_history": "Dodaje atribut povijesti po paketu s popisom svake promjene statusa (vremenska oznaka, status, izvorni tekst). Zadano isključeno."
+            }
+          },
+          "polling": {
+            "name": "Provjera",
+            "data": {
+              "refresh_interval": "Osvježi svakih"
+            },
+            "data_description": {
+              "refresh_interval": "Koliko često integracija provjerava GLS za ažuriranja paketa. \"Automatski\" (zadano za nove instalacije) ubrzava se pred očekivanim dostavama i usporava noću; fiksni interval provjerava konstantnom brzinom cijelo vrijeme."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Paketi",
+          "settings": "Postavke"
+        }
+      },
+      "parcels": {
+        "title": "Paketi",
+        "data": {
+          "tracking_codes": "Pratni brojevi"
+        }
+      },
+      "settings": {
+        "title": "Postavke",
+        "data": {
+          "delivered_filter_type": "Dostavljeni paketi: filtriraj po",
+          "delivered_filter_amount": "Dostavljeni paketi: količina",
+          "include_history": "Uključi povijest statusa",
+          "refresh_interval": "Osvježi svakih"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Ovo ne izgleda kao broj paketa ili GLS pratni broj.",
+      "already_tracked": "Ovaj paket se već prati."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "nl": "Nizozemska",
+        "de": "Njemačka",
+        "cz": "Češka",
+        "sk": "Slovačka",
+        "at": "Austrija",
+        "ie": "Irska",
+        "fr": "Francuska",
+        "si": "Slovenija",
+        "hr": "Hrvatska",
+        "it": "Italija"
+      }
+    },
+    "refresh_interval": {
+      "options": {
+        "auto": "Automatski (preporučeno)",
+        "15": "15 minuta",
+        "30": "30 minuta",
+        "60": "60 minuta",
+        "120": "120 minuta",
+        "240": "240 minuta"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dani",
+        "parcels": "Broj paketa"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Prati paket",
+      "description": "Počinje pratiti GLS paket po njegovom broju.",
+      "fields": {
+        "tracking_code": {
+          "name": "Pratni broj",
+          "description": "Broj paketa ili GLS pratni broj."
+        },
+        "postal_code": {
+          "name": "Poštanski broj",
+          "description": "Poštanski broj dostave. Odabire čvor kada je postavljeno više njih; inače zadano koristi jedini dostupni čvor."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Prestani pratiti paket",
+      "description": "Prestaje pratiti GLS paket po njegovom broju.",
+      "fields": {
+        "tracking_code": {
+          "name": "Pratni broj",
+          "description": "GLS pratni broj koji treba prestati pratiti."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Paket je registriran",
+      "parcel_status_changed": "Status paketa se promijenio",
+      "parcel_delivered": "Paket je dostavljen",
+      "parcel_delivery_time_changed": "Očekivano vrijeme dostave paketa se promijenilo"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Osvježi"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Dostave"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Dolazni paketi",
+        "unit_of_measurement": "paketi"
+      },
+      "next_delivery": {
+        "name": "Sljedeća dostava"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Na putu do paketomata",
+        "unit_of_measurement": "paketi"
+      },
+      "awaiting_pickup": {
+        "name": "Čeka preuzimanje",
+        "unit_of_measurement": "paketi"
+      },
+      "delivered_parcels": {
+        "name": "Dostavljeni paketi",
+        "unit_of_measurement": "paketi"
+      },
+      "last_update": {
+        "name": "Zadnje uspješno ažuriranje"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      }
+    }
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nastavitev GLS",
+        "description": "Izberite državo dostave vaših pošiljk in poštno številko, kamor običajno prihajajo. Pošiljke dodate po nastavitvi.\n\nTrenutno so podprte Nizozemska, Nemčija, Češka, Slovaška, Avstrija, Irska, Francija, Slovenija, Hrvaška in Italija — [zahtevajte drugo državo]({issue_url}).",
+        "data": {
+          "country": "Država",
+          "postal_code": "Poštna številka"
+        },
+        "data_description": {
+          "postal_code": "npr. {postcode_example}. Uporablja se kot privzeti naslov dostave za pošiljke, ki jih dodate."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "GLS ni dosegljiv. Preverite omrežno povezavo.",
+      "invalid_parcel_no": "To ni videti kot številka pošiljke ali sledilna koda GLS.",
+      "invalid_postcode": "Vnesite veljavno poštno številko za izbrano državo, npr. {postcode_example}.",
+      "de_registration_failed": "Anonimne seje GLS Nemčija ni bilo mogoče registrirati. Preverite omrežno povezavo in poskusite znova."
+    },
+    "abort": {
+      "already_configured": "Vozlišče GLS za to poštno številko je že nastavljeno."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti GLS",
+        "sections": {
+          "parcels": {
+            "name": "Pošiljke",
+            "data": {
+              "add": "Dodaj pošiljko",
+              "remove": "Odstrani pošiljke"
+            },
+            "data_description": {
+              "add": "Vnesite številko pošiljke ali sledilno kodo GLS, da začnete sledenje. Uporabi se poštna številka vozlišča."
+            }
+          },
+          "delivered": {
+            "name": "Dostavljene pošiljke",
+            "data": {
+              "delivered_filter_type": "Filtriraj po",
+              "delivered_filter_amount": "Količina"
+            },
+            "data_description": {
+              "delivered_filter_type": "Prikaži dostavljene pošiljke zadnjih X dni ali omeji na X najnovejših.",
+              "delivered_filter_amount": "Število dni ali pošiljk za prikaz."
+            }
+          },
+          "history": {
+            "name": "Zgodovina pošiljk",
+            "data": {
+              "include_history": "Vključi zgodovino statusov"
+            },
+            "data_description": {
+              "include_history": "Doda atribut zgodovine za posamezno pošiljko s seznamom vsake spremembe statusa (časovni žig, status, izvirno besedilo). Privzeto izklopljeno."
+            }
+          },
+          "polling": {
+            "name": "Poizvedovanje",
+            "data": {
+              "refresh_interval": "Osveži vsakih"
+            },
+            "data_description": {
+              "refresh_interval": "Kako pogosto integracija preveri GLS za posodobitve pošiljk. »Samodejno« (privzeto za nove namestitve) pospeši ob pričakovanih dostavah in upočasni ponoči; fiksni interval poizveduje s stalno hitrostjo ves čas."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Pošiljke",
+          "settings": "Nastavitve"
+        }
+      },
+      "parcels": {
+        "title": "Pošiljke",
+        "data": {
+          "tracking_codes": "Sledilne kode"
+        }
+      },
+      "settings": {
+        "title": "Nastavitve",
+        "data": {
+          "delivered_filter_type": "Dostavljene pošiljke: filtriraj po",
+          "delivered_filter_amount": "Dostavljene pošiljke: količina",
+          "include_history": "Vključi zgodovino statusov",
+          "refresh_interval": "Osveži vsakih"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "To ni videti kot številka pošiljke ali sledilna koda GLS.",
+      "already_tracked": "Ta pošiljka se že sledi."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "nl": "Nizozemska",
+        "de": "Nemčija",
+        "cz": "Češka",
+        "sk": "Slovaška",
+        "at": "Avstrija",
+        "ie": "Irska",
+        "fr": "Francija",
+        "si": "Slovenija",
+        "hr": "Hrvaška",
+        "it": "Italija"
+      }
+    },
+    "refresh_interval": {
+      "options": {
+        "auto": "Samodejno (priporočeno)",
+        "15": "15 minut",
+        "30": "30 minut",
+        "60": "60 minut",
+        "120": "120 minut",
+        "240": "240 minut"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dnevi",
+        "parcels": "Število pošiljk"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Sledi pošiljki",
+      "description": "Začne slediti pošiljki GLS po njeni številki.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledilna koda",
+          "description": "Številka pošiljke ali sledilna koda GLS."
+        },
+        "postal_code": {
+          "name": "Poštna številka",
+          "description": "Poštna številka dostave. Izbere vozlišče, kadar je nastavljenih več; sicer privzeto uporabi edino razpoložljivo vozlišče."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Prenehaj slediti pošiljki",
+      "description": "Preneha slediti pošiljki GLS po njeni številki.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledilna koda",
+          "description": "Sledilna številka GLS, ki ji naj se preneha slediti."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Pošiljka je bila registrirana",
+      "parcel_status_changed": "Status pošiljke se je spremenil",
+      "parcel_delivered": "Pošiljka je bila dostavljena",
+      "parcel_delivery_time_changed": "Pričakovani čas dostave pošiljke se je spremenil"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Osveži"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Dostave"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Prihajajoče pošiljke",
+        "unit_of_measurement": "pošiljke"
+      },
+      "next_delivery": {
+        "name": "Naslednja dostava"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Na poti do prevzemnega mesta",
+        "unit_of_measurement": "pošiljke"
+      },
+      "awaiting_pickup": {
+        "name": "Čaka na prevzem",
+        "unit_of_measurement": "pošiljke"
+      },
+      "delivered_parcels": {
+        "name": "Dostavljene pošiljke",
+        "unit_of_measurement": "pošiljke"
+      },
+      "last_update": {
+        "name": "Zadnja uspešna posodobitev"
+      },
+      "parcel": {
+        "name": "Pošiljka {barcode}"
+      }
+    }
+  }
+}
