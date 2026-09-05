@@ -1,5 +1,4 @@
 {
   "kind": "integration",
-  "domain": "gls",
-  "research_api_path": "carrier-research/gls/api/"
+  "domain": "gls"
 }
