@@ -18,6 +18,11 @@ on:
         default: true
         type: boolean
 
+permissions:
+  contents: write
+  issues: read
+  pull-requests: write
+
 concurrency:
   group: release-main
   cancel-in-progress: false
