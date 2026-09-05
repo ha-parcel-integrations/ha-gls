@@ -75,6 +75,7 @@ jobs:
           fetch-depth: 0
       - run: python .github/scripts/check_policy.py
       - name: Check commit messages
+        if: github.actor != 'dependabot[bot]'
         env:
           EVENT_NAME: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
