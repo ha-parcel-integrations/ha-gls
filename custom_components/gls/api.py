@@ -40,11 +40,6 @@ class GlsApiClient:
     ``group_locale`` (the group leaf's ``{ISO2}/{lang}`` path segment)
     instead of ``culture`` — see ``const.py``'s ``COUNTRIES`` docstring for
     why the two aren't the same key.
-
-    Wiring a real DE hub through end-to-end (``__init__.py`` constructing
-    this with ``country="DE"`` + a live ``GlsDeSession``, and
-    ``config_flow.py`` minting/persisting the ``appInstanceId`` that session
-    needs) is deliberately **not** part of this change.
     """
 
     def __init__(
