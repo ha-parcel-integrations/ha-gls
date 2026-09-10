@@ -58,15 +58,6 @@
             "data_description": {
               "include_history": "Pridá atribút histórie pre každú zásielku so všetkými aktualizáciami stavu (časová pečiatka, stav, pôvodný text). Predvolene vypnuté."
             }
-          },
-          "polling": {
-            "name": "Kontrolovanie",
-            "data": {
-              "refresh_interval": "Obnovovať každých"
-            },
-            "data_description": {
-              "refresh_interval": "Ako často integrácia kontroluje aktualizácie zásielok v GLS. Možnosť „Automaticky“ (predvolená pre nové inštalácie) zrýchli pri očakávanom doručení a v noci spomalí; pevný interval kontroluje stále rovnakou frekvenciou."
-            }
           }
         },
         "menu_options": {
@@ -85,8 +76,7 @@
         "data": {
           "delivered_filter_type": "Doručené zásielky: filtrovať podľa",
           "delivered_filter_amount": "Doručené zásielky: počet",
-          "include_history": "Zahrnúť históriu stavov",
-          "refresh_interval": "Obnovovať každých"
+          "include_history": "Zahrnúť históriu stavov"
         }
       }
     },
@@ -114,16 +104,6 @@
         "hu": "Maďarsko",
         "lu": "Luxembursko",
         "rs": "Srbsko"
-      }
-    },
-    "refresh_interval": {
-      "options": {
-        "auto": "Automaticky (odporúčané)",
-        "15": "15 minút",
-        "30": "30 minút",
-        "60": "60 minút",
-        "120": "120 minút",
-        "240": "240 minút"
       }
     },
     "delivered_filter_type": {

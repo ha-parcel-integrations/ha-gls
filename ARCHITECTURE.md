@@ -102,10 +102,11 @@ service field, and never part of the alias. Do not conflate the two.
 
 The options flow is a two-page menu (`parcels` / `settings`), not one sectioned
 form. `parcels` edits the whole tracked-code list as a single multi-value text
-field; `settings` holds delivered-parcel retention, history and polling.
+field; `settings` holds delivered-parcel retention and history. Polling cadence
+is not configurable — see **Dynamic polling** below.
 
-An **update listener** (`_async_options_updated`) retunes
-`coordinator.update_interval` and calls `async_request_refresh()`. The
+An **update listener** (`_async_options_updated`) calls
+`async_request_refresh()`, which recomputes the interval too. The
 coordinator re-reads options on every update, so a refresh — not a reload —
 makes an add or remove reflect immediately, and avoids the config-entry-listener
 deprecation. **Do not switch this to `async_schedule_reload`.** This is the
@@ -114,6 +115,27 @@ account-less half of the suite's two options models.
 There is no auth, no reauth, and no sent-shipments coordinator. The HA-managed
 session is used directly, with no per-entry cookie jar because there are no
 cookies. Entities are entry-scoped.
+
+### Dynamic polling
+
+There is no user-facing polling interval — a deliberate suite-wide choice, not a
+gap. `coordinator.py` recomputes `update_interval` at the end of every refresh
+(barcode-based model):
+
+- **Quiet window:** no polling 00:00–06:00 local time, except two daily anchors
+  (~00:00 and ~06:00) for overnight / end-of-day catch-up.
+- **Tiers while polling:** *hot* (15 min) when a tracked, not-yet-delivered
+  parcel is `out_for_delivery` within an hour of its `planned_from` (or has no
+  `planned_from` at all); *mid* (45 min) for anything else still in flight.
+- **Full stop:** `update_interval = None` when nothing is tracked or every
+  tracked parcel is delivered. Resumes the moment a parcel is added back, via
+  the options-flow update listener above.
+- **Stagger:** a small, stable per-install offset (hash of the config entry id)
+  is added to every computed interval so hubs don't all hit an anchor or tier
+  boundary at the same second.
+
+The DE hub is no exception: its stateful session runs inside the same
+`_async_update_data`, so it is retimed by the same recompute point.
 
 ### `culture` vs `group_locale`
 

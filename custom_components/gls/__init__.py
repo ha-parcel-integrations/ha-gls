@@ -19,7 +19,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .coordinator import GlsCoordinator, _refresh_interval
+from .coordinator import GlsCoordinator
 from .countries.de.session import GlsDeSession
 from .services import async_setup_services, async_unload_services
 
@@ -120,7 +120,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Apply option changes (added/removed parcels, interval, history) live via
+    # Apply option changes (added/removed parcels, history) live via
     # a coordinator refresh — no reload — so per-parcel sensors appear and
     # disappear immediately. The update listener does NOT reload, so it does
     # not trip the config-entry-listener deprecation.
@@ -132,10 +132,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: GlsConfigEntry) -> None:
-    """Apply changed options: retune the interval and refresh the coordinator."""
-    coordinator = entry.runtime_data.coordinator
-    coordinator.update_interval = _refresh_interval(entry)
-    await coordinator.async_request_refresh()
+    """Apply changed options by refreshing the coordinator."""
+    await entry.runtime_data.coordinator.async_request_refresh()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:

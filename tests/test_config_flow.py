@@ -13,11 +13,8 @@ from custom_components.gls.const import (
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
-    CONF_REFRESH_INTERVAL,
     COUNTRIES,
-    DEFAULT_NEW_REFRESH_INTERVAL,
     DOMAIN,
-    REFRESH_INTERVAL_AUTO,
 )
 from custom_components.gls.countries.de.session import GlsDeSessionError
 
@@ -33,9 +30,8 @@ async def test_user_flow_creates_hub_with_postcode_only(hass):
     assert result["title"] == "GLS (1234AB)"
     assert result["options"][CONF_PARCELS] == []
     assert result["options"][CONF_POSTAL_CODE] == "1234AB"
-    # New hubs default to dynamic polling (dynamic-polling.md Section 5.2).
-    assert result["options"][CONF_REFRESH_INTERVAL] == DEFAULT_NEW_REFRESH_INTERVAL
-    assert DEFAULT_NEW_REFRESH_INTERVAL == REFRESH_INTERVAL_AUTO
+    # Polling cadence is not a stored option — it is always status-driven.
+    assert "refresh_interval" not in result["options"]
 
 
 async def test_user_flow_invalid_postcode(hass):
@@ -262,25 +258,6 @@ def _hub(parcels: list[dict], *, country: str | None = None) -> MockConfigEntry:
     )
 
 
-def _init_input(
-    *, add="", remove=None, interval="30", history=False,
-    filter_type="days", amount=7,
-) -> dict:
-    """Build the sectioned options-form submission."""
-    parcels: dict = {"add": add}
-    if remove is not None:
-        parcels["remove"] = remove
-    return {
-        "parcels": parcels,
-        "delivered": {
-            CONF_DELIVERED_FILTER_TYPE: filter_type,
-            CONF_DELIVERED_FILTER_AMOUNT: amount,
-        },
-        "history": {CONF_INCLUDE_HISTORY: history},
-        "polling": {CONF_REFRESH_INTERVAL: interval},
-    }
-
-
 async def _open_options_step(hass, entry, step_id: str):
     """Start the options flow and select one of its two top-level routes."""
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -310,28 +287,18 @@ async def test_options_settings_preserve_parcel_list(hass):
     entry.add_to_hass(hass)
     result = await _open_options_step(hass, entry, "settings")
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7, CONF_INCLUDE_HISTORY: False, CONF_REFRESH_INTERVAL: "30"}
+        result["flow_id"], {CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7, CONF_INCLUDE_HISTORY: False}
     )
     assert result["type"] == "create_entry"
     assert result["data"][CONF_PARCELS] == parcels
 
 
-async def test_options_settings_can_switch_to_auto(hass):
-    """An existing fixed-interval hub can opt into dynamic polling."""
+async def test_options_settings_has_no_polling_field(hass):
+    """The polling cadence is no longer user-configurable."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        options={CONF_PARCELS: [], CONF_POSTAL_CODE: "1234AB", CONF_REFRESH_INTERVAL: 30},
+        options={CONF_PARCELS: [], CONF_POSTAL_CODE: "1234AB"},
     )
     entry.add_to_hass(hass)
     result = await _open_options_step(hass, entry, "settings")
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            CONF_DELIVERED_FILTER_TYPE: "days",
-            CONF_DELIVERED_FILTER_AMOUNT: 7,
-            CONF_INCLUDE_HISTORY: False,
-            CONF_REFRESH_INTERVAL: REFRESH_INTERVAL_AUTO,
-        },
-    )
-    assert result["type"] == "create_entry"
-    assert result["data"][CONF_REFRESH_INTERVAL] == REFRESH_INTERVAL_AUTO
+    assert "refresh_interval" not in result["data_schema"].schema

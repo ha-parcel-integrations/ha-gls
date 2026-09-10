@@ -58,15 +58,6 @@
             "data_description": {
               "include_history": "Doda atribut zgodovine za posamezno pošiljko s seznamom vsake spremembe statusa (časovni žig, status, izvirno besedilo). Privzeto izklopljeno."
             }
-          },
-          "polling": {
-            "name": "Poizvedovanje",
-            "data": {
-              "refresh_interval": "Osveži vsakih"
-            },
-            "data_description": {
-              "refresh_interval": "Kako pogosto integracija preveri GLS za posodobitve pošiljk. »Samodejno« (privzeto za nove namestitve) pospeši ob pričakovanih dostavah in upočasni ponoči; fiksni interval poizveduje s stalno hitrostjo ves čas."
-            }
           }
         },
         "menu_options": {
@@ -85,8 +76,7 @@
         "data": {
           "delivered_filter_type": "Dostavljene pošiljke: filtriraj po",
           "delivered_filter_amount": "Dostavljene pošiljke: količina",
-          "include_history": "Vključi zgodovino statusov",
-          "refresh_interval": "Osveži vsakih"
+          "include_history": "Vključi zgodovino statusov"
         }
       }
     },
@@ -114,16 +104,6 @@
         "hu": "Madžarska",
         "lu": "Luksemburg",
         "rs": "Srbija"
-      }
-    },
-    "refresh_interval": {
-      "options": {
-        "auto": "Samodejno (priporočeno)",
-        "15": "15 minut",
-        "30": "30 minut",
-        "60": "60 minut",
-        "120": "120 minut",
-        "240": "240 minut"
       }
     },
     "delivered_filter_type": {

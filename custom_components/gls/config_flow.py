@@ -27,17 +27,12 @@ from .const import (
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
-    CONF_REFRESH_INTERVAL,
     COUNTRIES,
     DEFAULT_COUNTRY,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
     DEFAULT_INCLUDE_HISTORY,
-    DEFAULT_NEW_REFRESH_INTERVAL,
-    DEFAULT_REFRESH_INTERVAL,
     DOMAIN,
-    REFRESH_INTERVAL_AUTO,
-    REFRESH_INTERVAL_OPTIONS,
     REQUEST_COUNTRY_URL,
 )
 from .countries.de.session import GlsDeSession, GlsDeSessionError
@@ -119,17 +114,6 @@ def _current_parcels(entry: ConfigEntry) -> list[dict[str, str]]:
     return [dict(item) for item in entry.options.get(CONF_PARCELS, [])]
 
 
-def _interval_selector() -> selector.SelectSelector:
-    """Return the refresh-interval dropdown selector (options translated via strings)."""
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=[REFRESH_INTERVAL_AUTO] + [str(m) for m in REFRESH_INTERVAL_OPTIONS],
-            translation_key=CONF_REFRESH_INTERVAL,
-            mode=selector.SelectSelectorMode.DROPDOWN,
-        )
-    )
-
-
 class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle the UI-driven configuration flow for the GLS integration."""
 
@@ -195,12 +179,6 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                             CONF_POSTAL_CODE: postal_code,
                             CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
                             CONF_DELIVERED_FILTER_AMOUNT: DEFAULT_DELIVERED_FILTER_AMOUNT,
-                            # New hubs default to dynamic polling; a hub set
-                            # up before this option existed keeps reading
-                            # DEFAULT_REFRESH_INTERVAL via the coordinator's
-                            # .get() fallback instead (dynamic-polling.md
-                            # Section 5.2).
-                            CONF_REFRESH_INTERVAL: DEFAULT_NEW_REFRESH_INTERVAL,
                             CONF_INCLUDE_HISTORY: DEFAULT_INCLUDE_HISTORY,
                         },
                     )
@@ -217,12 +195,13 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class GlsOptionsFlowHandler(OptionsFlow):
-    """Manage tracked parcels, history and polling via a two-page menu.
+    """Manage tracked parcels and settings via a two-page menu.
 
     ``async_step_init`` shows a menu (``parcels`` / ``settings``) rather than
     one long sectioned form. The ``parcels`` page edits the whole tracked-code
-    list at once; ``settings`` holds delivered-parcel retention, history and
-    polling. Adding a parcel needs only its number — the postcode is
+    list at once; ``settings`` holds delivered-parcel retention and history.
+    Polling cadence is not configurable — the coordinator drives it from what
+    the tracked parcels are doing. Adding a parcel needs only its number — the postcode is
     inherited from the hub. Changes apply live via HA's options-update
     listener (which refreshes the coordinator), so new/removed per-parcel
     sensors appear and disappear immediately.
@@ -291,11 +270,6 @@ class GlsOptionsFlowHandler(OptionsFlow):
                         user_input[CONF_DELIVERED_FILTER_AMOUNT]
                     ),
                     CONF_INCLUDE_HISTORY: bool(user_input[CONF_INCLUDE_HISTORY]),
-                    CONF_REFRESH_INTERVAL: (
-                        REFRESH_INTERVAL_AUTO
-                        if user_input[CONF_REFRESH_INTERVAL] == REFRESH_INTERVAL_AUTO
-                        else int(user_input[CONF_REFRESH_INTERVAL])
-                    ),
                 },
             )
 
@@ -333,12 +307,6 @@ class GlsOptionsFlowHandler(OptionsFlow):
                             CONF_INCLUDE_HISTORY, DEFAULT_INCLUDE_HISTORY
                         ),
                     ): selector.BooleanSelector(),
-                    vol.Required(
-                        CONF_REFRESH_INTERVAL,
-                        default=str(
-                            current.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL)
-                        ),
-                    ): _interval_selector(),
                 }
             ),
         )

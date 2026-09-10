@@ -102,20 +102,17 @@ Click **Configure** on the integration card — a menu with two pages:
 | Page | Description |
 |---|---|
 | Parcels | Your tracked codes as one editable list — add or remove any number, then save. |
-| Settings | Delivered-parcel retention, status history and polling, described below. |
+| Settings | Delivered-parcel retention and status history, described below. |
 
 | Setting (on the Settings page) | Description |
 |---|---|
 | Delivered parcels: filter by / amount | Keep delivered parcels in the delivered sensor for the last N **days**, or keep only the N most recent (**parcels**). Default: 7 days. Parcels stay tracked — this only controls the sensor. |
 | Include status history | Add a per-parcel status history attribute. **Off by default.** |
-| Refresh every | How often GLS is checked: **Automatic**, or a fixed **15 / 30 / 60 / 120 / 240 minutes**. New hubs default to Automatic; existing hubs keep their current fixed value until changed. Changes apply immediately, no HA restart needed. See [Dynamic polling](#dynamic-polling) below. |
 
 ## Dynamic polling
 
-You can now set **Refresh every** to **Automatic** instead of a fixed number of
-minutes. Instead of polling GLS at the same rate around the clock, the
-integration adjusts its own cadence to what your tracked parcels are
-actually doing:
+Polling isn't a setting here — the integration adjusts its own cadence to
+what your tracked parcels are actually doing:
 
 - **Quiet hours** — no polling between 00:00–06:00 local time, aside from one
   catch-up check at each end of that window (around midnight and around 6
@@ -129,12 +126,6 @@ actually doing:
   always triggers an immediate check, regardless of the pause).
 - A small, fixed per-hub offset is added on top, so not every GLS hub out
   there polls at exactly the same second.
-
-This is opt-in for now, but it's expected to become the default — and
-eventually the only — polling behaviour across the parcel-integrations
-suite. If you try Automatic, we'd genuinely like to hear how it goes:
-share your experience in [this
-discussion](https://github.com/orgs/ha-parcel-integrations/discussions/12).
 
 ## Removal
 

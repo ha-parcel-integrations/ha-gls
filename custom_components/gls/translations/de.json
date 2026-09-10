@@ -58,15 +58,6 @@
             "data_description": {
               "include_history": "Fügt ein Verlaufsattribut pro Paket hinzu, das jede Statusaktualisierung auflistet (Zeitstempel, Status, Originaltext). Standardmäßig aus."
             }
-          },
-          "polling": {
-            "name": "Abfrageintervall",
-            "data": {
-              "refresh_interval": "Aktualisieren alle"
-            },
-            "data_description": {
-              "refresh_interval": "Wie oft die Integration bei GLS nach Paketaktualisierungen fragt. „Automatisch“ (der Standard für neue Installationen) beschleunigt rund um eine erwartete Zustellung und verlangsamt sich nachts; ein fester Wert fragt rund um die Uhr mit diesem konstanten Takt."
-            }
           }
         },
         "menu_options": {
@@ -85,8 +76,7 @@
         "data": {
           "delivered_filter_type": "Zugestellte Pakete: filtern nach",
           "delivered_filter_amount": "Zugestellte Pakete: Anzahl",
-          "include_history": "Statusverlauf einbeziehen",
-          "refresh_interval": "Aktualisieren alle"
+          "include_history": "Statusverlauf einbeziehen"
         }
       }
     },
@@ -114,16 +104,6 @@
         "hu": "Ungarn",
         "lu": "Luxemburg",
         "rs": "Serbien"
-      }
-    },
-    "refresh_interval": {
-      "options": {
-        "auto": "Automatisch (empfohlen)",
-        "15": "15 Minuten",
-        "30": "30 Minuten",
-        "60": "60 Minuten",
-        "120": "120 Minuten",
-        "240": "240 Minuten"
       }
     },
     "delivered_filter_type": {

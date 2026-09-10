@@ -58,15 +58,6 @@
             "data_description": {
               "include_history": "Ajoute un attribut d'historique par colis listant chaque mise à jour de statut (horodatage, statut, texte original). Désactivé par défaut."
             }
-          },
-          "polling": {
-            "name": "Interrogation",
-            "data": {
-              "refresh_interval": "Actualiser toutes les"
-            },
-            "data_description": {
-              "refresh_interval": "Fréquence à laquelle l'intégration vérifie les mises à jour des colis auprès de GLS. « Automatique » (par défaut pour les nouvelles installations) accélère à l'approche des livraisons prévues et ralentit la nuit ; un intervalle fixe interroge à un rythme constant en continu."
-            }
           }
         },
         "menu_options": {
@@ -85,8 +76,7 @@
         "data": {
           "delivered_filter_type": "Colis livrés : filtrer par",
           "delivered_filter_amount": "Colis livrés : quantité",
-          "include_history": "Inclure l'historique des statuts",
-          "refresh_interval": "Actualiser toutes les"
+          "include_history": "Inclure l'historique des statuts"
         }
       }
     },
@@ -114,16 +104,6 @@
         "hu": "Hongrie",
         "lu": "Luxembourg",
         "rs": "Serbie"
-      }
-    },
-    "refresh_interval": {
-      "options": {
-        "auto": "Automatique (recommandé)",
-        "15": "15 minutes",
-        "30": "30 minutes",
-        "60": "60 minutes",
-        "120": "120 minutes",
-        "240": "240 minutes"
       }
     },
     "delivered_filter_type": {

@@ -24,7 +24,7 @@ of these areas:
 |---|---|
 | touch entities, sensors, config/options flow, coordinator, diagnostics, translations | *Home Assistant developer docs* (its table points on to the canonical HA page — don't rely on memory) |
 | add/rename a parcel field, a `ParcelStatus`, or a bus event; change first-refresh or unmapped-status logging | *Parcel contract* (this repo implements it; below is only where GLS deviates) |
-| consider "fixing" a lint/pattern the skill flags (poll interval, inline client) | *Deliberate skill divergences* — likely intentional, don't re-flag |
+| consider "fixing" a lint/pattern the skill flags (inline client) | *Deliberate skill divergences* — likely intentional, don't re-flag |
 | commit, bump, tag, release, or write release notes; add a feature without a test | *Workflow / Commits / Versioning / Testing* |
 
 **Suite-wide tripwires, kept inline on purpose:**
@@ -45,10 +45,16 @@ were the point. The shared `gls.*` services unload only when no other hub is
 still loaded.
 
 **Options apply live, never by reload.** An update listener
-(`_async_options_updated`) retunes `update_interval` and calls
-`async_request_refresh()`; the coordinator re-reads options each update. **Do
-not** switch to `async_schedule_reload` — this is the account-less half of the
-suite's two options models.
+(`_async_options_updated`) calls `async_request_refresh()`; the coordinator
+re-reads options each update. **Do not** switch to `async_schedule_reload` —
+this is the account-less half of the suite's two options models.
+
+**Polling cadence is not configurable — don't add the option back.** The
+Section 2.1 dynamic-polling algorithm always runs: `update_interval` is
+recomputed at the end of every refresh (quiet window 00:00–06:00 with two
+anchors, hot 15 min / mid 45 min, full stop when nothing is tracked or
+everything is delivered, plus a per-hub stagger). The old `refresh_interval`
+dropdown (Phase 1) is gone; see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 **Service field is `tracking_code`** (suite-wide standard); the deprecated
 `parcel_no` alias was removed (ha-gls#3). The *stored* dict key stays

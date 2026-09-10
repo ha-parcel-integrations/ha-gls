@@ -58,15 +58,6 @@
             "data_description": {
               "include_history": "Dodaje atribut povijesti po paketu s popisom svake promjene statusa (vremenska oznaka, status, izvorni tekst). Zadano isključeno."
             }
-          },
-          "polling": {
-            "name": "Provjera",
-            "data": {
-              "refresh_interval": "Osvježi svakih"
-            },
-            "data_description": {
-              "refresh_interval": "Koliko često integracija provjerava GLS za ažuriranja paketa. \"Automatski\" (zadano za nove instalacije) ubrzava se pred očekivanim dostavama i usporava noću; fiksni interval provjerava konstantnom brzinom cijelo vrijeme."
-            }
           }
         },
         "menu_options": {
@@ -85,8 +76,7 @@
         "data": {
           "delivered_filter_type": "Dostavljeni paketi: filtriraj po",
           "delivered_filter_amount": "Dostavljeni paketi: količina",
-          "include_history": "Uključi povijest statusa",
-          "refresh_interval": "Osvježi svakih"
+          "include_history": "Uključi povijest statusa"
         }
       }
     },
@@ -114,16 +104,6 @@
         "hu": "Mađarska",
         "lu": "Luksemburg",
         "rs": "Srbija"
-      }
-    },
-    "refresh_interval": {
-      "options": {
-        "auto": "Automatski (preporučeno)",
-        "15": "15 minuta",
-        "30": "30 minuta",
-        "60": "60 minuta",
-        "120": "120 minuta",
-        "240": "240 minuta"
       }
     },
     "delivered_filter_type": {
