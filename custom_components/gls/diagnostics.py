@@ -91,6 +91,17 @@ TO_REDACT = {
     "latitude",
     "longitude",
     "parcelId",
+    # GLS US's public summary carries the delivery address, who signed for the
+    # parcel, the free-text drop-off note and the identifiers its mobile
+    # tracker uses to fetch proof-of-delivery imagery (which this integration
+    # never calls). As with CA, the status vocabulary is left readable — the
+    # unrecognised-status template asks for status/eventDetails/eventDateTime.
+    "deliveryAddress",
+    "signedBy",
+    "deliveredAt",
+    "controlNumber",
+    "podSignatureId",
+    "stopId",
 }
 
 

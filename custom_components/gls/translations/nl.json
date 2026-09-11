@@ -10,7 +10,7 @@
           "postal_code": "Postcode"
         },
         "data_description": {
-          "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt; voor Canada geeft dit uitgebreide trackinginformatie."
+          "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt; voor Canada geeft dit uitgebreide trackinginformatie. Voor de VS wordt hij niet gebruikt bij het volgen."
         }
       }
     },
@@ -104,7 +104,8 @@
         "fi": "Finland",
         "hu": "Hongarije",
         "lu": "Luxemburg",
-        "rs": "Servië"
+        "rs": "Servië",
+        "us": "Verenigde Staten"
       }
     },
     "delivered_filter_type": {

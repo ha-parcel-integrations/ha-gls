@@ -57,6 +57,9 @@ KNOWN_CAPABILITIES = frozenset(
 #                  CZ only as of the AT/IE/FR/SI/HR/IT rollout — see each
 #                  row's release notes for which countries' rstt028 is
 #                  still unverified.
+#   United States — the public summary response has no weight, dimensions,
+#                  pickup-point or ETA-window field, so only url (the generic
+#                  fallback link) and history (transitDetails[]) populate.
 # This used to be a single CAPABILITIES = the intersection across countries,
 # which meant NL's full support was invisible on the docs site the moment a
 # second, weaker country landed. Per-variant rows fixed that (2026-08-23) —
@@ -68,6 +71,7 @@ CAPABILITIES_BY_VARIANT = {
     "Germany": frozenset({"pickup_point", "url", "history"}),
     "Other": frozenset({"weight", "url", "history"}),
     "Canada": frozenset({"weight", "dimensions", "url", "history"}),
+    "United States": frozenset({"url", "history"}),
 }
 
 
@@ -106,6 +110,17 @@ PARCEL_DETAILS_URL = (
 GLS_CA_TRACKING_URL = "https://web.gls-canada.com/api/tracking/{parcel_no}"
 GLS_CA_TRACKING_DETAILS_URL = (
     "https://web.gls-canada.com/api/tracking/{postal_code}/{parcel_no}"
+)
+
+# GLS US has its own keyless public tracking API — a ``POST`` whose JSON body
+# carries the tracking number, not a templated path. It is the only GLS
+# backend that is **not** keyed on the delivery postcode at all: the hub still
+# asks for one (every GLS hub does, and it stays the default for parcels added
+# later), but ``countries/us/`` never sends it. ``isFreight`` pins the consumer
+# parcel surface; the freight half of the same route is out of scope.
+GLS_US_TRACKING_URL = (
+    "https://connect.gls-us.com/api/public/tracking/"
+    "TrackShipmentSummariesByTrackingNumbers"
 )
 
 # GLS Germany has no keyless endpoint: every route on the national parcel
@@ -244,6 +259,18 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "https://gls-group.com/CA/en/send-and-receive/track-a-shipment/"
             "?match={parcel_no}"
         ),
+    },
+    "US": {
+        "host": "connect.gls-us.com",
+        "culture": "en-US",
+        # ZIP or ZIP+4. The US lookup itself never uses the postcode (see
+        # GLS_US_TRACKING_URL) — this only validates the hub field, so a
+        # typo is still caught at setup like every other country's.
+        "postcode_regex": r"^\d{5}(-?\d{4})?$",
+        "postcode_example": "90210",
+        # No US-specific tracking_url: the only consumer entry point seen is
+        # the mobile tracker's own message-link journey, which needs an id
+        # the integration never holds. Falls back to TRACKING_URL, as DE does.
     },
     "CZ": {
         "host": "gls-group.com",  # .eu and .com are interchangeable

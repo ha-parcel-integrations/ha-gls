@@ -7,10 +7,10 @@ mechanics — endpoints, parameters, status vocabularies — live in the private
 
 Two things drive everything else. GLS has **no consumer account or parcel
 feed**, so the user enters tracking codes and a hub is keyed by postcode rather
-than by login. And GLS is not one backend but four: a keyless national GET for
-the Netherlands, a postcode-enhanced keyless GET for Canada, a stateful
-bearer-token POST for Germany, and a keyless pan-EU group index serving
-fourteen more countries.
+than by login. And GLS is not one backend but five: a keyless national GET for
+the Netherlands, a postcode-enhanced keyless GET for Canada, a keyless JSON
+POST for the United States, a stateful bearer-token POST for Germany, and a
+keyless pan-EU group index serving fourteen more countries.
 
 This is the suite's first multi-country carrier, so the country-package pattern
 originated here. DPD followed it later with a different dispatch point — check
@@ -37,6 +37,7 @@ custom_components/gls/
 └── countries/
     ├── nl/              keyless national GET + normalize + status map
     ├── ca/              postcode-enhanced keyless GET + normalize + status map
+    ├── us/              keyless POST + newest-of-several-shipments selection
     ├── de/              bearer POST: __init__.py (transport) + session.py (lifecycle)
     └── group/           pan-EU rstt028/rstt029 leaves + normalize + status map
 ```
@@ -58,11 +59,12 @@ no account-level list call to branch on.)
 |---|---|---|---|
 | **NL** | national GET | keyless | `async_get_parcel_nl` |
 | **CA** | postcode-enhanced national GET | keyless | `async_get_parcel_ca` |
+| **US** | national JSON POST, no postcode | keyless | `async_get_parcel_us` |
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
 | **14 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
-in `const.py` holds 17 rows: `NL`, `CA`, `DE`, and the group leaves `BE`,
+in `const.py` holds 18 rows: `NL`, `CA`, `US`, `DE`, and the group leaves `BE`,
 `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LU`, `RS`, `SI`, `HR`, `IT`.
 Each row carries a host, a postcode regex, and either a `culture` or a
 `group_locale` (below). Constructing a `country="DE"` client without a
@@ -229,11 +231,34 @@ out of order, unparseable timestamps, odd weight formats, unexpected info types,
 unexpected 5xx. That is the pre-1.0 discipline from `CONVENTIONS.md` applied to
 a payload family observed on far fewer real parcels than NL's.
 
+### The US returns several shipments per tracking number
+
+GLS US answers one tracking number with a `shipments[]` array that can hold
+**more than one record** — a return-to-sender and the replacement sent
+afterwards, for instance — listed oldest first. So `countries/us/` never trusts
+array position: it keeps only the records whose `trackingNumber` matches the
+tracked code and picks the one with the most recent timestamp (latest transit
+event, else delivery date, else ship date). The backend's `0001-01-01` /
+`1900-01-01` placeholders parse cleanly, so they are rejected by value —
+otherwise a placeholder could win that comparison and become a delivery time.
+
+Its status mapping is **derivation-first**, like DE's: only the delivered
+literal the carrier's own tracker keys off is mapped exactly, and every other
+text falls back to what the record's dates prove (delivery date → delivered,
+any scan → in transit, ship date alone → registered). Each unrecognised text
+still logs once with the unrecognised-status issue link, which is how the exact
+table gets filled in later.
+
+The US is also the one country whose lookup does not use the postcode at all.
+The hub still asks for one — every GLS hub does, it is the default for parcels
+added later, and dropping the field for one country would fork the setup flow —
+but `async_get_parcel_us` never sends it.
+
 ### Capabilities are per country, not intersected
 
 `CAPABILITIES_BY_VARIANT` holds one frozenset per variant — `"Netherlands"`,
-`"Germany"`, `"Other"` (CZ and every future group leaf) — and the docs site
-renders one row per entry.
+`"Germany"`, `"Canada"`, `"United States"`, `"Other"` (CZ and every future
+group leaf) — and the docs site renders one row per entry.
 
 This replaced an intersected single `CAPABILITIES` on 2026-08-23. Under that
 model NL's full field support went invisible on the site the moment a weaker

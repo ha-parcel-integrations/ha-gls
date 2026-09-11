@@ -127,6 +127,32 @@ async def test_ca_user_flow_rejects_non_canadian_postcode(hass):
     assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
 
 
+@pytest.mark.parametrize(
+    ("entered", "stored"),
+    [("90210", "90210"), ("90210-1234", "90210-1234"), ("902101234", "902101234")],
+)
+async def test_us_user_flow_accepts_zip_and_zip_plus_four(hass, entered, stored):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "us", CONF_POSTAL_CODE: entered}
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == "US"
+    assert result["options"][CONF_POSTAL_CODE] == stored
+
+
+async def test_us_user_flow_rejects_a_non_us_postcode(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "us", CONF_POSTAL_CODE: "K1A 0B1"}
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+
+
 async def test_same_postcode_hub_rejected(hass):
     """A second hub for the same postcode+country aborts (unique_id is now
     f"{country}:{postal_code}")."""

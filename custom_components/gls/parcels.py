@@ -25,18 +25,20 @@ from .countries.ca import normalize_parcel_ca
 from .countries.de import normalize_parcel_de
 from .countries.group import normalize_parcel_group
 from .countries.nl import normalize_parcel_nl
+from .countries.us import normalize_parcel_us
 from .timeutils import parse_iso as _parse_iso
 
 _NORMALIZERS = {
     "CA": normalize_parcel_ca,
     "DE": normalize_parcel_de,
+    "US": normalize_parcel_us,
     **dict.fromkeys(GROUP_LEAF_COUNTRIES, normalize_parcel_group),
 }
 
 # Normalizers whose ``barcode`` source is the code the user entered rather than
 # a field of the payload, so they take the extra ``parcel_no`` argument. NL's
 # and DE's signatures deliberately stay without it.
-_NEEDS_PARCEL_NO = frozenset({"CA"}) | frozenset(GROUP_LEAF_COUNTRIES)
+_NEEDS_PARCEL_NO = frozenset({"CA", "US"}) | frozenset(GROUP_LEAF_COUNTRIES)
 
 
 def normalize_parcel(
@@ -50,7 +52,7 @@ def normalize_parcel(
     """Dispatch to the right country's ``normalize_parcel_<code>``.
 
     NL is the default/fallback — a country without its own entry in
-    ``_NORMALIZERS`` is treated as NL. The group leaves and CA additionally
+    ``_NORMALIZERS`` is treated as NL. The group leaves, CA and US additionally
     take ``parcel_no`` (see ``_NEEDS_PARCEL_NO``); NL and DE do not, and
     widening their signatures just to keep one call uniform would touch two
     normalizers, and their tests, for a parameter neither uses.

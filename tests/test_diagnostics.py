@@ -146,6 +146,59 @@ async def test_diagnostics_redacts_detailed_canadian_raw_payload(hass):
     assert activity["terminal"] == "Example terminal"
 
 
+async def test_diagnostics_redacts_the_us_delivery_and_pod_fields(hass):
+    entry = MagicMock()
+    entry.data = {}
+    entry.options = {"country": "US", "parcels": [{"parcel_no": "12345678901234"}]}
+    entry.runtime_data.coordinator.data = [
+        {
+            "barcode": "12345678901234",
+            "raw_status": "SHIPMENT DELIVERED",
+            "raw": {
+                "shipments": [
+                    {
+                        "trackingNumber": "12345678901234",
+                        "controlNumber": "0000001",
+                        "status": "SHIPMENT DELIVERED",
+                        "deliveryAddress": "1 Example Street",
+                        "signedBy": "Synthetic signer",
+                        "deliveredAt": "Front door",
+                        "podSignatureId": "sig-1",
+                        "stopId": "stop-1",
+                        "transitDetails": [
+                            {
+                                "eventDateTime": "2026-09-09T11:04:00",
+                                "eventDetails": "SHIPMENT DELIVERED",
+                                "location": "Example Hub",
+                            }
+                        ],
+                    }
+                ]
+            },
+        }
+    ]
+    entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.current_tier_minutes = None
+    entry.runtime_data.coordinator.update_interval = None
+
+    result = await async_get_config_entry_diagnostics(hass, entry)
+    shipment = result["incoming"][0]["raw"]["shipments"][0]
+    assert shipment["trackingNumber"] == "**REDACTED**"
+    assert shipment["controlNumber"] == "**REDACTED**"
+    assert shipment["deliveryAddress"] == "**REDACTED**"
+    assert shipment["signedBy"] == "**REDACTED**"
+    assert shipment["deliveredAt"] == "**REDACTED**"
+    assert shipment["podSignatureId"] == "**REDACTED**"
+    assert shipment["stopId"] == "**REDACTED**"
+    # The status vocabulary must survive: it is what an unrecognised-status
+    # report needs from the attached diagnostics.
+    assert result["incoming"][0]["raw_status"] == "SHIPMENT DELIVERED"
+    assert shipment["status"] == "SHIPMENT DELIVERED"
+    detail = shipment["transitDetails"][0]
+    assert detail["eventDetails"] == "SHIPMENT DELIVERED"
+    assert detail["eventDateTime"] == "2026-09-09T11:04:00"
+
+
 async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
     """CUSTREF (the sender's own order reference), UNITNO (the parcel number
     under another name, ha-gls#6) and signature.value are the genuinely

@@ -22,6 +22,7 @@ from .countries.ca import async_get_parcel_ca
 from .countries.de import async_get_parcel_de
 from .countries.group import async_get_parcel_group
 from .countries.nl import async_get_parcel_nl
+from .countries.us import async_get_parcel_us
 
 if TYPE_CHECKING:
     from .countries.de.session import GlsDeSession
@@ -75,6 +76,8 @@ class GlsApiClient:
             )
         if self._country == "CA":
             return await async_get_parcel_ca(self._session, parcel_no, postal_code)
+        if self._country == "US":
+            return await async_get_parcel_us(self._session, parcel_no, postal_code)
         if self._country in GROUP_LEAF_COUNTRIES:
             return await async_get_parcel_group(
                 self._session,

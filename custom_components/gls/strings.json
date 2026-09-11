@@ -10,7 +10,7 @@
           "postal_code": "Postal code"
         },
         "data_description": {
-          "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add; for Canada it enables enhanced tracking details."
+          "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add; for Canada it enables enhanced tracking details. US tracking does not use it."
         }
       }
     },
@@ -104,7 +104,8 @@
         "fi": "Finland",
         "hu": "Hungary",
         "lu": "Luxembourg",
-        "rs": "Serbia"
+        "rs": "Serbia",
+        "us": "United States"
       }
     },
     "delivered_filter_type": {
