@@ -4,13 +4,13 @@
     "step": {
       "user": {
         "title": "GLS instellen",
-        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nBelgië, Denemarken, Finland, Frankrijk, Duitsland, Hongarije, Ierland, Italië, Luxemburg, Nederland, Oostenrijk, Kroatië, Tsjechië, Servië, Slowakije en Slovenië worden op dit moment ondersteund — [vraag een ander land aan]({issue_url}).",
+        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nStaat jouw land er niet bij? [Vraag een ander land aan]({issue_url}).",
         "data": {
           "country": "Land",
           "postal_code": "Postcode"
         },
         "data_description": {
-          "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt."
+          "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt; voor Canada geeft dit uitgebreide trackinginformatie."
         }
       }
     },
@@ -88,6 +88,7 @@
   "selector": {
     "country": {
       "options": {
+        "ca": "Canada",
         "nl": "Nederland",
         "de": "Duitsland",
         "cz": "Tsjechië",

@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Postavljanje GLS-a",
-        "description": "Odaberite državu isporuke vaših paketa i poštanski broj u koji obično stižu. Pakete dodajete nakon postavljanja.\n\nTrenutno su podržani Belgija, Danska, Finska, Francuska, Njemačka, Mađarska, Irska, Italija, Luksemburg, Nizozemska, Austrija, Hrvatska, Češka, Srbija, Slovačka i Slovenija — [zatražite drugu državu]({issue_url}).",
+        "description": "Odaberite državu isporuke vaših paketa i poštanski broj u koji obično stižu. Pakete dodajete nakon postavljanja.\n\nVaše države nema na popisu? [Zatražite drugu državu]({issue_url}).",
         "data": {
           "country": "Država",
           "postal_code": "Poštanski broj"
@@ -88,6 +88,7 @@
   "selector": {
     "country": {
       "options": {
+        "ca": "Kanada",
         "nl": "Nizozemska",
         "de": "Njemačka",
         "cz": "Češka",

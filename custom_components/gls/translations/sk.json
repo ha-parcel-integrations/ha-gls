@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Nastaviť GLS",
-        "description": "Vyberte krajinu, do ktorej sú vaše zásielky doručované, a poštové smerovacie číslo, kam zvyčajne smerujú. Zásielky pridáte po nastavení.\n\nV súčasnosti sú podporované Belgicko, Dánsko, Fínsko, Francúzsko, Nemecko, Maďarsko, Írsko, Taliansko, Luxembursko, Holandsko, Rakúsko, Chorvátsko, Česká republika, Srbsko, Slovensko a Slovinsko — [požiadať o ďalšiu krajinu]({issue_url}).",
+        "description": "Vyberte krajinu, do ktorej sú vaše zásielky doručované, a poštové smerovacie číslo, kam zvyčajne smerujú. Zásielky pridáte po nastavení.\n\nVaša krajina nie je v zozname? [Požiadať o ďalšiu krajinu]({issue_url}).",
         "data": {
           "country": "Krajina",
           "postal_code": "PSČ"
@@ -88,6 +88,7 @@
   "selector": {
     "country": {
       "options": {
+        "ca": "Kanada",
         "nl": "Holandsko",
         "de": "Nemecko",
         "cz": "Česká republika",

@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import aiohttp
 
 from .const import DEFAULT_COUNTRY, GROUP_LEAF_COUNTRIES, GlsApiError
+from .countries.ca import async_get_parcel_ca
 from .countries.de import async_get_parcel_de
 from .countries.group import async_get_parcel_group
 from .countries.nl import async_get_parcel_nl
@@ -72,6 +73,8 @@ class GlsApiClient:
             return await async_get_parcel_de(
                 self._session, self._de_session, parcel_no, postal_code
             )
+        if self._country == "CA":
+            return await async_get_parcel_ca(self._session, parcel_no, postal_code)
         if self._country in GROUP_LEAF_COUNTRIES:
             return await async_get_parcel_group(
                 self._session,

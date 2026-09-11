@@ -1,6 +1,6 @@
 # Working in this repository
 
-Home Assistant custom integration for **GLS** parcel tracking (16 countries).
+Home Assistant custom integration for **GLS** parcel tracking (17 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
 doubt**. Account-less (user-entered tracking codes). No DTO layer.
@@ -62,7 +62,7 @@ dropdown (Phase 1) is gone; see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 never part of the alias. Don't conflate them.
 
 **Dispatch lives in `api.py`, not the coordinator** — `GlsApiClient.async_get_parcel`
-picks NL / DE / group; the coordinator polls a flat pair list and never learns
+picks NL / CA / DE / group; the coordinator polls a flat pair list and never learns
 the country. DPD dispatches in its coordinator instead; **don't "align" the
 two.** Concern-level files (`coordinator.py`, `sensor.py`, `diagnostics.py`, …)
 stay free of per-country branching — they dispatch into `countries/<code>/`.
@@ -87,7 +87,7 @@ authenticate), never one parcel. On `pop_reregistered()` every learned
 [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 **`CAPABILITIES_BY_VARIANT` holds one frozenset per country**
-(`"Netherlands"` / `"Germany"` / `"Other"`), **not** a single intersected
+(`"Netherlands"` / `"Germany"` / `"Canada"` / `"Other"`), **not** a single intersected
 `CAPABILITIES` — the old intersection model made NL's full support invisible on
 the docs site the moment a weaker country landed (replaced 2026-08-23). Keep
 each entry in lockstep with its `normalize_parcel_<cc>()`; every entry must stay

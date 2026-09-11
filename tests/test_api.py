@@ -93,6 +93,17 @@ async def test_de_dispatch_delegates_to_the_de_transport():
     )
 
 
+async def test_ca_dispatch_delegates_to_the_postcode_transport():
+    client = GlsApiClient(MagicMock(), "web.gls-canada.com", "en-CA", country="CA")
+    with patch(
+        "custom_components.gls.api.async_get_parcel_ca",
+        new=AsyncMock(return_value={"shipments": []}),
+    ) as mock_transport:
+        result = await client.async_get_parcel("CA12345678", "K1A0B1")
+    assert result == {"shipments": []}
+    mock_transport.assert_awaited_once_with(client._session, "CA12345678", "K1A0B1")
+
+
 async def test_cz_dispatch_delegates_to_the_group_transport():
     client = GlsApiClient(
         MagicMock(),

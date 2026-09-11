@@ -21,14 +21,22 @@ from .const import (
     DEFAULT_DELIVERED_FILTER_TYPE,
     GROUP_LEAF_COUNTRIES,
 )
+from .countries.ca import normalize_parcel_ca
 from .countries.de import normalize_parcel_de
 from .countries.group import normalize_parcel_group
 from .countries.nl import normalize_parcel_nl
 from .timeutils import parse_iso as _parse_iso
 
 _NORMALIZERS = {
+    "CA": normalize_parcel_ca,
     "DE": normalize_parcel_de,
+    **dict.fromkeys(GROUP_LEAF_COUNTRIES, normalize_parcel_group),
 }
+
+# Normalizers whose ``barcode`` source is the code the user entered rather than
+# a field of the payload, so they take the extra ``parcel_no`` argument. NL's
+# and DE's signatures deliberately stay without it.
+_NEEDS_PARCEL_NO = frozenset({"CA"}) | frozenset(GROUP_LEAF_COUNTRIES)
 
 
 def normalize_parcel(
@@ -41,29 +49,20 @@ def normalize_parcel(
 ) -> dict:
     """Dispatch to the right country's ``normalize_parcel_<code>``.
 
-    NL is the default/fallback — a country without its own entry here is
-    treated as NL. Every group-leaf country (``GROUP_LEAF_COUNTRIES``:
-    CZ/AT/IE/FR/SI/HR/IT) is special-cased rather than added to
-    ``_NORMALIZERS`` because ``normalize_parcel_group`` is the only
-    normalizer that needs ``parcel_no`` (the AWB the user entered — its own
-    ``barcode`` source, see ``countries/group``'s docstring); adding it to
-    NL's/DE's signature just to keep one dict uniform would touch two
+    NL is the default/fallback — a country without its own entry in
+    ``_NORMALIZERS`` is treated as NL. The group leaves and CA additionally
+    take ``parcel_no`` (see ``_NEEDS_PARCEL_NO``); NL and DE do not, and
+    widening their signatures just to keep one call uniform would touch two
     normalizers, and their tests, for a parameter neither uses.
     """
-    if country in GROUP_LEAF_COUNTRIES:
-        return normalize_parcel_group(
-            raw,
-            postal_code=postal_code,
-            country=country,
-            include_history=include_history,
-            parcel_no=parcel_no,
-        )
     normalizer = _NORMALIZERS.get(country, normalize_parcel_nl)
+    extra = {"parcel_no": parcel_no} if country in _NEEDS_PARCEL_NO else {}
     return normalizer(
         raw,
         postal_code=postal_code,
         country=country,
         include_history=include_history,
+        **extra,
     )
 
 

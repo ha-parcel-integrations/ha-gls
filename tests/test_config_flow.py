@@ -92,6 +92,28 @@ async def test_cz_user_flow_invalid_postcode(hass):
     assert result["description_placeholders"]["postcode_example"] == "110 00"
 
 
+async def test_ca_user_flow_normalizes_canadian_postcode(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "ca", CONF_POSTAL_CODE: "k1a 0b1"}
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == "CA"
+    assert result["options"][CONF_POSTAL_CODE] == "K1A0B1"
+
+
+async def test_ca_user_flow_rejects_non_canadian_postcode(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "ca", CONF_POSTAL_CODE: "12345"}
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+
+
 async def test_same_postcode_hub_rejected(hass):
     """A second hub for the same postcode+country aborts (unique_id is now
     f"{country}:{postal_code}")."""

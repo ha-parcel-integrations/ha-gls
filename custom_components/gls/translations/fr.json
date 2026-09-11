@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configurer GLS",
-        "description": "Choisissez le pays de livraison de vos colis et le code postal habituel. Vous ajoutez des colis après la configuration.\n\nLa Belgique, le Danemark, la Finlande, la France, l'Allemagne, la Hongrie, l'Irlande, l'Italie, le Luxembourg, les Pays-Bas, l'Autriche, la Croatie, la République tchèque, la Serbie, la Slovaquie et la Slovénie sont pris en charge aujourd'hui — [demandez un autre pays]({issue_url}).",
+        "description": "Choisissez le pays de livraison de vos colis et le code postal habituel. Vous ajoutez des colis après la configuration.\n\nVotre pays n'est pas dans la liste ? [Demandez un autre pays]({issue_url}).",
         "data": {
           "country": "Pays",
           "postal_code": "Code postal"
@@ -88,6 +88,7 @@
   "selector": {
     "country": {
       "options": {
+        "ca": "Canada",
         "nl": "Pays-Bas",
         "de": "Allemagne",
         "cz": "République tchèque",

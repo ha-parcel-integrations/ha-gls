@@ -67,6 +67,7 @@ CAPABILITIES_BY_VARIANT = {
     ),
     "Germany": frozenset({"pickup_point", "url", "history"}),
     "Other": frozenset({"weight", "url", "history"}),
+    "Canada": frozenset({"weight", "dimensions", "url", "history"}),
 }
 
 
@@ -96,6 +97,15 @@ class GlsApiError(Exception):
 PARCEL_DETAILS_URL = (
     "https://{host}/api/tracktrace/v1/"
     "{parcel_no}/postalcode/{postal_code}/details/{culture}"
+)
+
+# GLS Canada / Dicom exposes an anonymous consumer endpoint of its own. The
+# postcode-bearing route is the primary route: it returns the fuller shipment
+# response used by the carrier's web tracker. The code-only route is a
+# postcode-mismatch fallback implemented in ``countries/ca/``.
+GLS_CA_TRACKING_URL = "https://web.gls-canada.com/api/tracking/{parcel_no}"
+GLS_CA_TRACKING_DETAILS_URL = (
+    "https://web.gls-canada.com/api/tracking/{postal_code}/{parcel_no}"
 )
 
 # GLS Germany has no keyless endpoint: every route on the national parcel
@@ -222,6 +232,18 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "culture": "de-DE",
         "postcode_regex": r"^\d{5}$",
         "postcode_example": "12345",
+    },
+    "CA": {
+        "host": "web.gls-canada.com",
+        "culture": "en-CA",
+        # Canada Post's standard forward-sortation layout. Normalisation
+        # removes the optional space before matching and sending it on wire.
+        "postcode_regex": r"^[ABCEGHJKLMNPRSTVXY]\d[A-Z]\d[A-Z]\d$",
+        "postcode_example": "K1A 0B1",
+        "tracking_url": (
+            "https://gls-group.com/CA/en/send-and-receive/track-a-shipment/"
+            "?match={parcel_no}"
+        ),
     },
     "CZ": {
         "host": "gls-group.com",  # .eu and .com are interchangeable

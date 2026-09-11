@@ -76,6 +76,21 @@ TO_REDACT = {
     # _redact_group_sensitive below alongside CUSTREF.
     "referenceNo",
     "tuNo",
+    # GLS Canada / Dicom's postcode-enhanced envelope carries recipient data
+    # the code-only route never returns: the shipper's account, POD imagery of
+    # the drop-off, free-text drop-off notes and exact delivery coordinates.
+    # The status vocabulary is deliberately left readable — it is what the
+    # unrecognised-status issue template asks users to attach: the canonical
+    # raw_status, and activities[].status with its activityDate/terminal.
+    # (currentStatus.name is collateral of the recipient-"name" key above; the
+    # same value survives as raw_status, so it is not worth a special case.)
+    "trackingNumber",
+    "statusDetail",
+    "activityImages",
+    "billingAccount",
+    "latitude",
+    "longitude",
+    "parcelId",
 }
 
 
@@ -101,6 +116,13 @@ def _redact_group_sensitive(data: Any) -> Any:
         signature = redacted.get("signature")
         if isinstance(signature, dict) and "value" in signature:
             redacted["signature"] = {**signature, "value": REDACTED}
+        # GLS Canada envelopes a shipment under ``shipments[]``. Its
+        # references are not typed like the group-leaf list above and can
+        # contain customer references, so redact the whole field only when
+        # this unmistakable Canadian shipment shape is present. A flat
+        # TO_REDACT entry would incorrectly blank group WEIGHT references.
+        if "trackingNumber" in redacted and "references" in redacted:
+            redacted["references"] = REDACTED
         return {key: _redact_group_sensitive(value) for key, value in redacted.items()}
     return data
 

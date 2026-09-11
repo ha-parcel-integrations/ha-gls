@@ -7,9 +7,10 @@ mechanics — endpoints, parameters, status vocabularies — live in the private
 
 Two things drive everything else. GLS has **no consumer account or parcel
 feed**, so the user enters tracking codes and a hub is keyed by postcode rather
-than by login. And GLS is not one backend but three: a keyless national GET for
-the Netherlands, a stateful bearer-token POST for Germany, and a keyless pan-EU
-group index serving fourteen more countries.
+than by login. And GLS is not one backend but four: a keyless national GET for
+the Netherlands, a postcode-enhanced keyless GET for Canada, a stateful
+bearer-token POST for Germany, and a keyless pan-EU group index serving
+fourteen more countries.
 
 This is the suite's first multi-country carrier, so the country-package pattern
 originated here. DPD followed it later with a different dispatch point — check
@@ -35,6 +36,7 @@ custom_components/gls/
 ├── diagnostics.py       redacted diagnostics
 └── countries/
     ├── nl/              keyless national GET + normalize + status map
+    ├── ca/              postcode-enhanced keyless GET + normalize + status map
     ├── de/              bearer POST: __init__.py (transport) + session.py (lifecycle)
     └── group/           pan-EU rstt028/rstt029 leaves + normalize + status map
 ```
@@ -55,11 +57,12 @@ no account-level list call to branch on.)
 | Country | Transport | Auth | Entry point |
 |---|---|---|---|
 | **NL** | national GET | keyless | `async_get_parcel_nl` |
+| **CA** | postcode-enhanced national GET | keyless | `async_get_parcel_ca` |
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
 | **14 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
-in `const.py` holds 16 rows: `NL`, `DE`, and the group leaves `BE`,
+in `const.py` holds 17 rows: `NL`, `CA`, `DE`, and the group leaves `BE`,
 `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LU`, `RS`, `SI`, `HR`, `IT`.
 Each row carries a host, a postcode regex, and either a `culture` or a
 `group_locale` (below). Constructing a `country="DE"` client without a

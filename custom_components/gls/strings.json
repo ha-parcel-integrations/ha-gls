@@ -4,13 +4,13 @@
     "step": {
       "user": {
         "title": "Set up GLS",
-        "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nBelgium, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Luxembourg, the Netherlands, Austria, Croatia, Czech Republic, Serbia, Slovakia and Slovenia are supported today — [request another country]({issue_url}).",
+        "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nIs your country not listed? [Request another country]({issue_url}).",
         "data": {
           "country": "Country",
           "postal_code": "Postal code"
         },
         "data_description": {
-          "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add."
+          "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add; for Canada it enables enhanced tracking details."
         }
       }
     },
@@ -88,6 +88,7 @@
   "selector": {
     "country": {
       "options": {
+        "ca": "Canada",
         "nl": "Netherlands",
         "de": "Germany",
         "cz": "Czech Republic",
