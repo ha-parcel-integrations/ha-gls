@@ -1,6 +1,6 @@
 # Working in this repository
 
-Home Assistant custom integration for **GLS** parcel tracking (18 countries).
+Home Assistant custom integration for **GLS** parcel tracking (19 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
 doubt**. Account-less (user-entered tracking codes). No DTO layer.
@@ -62,7 +62,7 @@ dropdown (Phase 1) is gone; see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 never part of the alias. Don't conflate them.
 
 **Dispatch lives in `api.py`, not the coordinator** — `GlsApiClient.async_get_parcel`
-picks NL / CA / US / DE / group; the coordinator polls a flat pair list and never learns
+picks NL / CA / US / PL / DE / group; the coordinator polls a flat pair list and never learns
 the country. DPD dispatches in its coordinator instead; **don't "align" the
 two.** Concern-level files (`coordinator.py`, `sensor.py`, `diagnostics.py`, …)
 stay free of per-country branching — they dispatch into `countries/<code>/`.
@@ -96,8 +96,18 @@ the newest by timestamp, never by array position, and reject the
 derivation-first, like DE's: only the delivered literal is mapped exactly,
 anything else is derived from the record's own dates and logged once.
 
+**Poland is national on purpose, though the group leaf resolves it.** A real
+Polish AWB does answer `rstt029`, so a `COUNTRIES` row on `countries/group/`
+would "work" — don't make that change. The national route gives history and an
+offset-bearing `delivered_at` without a postcode, and it separates a GLS Point
+drop-off from the recipient collecting the parcel; the group leaf calls the
+drop-off `DELIVERED`. Two status levels, never merged: `progressBarIdent` is
+the group's machine vocabulary (**match exactly** — `DELIVEREDPS` contains
+`DELIVERED`), while events carry only Polish text, mapped from captured values
+only. An unrecognised shipment code falls back to the newest event's status.
+
 **`CAPABILITIES_BY_VARIANT` holds one frozenset per country**
-(`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Other"`), **not** a single intersected
+(`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Poland"` / `"Other"`), **not** a single intersected
 `CAPABILITIES` — the old intersection model made NL's full support invisible on
 the docs site the moment a weaker country landed (replaced 2026-08-23). Keep
 each entry in lockstep with its `normalize_parcel_<cc>()`; every entry must stay

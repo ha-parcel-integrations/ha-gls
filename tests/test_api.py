@@ -115,6 +115,17 @@ async def test_us_dispatch_delegates_to_the_us_transport():
     mock_transport.assert_awaited_once_with(client._session, "12345678901234", "90210")
 
 
+async def test_pl_dispatch_delegates_to_the_national_transport():
+    client = GlsApiClient(MagicMock(), "mygls.gls-poland.com.pl", "pl-PL", country="PL")
+    with patch(
+        "custom_components.gls.api.async_get_parcel_pl",
+        new=AsyncMock(return_value={"progressBarIdent": "DELIVERED"}),
+    ) as mock_transport:
+        result = await client.async_get_parcel("99900011122", "00-001")
+    assert result == {"progressBarIdent": "DELIVERED"}
+    mock_transport.assert_awaited_once_with(client._session, "99900011122", "00-001")
+
+
 async def test_cz_dispatch_delegates_to_the_group_transport():
     client = GlsApiClient(
         MagicMock(),

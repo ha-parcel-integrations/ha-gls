@@ -60,6 +60,10 @@ KNOWN_CAPABILITIES = frozenset(
 #   United States — the public summary response has no weight, dimensions,
 #                  pickup-point or ETA-window field, so only url (the generic
 #                  fallback link) and history (transitDetails[]) populate.
+#   Poland       — the keyless national route carries status and a full
+#                  eventReasons[] history, but no weight, dimensions or ETA;
+#                  a ParcelShop's identity is not in the payload either, only
+#                  the fact of a drop-off, so pickup_point stays out.
 # This used to be a single CAPABILITIES = the intersection across countries,
 # which meant NL's full support was invisible on the docs site the moment a
 # second, weaker country landed. Per-variant rows fixed that (2026-08-23) —
@@ -72,6 +76,7 @@ CAPABILITIES_BY_VARIANT = {
     "Other": frozenset({"weight", "url", "history"}),
     "Canada": frozenset({"weight", "dimensions", "url", "history"}),
     "United States": frozenset({"url", "history"}),
+    "Poland": frozenset({"url", "history"}),
 }
 
 
@@ -121,6 +126,16 @@ GLS_CA_TRACKING_DETAILS_URL = (
 GLS_US_TRACKING_URL = (
     "https://connect.gls-us.com/api/public/tracking/"
     "TrackShipmentSummariesByTrackingNumbers"
+)
+
+# GLS Poland runs its own national myGLS backend. The ``public/`` prefix is
+# keyless (its protected sibling 401s, which is what proves the distinction),
+# and the route takes the parcel number **alone** — no postcode, like the US.
+# An unknown number answers ``400`` with ``code: mygls-tracking-400(111)``,
+# the carrier's semantic not-found; see ``countries/pl/``.
+GLS_PL_TRACKING_URL = (
+    "https://mygls.gls-poland.com.pl/api/v1/mygls-tracking/public/tracking/"
+    "shipment/track/{parcel_no}"
 )
 
 # GLS Germany has no keyless endpoint: every route on the national parcel
@@ -271,6 +286,21 @@ COUNTRIES: dict[str, dict[str, str]] = {
         # No US-specific tracking_url: the only consumer entry point seen is
         # the mobile tracker's own message-link journey, which needs an id
         # the integration never holds. Falls back to TRACKING_URL, as DE does.
+    },
+    "PL": {
+        "host": "mygls.gls-poland.com.pl",
+        "culture": "pl-PL",
+        # Polish postcodes are written NN-NNN; the hyphen is optional here
+        # because normalisation only strips spaces. The PL lookup does not
+        # use the postcode at all (see GLS_PL_TRACKING_URL) — this validates
+        # the hub field like every other country's.
+        "postcode_regex": r"^\d{2}-?\d{3}$",
+        "postcode_example": "00-001",
+        # The group tracker resolves Polish numbering too (proven on the
+        # wire), and it is the page GLS's own Polish tracking link points at.
+        "tracking_url": (
+            "https://gls-group.com/PL/en/parcel-tracking/?match={parcel_no}"
+        ),
     },
     "CZ": {
         "host": "gls-group.com",  # .eu and .com are interchangeable

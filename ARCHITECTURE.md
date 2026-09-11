@@ -7,10 +7,11 @@ mechanics — endpoints, parameters, status vocabularies — live in the private
 
 Two things drive everything else. GLS has **no consumer account or parcel
 feed**, so the user enters tracking codes and a hub is keyed by postcode rather
-than by login. And GLS is not one backend but five: a keyless national GET for
+than by login. And GLS is not one backend but six: a keyless national GET for
 the Netherlands, a postcode-enhanced keyless GET for Canada, a keyless JSON
-POST for the United States, a stateful bearer-token POST for Germany, and a
-keyless pan-EU group index serving fourteen more countries.
+POST for the United States, a keyless national GET for Poland, a stateful
+bearer-token POST for Germany, and a keyless pan-EU group index serving
+fourteen more countries.
 
 This is the suite's first multi-country carrier, so the country-package pattern
 originated here. DPD followed it later with a different dispatch point — check
@@ -38,6 +39,7 @@ custom_components/gls/
     ├── nl/              keyless national GET + normalize + status map
     ├── ca/              postcode-enhanced keyless GET + normalize + status map
     ├── us/              keyless POST + newest-of-several-shipments selection
+    ├── pl/              keyless national GET + Polish-text event map
     ├── de/              bearer POST: __init__.py (transport) + session.py (lifecycle)
     └── group/           pan-EU rstt028/rstt029 leaves + normalize + status map
 ```
@@ -60,11 +62,12 @@ no account-level list call to branch on.)
 | **NL** | national GET | keyless | `async_get_parcel_nl` |
 | **CA** | postcode-enhanced national GET | keyless | `async_get_parcel_ca` |
 | **US** | national JSON POST, no postcode | keyless | `async_get_parcel_us` |
+| **PL** | national GET, no postcode | keyless | `async_get_parcel_pl` |
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
 | **14 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
-in `const.py` holds 18 rows: `NL`, `CA`, `US`, `DE`, and the group leaves `BE`,
+in `const.py` holds 19 rows: `NL`, `CA`, `US`, `PL`, `DE`, and the group leaves `BE`,
 `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LU`, `RS`, `SI`, `HR`, `IT`.
 Each row carries a host, a postcode regex, and either a `culture` or a
 `group_locale` (below). Constructing a `country="DE"` client without a
@@ -254,11 +257,47 @@ The hub still asks for one — every GLS hub does, it is the default for parcels
 added later, and dropping the field for one country would fork the setup flow —
 but `async_get_parcel_us` never sends it.
 
+### Poland is national, though the group leaf would resolve it
+
+Polish numbering *is* in the pan-EU group index — a real Polish AWB answers
+`rstt029` — so PL could have been one more `COUNTRIES` row on
+`countries/group/`. It deliberately is not. Measured against the same two real
+parcels, the national myGLS route fills more of the canonical shape **without**
+a postcode than the group leaf does with one:
+
+| | national myGLS | group `rstt029` |
+|---|---|---|
+| history | full `eventReasons[]` | none (needs `rstt028` + postcode) |
+| `delivered_at` | a real offset-bearing timestamp | localized prose only |
+| ParcelShop | drop-off and collection are separate events | reports the drop-off as `DELIVERED` |
+| weight | absent | absent (`rstt028` only) |
+
+That last row is the deciding one: the group leaf marked a shop parcel
+delivered at the moment GLS dropped it off, six hours before the recipient
+collected it, while the national route distinguishes the two. Poland therefore
+gets its own transport, and the pan-EU leaf stays its fallback of last resort.
+
+Its status vocabulary comes in two levels that must not be merged. The
+**shipment** level (`progressBarIdent`) is the group's machine-code vocabulary,
+matched exactly — `DELIVEREDPS` contains the substring `DELIVERED`, so a
+`startswith`/`in` test would mark a ParcelShop arrival as delivered. The
+**event** level has no code at all, only localized Polish text, so its map
+holds exactly the values seen on the wire and unseen wording stays neutral
+rather than being guessed from a translation. When the shipment code itself is
+unrecognised, the newest event's mapped status stands in — derivation-first,
+like DE and US.
+
+One question the capture could not settle: what `progressBarIdent` reports
+*while* a parcel waits at a GLS Point (the only shop parcel captured had
+already been collected). So a body claiming `DELIVERED` whose newest event is
+the drop-off fires a one-shot WARNING rather than being silently corrected —
+that log is the answer arriving.
+
 ### Capabilities are per country, not intersected
 
 `CAPABILITIES_BY_VARIANT` holds one frozenset per variant — `"Netherlands"`,
-`"Germany"`, `"Canada"`, `"United States"`, `"Other"` (CZ and every future
-group leaf) — and the docs site renders one row per entry.
+`"Germany"`, `"Canada"`, `"United States"`, `"Poland"`, `"Other"` (CZ and every
+future group leaf) — and the docs site renders one row per entry.
 
 This replaced an intersected single `CAPABILITIES` on 2026-08-23. Under that
 model NL's full field support went invisible on the site the moment a weaker

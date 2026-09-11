@@ -105,7 +105,8 @@
         "hu": "Ungarn",
         "lu": "Luxemburg",
         "rs": "Serbien",
-        "us": "Vereinigte Staaten"
+        "us": "Vereinigte Staaten",
+        "pl": "Polen"
       }
     },
     "delivered_filter_type": {

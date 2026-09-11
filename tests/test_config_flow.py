@@ -153,6 +153,29 @@ async def test_us_user_flow_rejects_a_non_us_postcode(hass):
     assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
 
 
+@pytest.mark.parametrize("entered", ["00-001", "00001"])
+async def test_pl_user_flow_accepts_both_postcode_spellings(hass, entered):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "pl", CONF_POSTAL_CODE: entered}
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == "PL"
+    assert result["options"][CONF_POSTAL_CODE] == entered
+
+
+async def test_pl_user_flow_rejects_a_non_polish_postcode(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "pl", CONF_POSTAL_CODE: "1234AB"}
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+
+
 async def test_same_postcode_hub_rejected(hass):
     """A second hub for the same postcode+country aborts (unique_id is now
     f"{country}:{postal_code}")."""
