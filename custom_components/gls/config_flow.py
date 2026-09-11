@@ -59,6 +59,11 @@ _COUNTRY_SELECTOR = selector.SelectSelector(
         options=[code.lower() for code in COUNTRIES],
         translation_key=CONF_COUNTRY,
         mode=selector.SelectSelectorMode.DROPDOWN,
+        # Alphabetise in the frontend, which sorts on the *translated* label.
+        # Sorting the codes here would order by ISO code instead — DE before
+        # DK puts Germany above Denmark — and even sorting English names would
+        # be wrong for every other language the selector is translated into.
+        sort=True,
     )
 )
 

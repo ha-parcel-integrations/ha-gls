@@ -66,6 +66,19 @@ async def test_user_flow_invalid_postcode_keeps_selected_country(hass):
     assert country_key.default() == "de"
 
 
+async def test_country_dropdown_is_sorted_by_its_translated_label(hass):
+    """The frontend alphabetises the dropdown; sorting the ISO codes here
+    would put Germany above Denmark, and be wrong in every language but
+    English anyway."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    country_key = next(k for k in result["data_schema"].schema if k == CONF_COUNTRY)
+    config = result["data_schema"].schema[country_key].config
+    assert config["sort"] is True
+    assert set(config["options"]) == {code.lower() for code in COUNTRIES}
+
+
 async def test_cz_user_flow_creates_hub_with_spaced_postcode(hass):
     """CZ postcodes are written with or without the internal space; either
     form must be accepted and stored space-stripped (the
