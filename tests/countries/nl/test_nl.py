@@ -13,7 +13,7 @@ from custom_components.gls.countries.nl import (
     normalize_parcel_nl,
 )
 
-from ..payloads import active_sample, delivered_sample
+from ...payloads import active_sample, delivered_sample
 
 # ---------------------------------------------------------------------------
 # map_parcel_status_nl / map_event_status
