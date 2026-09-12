@@ -39,12 +39,6 @@ from .countries.de.session import GlsDeSession, GlsDeSessionError
 
 _LOGGER = logging.getLogger(__name__)
 
-# A parcel can be tracked by either identifier GLS gives out: the long
-# numeric parcel number (e.g. 13290054100304) or the short alphanumeric
-# tracking ID / uniqueNo (e.g. 00L1B3BX). Both resolve on the endpoint, so
-# accept letters and digits.
-_PARCEL_NO_RE = re.compile(r"^[A-Z0-9]{6,20}$")
-
 # First-run form: pick the delivery country and postcode. The postcode
 # becomes the hub default, so adding a parcel later needs only its tracking
 # number. The setup form links to the organisation discussion for requesting
@@ -102,8 +96,8 @@ def normalize_parcel_no(value: str) -> str:
 
 
 def valid_parcel_no(value: str) -> bool:
-    """Whether ``value`` looks like a GLS parcel number or tracking ID."""
-    return bool(_PARCEL_NO_RE.match(value))
+    """Accept every non-empty code; GLS gives out two differently-shaped identifiers."""
+    return bool(value)
 
 
 def valid_postcode(value: str, country: str) -> bool:

@@ -121,8 +121,10 @@ fetch actually succeeded** — a poll served entirely from cache is not a succes
 and the diagnostic `last_update` sensor exists to reveal that.
 
 **Two identifiers both resolve** (long `parcelNo`, short `uniqueNo`) —
-`valid_parcel_no` accepts `^[A-Z0-9]{6,20}$`, not digits-only, and the
-per-parcel `barcode` always comes from the **response** `parcelNo`.
+`valid_parcel_no` accepts any non-empty code unvalidated (the two shapes
+differ too much, and neither client-side format is confirmed, to gate on one
+guessed regex), and the per-parcel `barcode` always comes from the
+**response** `parcelNo`.
 
 **Multi-collo tracks at shipment level** — one sensor per tracked code. Do not
 split colli into separate sensors.

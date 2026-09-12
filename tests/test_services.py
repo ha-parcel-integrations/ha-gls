@@ -48,14 +48,6 @@ async def test_track_parcel_adds_to_options(hass):
     assert parcels == [{CONF_PARCEL_NO: "9999999999999"}]
 
 
-async def test_track_parcel_rejects_invalid_number(hass):
-    await _setup(hass)
-    with pytest.raises(ServiceValidationError):
-        await hass.services.async_call(
-            DOMAIN, "track_parcel", {CONF_TRACKING_CODE: "abc"}, blocking=True
-        )
-
-
 async def test_track_parcel_rejects_invalid_postcode(hass):
     await _setup(hass)
     with pytest.raises(ServiceValidationError):
