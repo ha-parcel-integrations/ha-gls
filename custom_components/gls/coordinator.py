@@ -70,7 +70,7 @@ def _next_anchor(now: datetime) -> datetime:
 
 
 def _hottest_tier_minutes(active_parcels: list[dict], now: datetime) -> int | None:
-    """Tier for the barcode-based model (dynamic-polling.md Section 2.1).
+    """Tier for the barcode-based model.
 
     ``None`` means "stop polling entirely" — nothing is tracked, or every
     tracked parcel is already delivered (already filtered out of
