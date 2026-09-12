@@ -65,6 +65,36 @@ def test_delivered_literal_maps_exactly():
     assert map_event_status_us("Delivered") == ParcelStatus.DELIVERED
 
 
+def test_reported_scan_texts_map_exactly(caplog):
+    with caplog.at_level(logging.WARNING):
+        assert map_parcel_status_us("LABEL CREATED") == ParcelStatus.REGISTERED
+        assert map_event_status_us("LABEL CREATED") == ParcelStatus.REGISTERED
+        assert map_parcel_status_us("ARRIVAL SCAN") == ParcelStatus.IN_TRANSIT
+    assert not caplog.records
+
+
+def test_scan_text_with_variable_tail_maps_on_its_scan_type(caplog):
+    with caplog.at_level(logging.WARNING):
+        assert (
+            map_parcel_status_us("ARRIVAL SCAN - DELIVERY SCHED  FOR 03/03/2026")
+            == ParcelStatus.IN_TRANSIT
+        )
+        assert (
+            map_event_status_us("ARRIVAL SCAN - DELIVERY SCHED FOR 04/04/2026")
+            == ParcelStatus.IN_TRANSIT
+        )
+    assert not caplog.records
+
+
+def test_unknown_scan_type_with_a_tail_still_warns(caplog):
+    with caplog.at_level(logging.WARNING):
+        assert (
+            map_parcel_status_us("HELD AT DEPOT - CALL FOR 03/03/2026")
+            == ParcelStatus.UNKNOWN
+        )
+    assert sum("Unrecognised GLS US status" in r.message for r in caplog.records) == 1
+
+
 def test_normalizer_preserves_full_raw_envelope_and_builds_history():
     raw = delivered_sample()
     parcel = normalize_parcel_us(raw, parcel_no=TRACKING_NO, include_history=True)

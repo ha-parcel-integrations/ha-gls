@@ -10,12 +10,12 @@ and the newest is determined from its own timestamps (see
 :func:`_recency_key`).
 
 The status vocabulary is only partly captured, so mapping here is
-**derivation-first**, the way ``countries/de/`` is: the exact-match table below
-holds only the delivered literal the carrier's own frontend keys off, and
-anything else falls back to what the shipment's dates and transit events prove
-happened. Every unrecognised status text still logs once with the
-unrecognised-status issue link, which is how the table gets filled in without a
-second build session.
+**derivation-first**, the way ``countries/de/`` is: the table below holds the
+delivered literal the carrier's own frontend keys off plus the scan texts users
+have since reported, and anything else falls back to what the shipment's dates
+and transit events prove happened. Every unrecognised status text still logs
+once with the unrecognised-status issue link, which is how the table gets
+filled in without a second build session.
 """
 from __future__ import annotations
 
@@ -36,12 +36,15 @@ from ...const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Only the literal the carrier's own tracker keys off is mapped exactly. Every
-# other text is derived from the shipment's dates instead of guessed from
-# English wording — see this module's docstring.
+# The delivered literal the carrier's own tracker keys off, plus texts captured
+# from real shipments through the unrecognised-status log. Anything still
+# missing is derived from the shipment's dates instead of guessed from English
+# wording — see this module's docstring.
 _STATUS_MAP = {
     "shipment delivered": ParcelStatus.DELIVERED,
     "delivered": ParcelStatus.DELIVERED,
+    "label created": ParcelStatus.REGISTERED,
+    "arrival scan": ParcelStatus.IN_TRANSIT,
 }
 
 _unmapped_statuses_logged: set[str] = set()
@@ -66,7 +69,25 @@ _NO_TIMESTAMP = datetime.min.replace(tzinfo=timezone.utc)
 
 
 def _normalise_status(value: object) -> str | None:
-    return value.strip().casefold() if isinstance(value, str) and value.strip() else None
+    if not isinstance(value, str):
+        return None
+    # The backend pads composed scan texts with runs of spaces
+    # ("DELIVERY SCHED  FOR"), so they are collapsed before lookup.
+    return " ".join(value.split()).casefold() or None
+
+
+def _lookup_status(normalised: str) -> ParcelStatus | None:
+    """Look up a normalised status, ignoring a scan text's variable tail.
+
+    A US scan can carry a date it schedules ("ARRIVAL SCAN - DELIVERY SCHED FOR
+    03/03/2026"), which no exact table can ever match; the scan type before the
+    dash is the stable part.
+    """
+    mapped = _STATUS_MAP.get(normalised)
+    if mapped is not None:
+        return mapped
+    head, separator, _ = normalised.partition(" - ")
+    return _STATUS_MAP.get(head) if separator else None
 
 
 def _warn_unmapped_status(value: object) -> None:
@@ -92,7 +113,7 @@ def map_parcel_status_us(value: object) -> ParcelStatus:
     normalised = _normalise_status(value)
     if normalised is None:
         return ParcelStatus.UNKNOWN
-    mapped = _STATUS_MAP.get(normalised)
+    mapped = _lookup_status(normalised)
     if mapped is not None:
         return mapped
     _warn_unmapped_status(value)
@@ -108,7 +129,7 @@ def map_event_status_us(value: object) -> ParcelStatus | None:
     normalised = _normalise_status(value)
     if normalised is None:
         return None
-    mapped = _STATUS_MAP.get(normalised)
+    mapped = _lookup_status(normalised)
     if mapped is not None:
         return mapped
     _warn_unmapped_status(value)

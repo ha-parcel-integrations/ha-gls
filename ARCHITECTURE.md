@@ -245,12 +245,18 @@ event, else delivery date, else ship date). The backend's `0001-01-01` /
 `1900-01-01` placeholders parse cleanly, so they are rejected by value —
 otherwise a placeholder could win that comparison and become a delivery time.
 
-Its status mapping is **derivation-first**, like DE's: only the delivered
-literal the carrier's own tracker keys off is mapped exactly, and every other
-text falls back to what the record's dates prove (delivery date → delivered,
-any scan → in transit, ship date alone → registered). Each unrecognised text
-still logs once with the unrecognised-status issue link, which is how the exact
-table gets filled in later.
+Its status mapping is **derivation-first**, like DE's: the exact table holds
+the delivered literal the carrier's own tracker keys off plus the scan texts
+users have reported since, and every other text falls back to what the record's
+dates prove (delivery date → delivered, any scan → in transit, ship date alone →
+registered). Each unrecognised text still logs once with the
+unrecognised-status issue link, which is how the exact table gets filled in
+later.
+
+A US scan text can carry the date it schedules — `ARRIVAL SCAN - DELIVERY SCHED
+FOR 03/03/2026` — so lookup falls back to the scan type before the ` - `; an
+exact table could never match a text with a date in it, and it would log a
+fresh unrecognised warning for every new date.
 
 The US is also the one country whose lookup does not use the postcode at all.
 The hub still asks for one — every GLS hub does, it is the default for parcels
