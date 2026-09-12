@@ -161,6 +161,11 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         # failure or a 204 keeps the parcel visible instead of dropping its
         # sensor. Lives for the integration's lifetime (resets on restart).
         self._raw_cache: dict[str, dict] = {}
+        # parcel_no values confirmed delivered on a prior refresh — excluded
+        # from the fetch this cycle since a delivered parcel's payload can
+        # never change again. Keyed the same way as ``_raw_cache``. Lives for
+        # the integration's lifetime (resets on restart).
+        self._delivered_codes: set[str] = set()
         # barcode -> last seen ParcelStatus / (planned_from, planned_to).
         # ``None`` on the first refresh so events are suppressed for parcels
         # that already existed when the integration started.
@@ -182,6 +187,11 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
     def current_tier_minutes(self) -> int | None:
         """Tier minutes computed on the last refresh (diagnostics only)."""
         return self._current_tier_minutes
+
+    @property
+    def delivered_codes(self) -> set[str]:
+        """Parcel numbers currently skipped from the fetch (diagnostics only)."""
+        return self._delivered_codes
 
     def _device_id(self) -> str | None:
         """Resolve (and cache) this entry's device id for event payloads."""
@@ -304,14 +314,25 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         self._raw_cache = {
             k: v for k, v in self._raw_cache.items() if k in tracked_numbers
         }
+        self._delivered_codes &= tracked_numbers
 
         if country == "DE" and self._de_session is not None:
             self._prepare_de_poll(tracked)
 
+        # A delivered parcel's payload can never change again, so it is
+        # dropped from the fetch — not from ``pairs``/the options list, which
+        # stays untouched until the user removes it by hand.
+        pairs_to_fetch = [
+            (parcel_no, postal_code)
+            for parcel_no, postal_code in pairs
+            if parcel_no not in self._delivered_codes
+        ]
+        postal_code_by_number = dict(pairs)
+
         results = await asyncio.gather(
             *(
                 self._client.async_get_parcel(parcel_no, postal_code)
-                for parcel_no, postal_code in pairs
+                for parcel_no, postal_code in pairs_to_fetch
             ),
             return_exceptions=True,
         )
@@ -321,9 +342,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         # normalizer needs it as the authoritative barcode source — see
         # countries/group's docstring) so both can be threaded into
         # normalize_parcel per parcel.
-        raws: list[tuple[dict, str, str]] = []
+        raws_by_number: dict[str, tuple[dict, str, str]] = {}
         errors = 0
-        for (parcel_no, postal_code), result in zip(pairs, results):
+        for (parcel_no, postal_code), result in zip(pairs_to_fetch, results):
             if isinstance(result, BaseException):
                 if isinstance(result, GlsDeSessionError):
                     # A token-refresh/identity failure is not one parcel's
@@ -336,45 +357,65 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
                 _LOGGER.warning("GLS fetch failed for %s: %s", parcel_no, result)
                 cached = self._raw_cache.get(parcel_no)
                 if cached is not None:
-                    raws.append((cached, postal_code, parcel_no))
+                    raws_by_number[parcel_no] = (cached, postal_code, parcel_no)
                 continue
 
             if result is None:
                 # 204 — unknown or not yet scanned. Keep prior data if we have
                 # it, otherwise show a pending placeholder so the user still
                 # sees the tracked parcel.
-                raws.append(
-                    (
-                        self._raw_cache.get(parcel_no)
-                        or {"parcelNo": parcel_no, "state": None},
-                        postal_code,
-                        parcel_no,
-                    )
+                raws_by_number[parcel_no] = (
+                    self._raw_cache.get(parcel_no)
+                    or {"parcelNo": parcel_no, "state": None},
+                    postal_code,
+                    parcel_no,
                 )
                 continue
 
             self._raw_cache[parcel_no] = result
-            raws.append((result, postal_code, parcel_no))
+            raws_by_number[parcel_no] = (result, postal_code, parcel_no)
 
-        if pairs and errors == len(pairs) and not raws:
+        # Parcel numbers skipped from the fetch above (already confirmed
+        # delivered) — re-add their cached payload so the delivered sensor
+        # keeps its data until the retention filter drops it.
+        for parcel_no in self._delivered_codes:
+            cached = self._raw_cache.get(parcel_no)
+            if cached is not None:
+                raws_by_number[parcel_no] = (
+                    cached,
+                    postal_code_by_number.get(parcel_no),
+                    parcel_no,
+                )
+
+        if pairs_to_fetch and errors == len(pairs_to_fetch) and not raws_by_number:
             raise UpdateFailed("GLS unreachable for all tracked parcels")
 
         if country == "DE" and self._de_session is not None:
             self._persist_de_state(tracked)
 
         include_history = self._include_history
-        normalized = [
-            normalize_parcel(
-                raw,
-                postal_code=postal_code,
-                country=country,
-                include_history=include_history,
-                parcel_no=parcel_no,
+        entries = [
+            (
+                parcel_no,
+                normalize_parcel(
+                    raw,
+                    postal_code=postal_code,
+                    country=country,
+                    include_history=include_history,
+                    parcel_no=parcel_no,
+                ),
             )
-            for raw, postal_code, parcel_no in raws
+            for raw, postal_code, parcel_no in raws_by_number.values()
         ]
-        active = [p for p in normalized if not p["delivered"]]
-        delivered = [p for p in normalized if p["delivered"]]
+        active = [p for _, p in entries if not p["delivered"]]
+        delivered = [p for _, p in entries if p["delivered"]]
+        # Rebuilt fresh from this cycle's data — a parcel number whose
+        # payload just flipped to delivered is skipped starting next cycle;
+        # one that somehow un-delivers (should not happen, but the fetch
+        # list must never permanently drop a code) rejoins it automatically.
+        self._delivered_codes = {
+            parcel_no for parcel_no, p in entries if p["delivered"]
+        }
 
         self.delivered = self._apply_delivered_filter(
             sort_parcels_by_ts(delivered, "delivered_at", descending=True)
@@ -395,9 +436,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         }
 
         # Only stamp the diagnostic timestamp when at least one fetch actually
-        # succeeded (or nothing is tracked) — a poll that was served entirely
-        # from cache must not present itself as a successful update.
-        if not pairs or errors < len(pairs):
+        # succeeded (or nothing needed fetching) — a poll that was served
+        # entirely from cache must not present itself as a successful update.
+        if not pairs_to_fetch or errors < len(pairs_to_fetch):
             self.last_success_time = datetime.now(timezone.utc)
 
         now = dt_util.now()

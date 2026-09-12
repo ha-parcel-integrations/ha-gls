@@ -20,12 +20,17 @@ async def test_diagnostics_redacts_and_counts(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
     entry.runtime_data.coordinator.current_tier_minutes = 45
     entry.runtime_data.coordinator.update_interval = None
 
     result = await async_get_config_entry_diagnostics(hass, entry)
 
-    assert result["counts"] == {"incoming_active": 1, "delivered": 0}
+    assert result["counts"] == {
+        "incoming_active": 1,
+        "delivered": 0,
+        "skipped_from_fetch": 0,
+    }
     # postal_code / parcel_no in the options are redacted
     assert result["entry_options"]["parcels"][0]["parcel_no"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["city"] == "**REDACTED**"
@@ -72,6 +77,7 @@ async def test_diagnostics_redacts_de_app_instance_id_and_tokens(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
     entry.runtime_data.coordinator.current_tier_minutes = None
     entry.runtime_data.coordinator.update_interval = None
 
@@ -125,6 +131,7 @@ async def test_diagnostics_redacts_detailed_canadian_raw_payload(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
     entry.runtime_data.coordinator.current_tier_minutes = None
     entry.runtime_data.coordinator.update_interval = None
 
@@ -178,6 +185,7 @@ async def test_diagnostics_redacts_the_us_delivery_and_pod_fields(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
     entry.runtime_data.coordinator.current_tier_minutes = None
     entry.runtime_data.coordinator.update_interval = None
 
@@ -226,6 +234,7 @@ async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
         }
     ]
     entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
     entry.runtime_data.coordinator.current_tier_minutes = None
     entry.runtime_data.coordinator.update_interval = None
 

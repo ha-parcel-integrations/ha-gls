@@ -34,7 +34,7 @@ from custom_components.gls.parcels import (
     sort_parcels_by_ts,
 )
 
-from .payloads import active_sample, delivered_sample
+from .payloads import ACTIVE_NO, DELIVERED_NO, active_sample, delivered_sample
 
 # NL's own map_parcel_status_nl/map_event_status/build_history/
 # normalize_parcel_nl unit tests moved to tests/countries/test_nl.py as part
@@ -403,10 +403,13 @@ async def test_no_events_for_parcel_first_seen_delivered(hass):
 
 async def test_update_cached_only_poll_does_not_stamp_last_success(hass):
     """A poll served entirely from cache must not look like a success."""
-    entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
+    # Must still be active (not delivered) — a delivered parcel_no is skipped
+    # from the fetch entirely from the next cycle on, which is covered
+    # separately by test_delivered_code_skipped_from_fetch.
+    entry = _entry_with([{CONF_PARCEL_NO: ACTIVE_NO, CONF_POSTAL_CODE: "1234AB"}])
     entry.add_to_hass(hass)
     client = AsyncMock()
-    client.async_get_parcel.return_value = delivered_sample()
+    client.async_get_parcel.return_value = active_sample()
     coordinator = GlsCoordinator(hass, client, entry)
     await coordinator._async_update_data()
     stamp = coordinator.last_success_time
@@ -415,6 +418,53 @@ async def test_update_cached_only_poll_does_not_stamp_last_success(hass):
     client.async_get_parcel.side_effect = GlsApiError(500)
     await coordinator._async_update_data()  # served from cache
     assert coordinator.last_success_time == stamp
+
+
+async def test_delivered_code_skipped_from_fetch(hass):
+    """A delivered parcel_no stops being fetched from the next cycle on."""
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: ACTIVE_NO, CONF_POSTAL_CODE: "1234AB"},
+            {CONF_PARCEL_NO: DELIVERED_NO, CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.side_effect = lambda parcel_no, postal_code: (
+        active_sample() if parcel_no == ACTIVE_NO else delivered_sample()
+    )
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    assert client.async_get_parcel.call_count == 2
+    assert coordinator.delivered_codes == {DELIVERED_NO}
+
+    client.async_get_parcel.reset_mock()
+    data = await coordinator._async_update_data()
+
+    # Only the still-active parcel_no is fetched — the delivered one is
+    # skipped.
+    client.async_get_parcel.assert_called_once_with(ACTIVE_NO, "1234AB")
+    assert any(p["barcode"] == DELIVERED_NO for p in coordinator.delivered)
+    assert data[0]["barcode"] == ACTIVE_NO
+
+
+async def test_delivered_code_forgotten_when_untracked(hass):
+    """Untracking a delivered parcel_no drops it from the skip set too."""
+    entry = _entry_with([{CONF_PARCEL_NO: DELIVERED_NO, CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = delivered_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    assert coordinator.delivered_codes == {DELIVERED_NO}
+
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_PARCELS: []}
+    )
+    await coordinator._async_update_data()
+    assert coordinator.delivered_codes == set()
 
 
 async def test_delivered_filter_days_and_count(hass):
