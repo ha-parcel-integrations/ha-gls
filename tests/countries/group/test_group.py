@@ -780,6 +780,7 @@ def _group_shaped_fixture(country: str, awb: str, *, status_info: str = "DELIVER
     [
         ("AT", "ATTEST00001", "1010"),
         ("BE", "BETEST00001", "1000"),
+        ("CH", "CHTEST00001", "8001"),
         ("DK", "DKTEST00001", "1000"),
         ("FI", "FITEST00001", "00100"),
         ("HU", "HUTEST00001", "1011"),

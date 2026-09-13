@@ -1,6 +1,6 @@
 # Working in this repository
 
-Home Assistant custom integration for **GLS** parcel tracking (19 countries).
+Home Assistant custom integration for **GLS** parcel tracking (20 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
 doubt**. Account-less (user-entered tracking codes). No DTO layer.

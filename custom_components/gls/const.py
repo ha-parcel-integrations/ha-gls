@@ -45,8 +45,8 @@ KNOWN_CAPABILITIES = frozenset(
 #   Germany      — weight/dimensions are not in the DTO (confirmed absent by
 #                  capture) and there is no delivery-window field either;
 #                  pickup_point, url and history still populate.
-#   Other        — the pan-EU group-leaf backend (BE, CZ, DK, FI, HU, SK, AT,
-#                  IE, FR, LU, RS, SI, HR and IT all route through it —
+#   Other        — the pan-EU group-leaf backend (BE, CH, CZ, DK, FI, HU, SK,
+#                  AT, IE, FR, LU, RS, SI, HR and IT all route through it —
 #                  countries/group/). Populates
 #                  weight (infos[] WEIGHT) and url/history, but not
 #                  dimensions, delivery_window or pickup_point — the leaf
@@ -302,6 +302,18 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "https://gls-group.com/PL/en/parcel-tracking/?match={parcel_no}"
         ),
     },
+    "CH": {
+        "host": "gls-group.eu",
+        # Switzerland uses the shared GROUP recipient service. Unlike the
+        # country-named group leaves, its official tracker addresses that
+        # service directly as GROUP/en.
+        "group_locale": "GROUP/en",
+        "postcode_regex": r"^\d{4}$",
+        "postcode_example": "8001",
+        "tracking_url": (
+            "https://gls-group.eu/EU/en/parcel-tracking?match={parcel_no}"
+        ),
+    },
     "CZ": {
         "host": "gls-group.com",  # .eu and .com are interchangeable
         "group_locale": "CZ/en",
@@ -450,7 +462,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
 # ``country == "CZ"`` special case, so a later group-leaf country only needs
 # a ``COUNTRIES`` row plus one more entry here.
 GROUP_LEAF_COUNTRIES = frozenset(
-    {"BE", "CZ", "DK", "FI", "HU", "SK", "AT", "IE", "FR", "LU", "RS", "SI", "HR", "IT"}
+    {"BE", "CH", "CZ", "DK", "FI", "HU", "SK", "AT", "IE", "FR", "LU", "RS", "SI", "HR", "IT"}
 )
 
 # Linked from the setup form so users can ask for a country we don't cover

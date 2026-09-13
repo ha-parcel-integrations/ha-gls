@@ -225,7 +225,7 @@ async def test_same_postcode_different_country_hub_allowed(hass):
 
 
 @pytest.mark.parametrize(
-    "country", ["BE", "DK", "FI", "HU", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"]
+    "country", ["BE", "CH", "DK", "FI", "HU", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"]
 )
 async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
     hass, country
@@ -244,7 +244,7 @@ async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
 
 
 @pytest.mark.parametrize(
-    "country", ["BE", "DK", "FI", "HU", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"]
+    "country", ["BE", "CH", "DK", "FI", "HU", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"]
 )
 async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
     result = await hass.config_entries.flow.async_init(

@@ -89,6 +89,7 @@
     "country": {
       "options": {
         "ca": "Kanada",
+        "ch": "Schweiz",
         "nl": "Niederlande",
         "de": "Deutschland",
         "cz": "Tschechien",
