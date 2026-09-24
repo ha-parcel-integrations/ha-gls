@@ -2,15 +2,19 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-from custom_components.gls.const import ParcelStatus
+import pytest
+from homeassistant.helpers import entity_registry as er
+
+from custom_components.gls.const import DOMAIN, ParcelStatus
 from custom_components.gls.sensor import (
     GlsAwaitingPickupSensor,
     GlsDeliveredParcelsSensor,
-    GlsEnRouteToParcelShopSensor,
+    GlsEnRouteToPickupPointSensor,
     GlsIncomingParcelsSensor,
     GlsLastUpdateSensor,
     GlsNextDeliverySensor,
     GlsParcelSensor,
+    _migrate_summary_unique_ids,
 )
 
 
@@ -86,7 +90,7 @@ def test_en_route_and_awaiting_pickup_split():
         _parcel("B", status=ParcelStatus.AT_PICKUP_POINT, pickup=True),
         _parcel("C", status=ParcelStatus.IN_TRANSIT, pickup=False),
     ])
-    en_route = GlsEnRouteToParcelShopSensor(coordinator, _entry())
+    en_route = GlsEnRouteToPickupPointSensor(coordinator, _entry())
     awaiting = GlsAwaitingPickupSensor(coordinator, _entry())
     assert en_route.native_value == 1
     assert awaiting.native_value == 1
@@ -105,3 +109,56 @@ def test_last_update_sensor():
     coordinator.last_success_time = moment
     sensor = GlsLastUpdateSensor(coordinator, _entry())
     assert sensor.native_value == moment
+
+
+# ---------------------------------------------------------------------------
+# Canonical pickup-summary unique-ID migration
+# ---------------------------------------------------------------------------
+
+_SCOPE = "e1"
+_RENAMES = [
+    ("en_route_to_parcel_shop", "en_route_to_pickup_point"),
+]
+
+
+@pytest.mark.parametrize(("old_suffix", "new_suffix"), _RENAMES)
+async def test_migration_keeps_custom_entity_id(hass, old_suffix, new_suffix):
+    registry = er.async_get(hass)
+    old = registry.async_get_or_create("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}")
+    registry.async_update_entity(old.entity_id, new_entity_id="sensor.my_pickup_parcels")
+
+    _migrate_summary_unique_ids(registry, _SCOPE)
+
+    new_id = registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{new_suffix}")
+    assert new_id == "sensor.my_pickup_parcels"
+    assert registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}") is None
+
+
+@pytest.mark.parametrize(("old_suffix", "new_suffix"), _RENAMES)
+async def test_migration_is_idempotent(hass, old_suffix, new_suffix):
+    registry = er.async_get(hass)
+    old = registry.async_get_or_create("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}")
+
+    _migrate_summary_unique_ids(registry, _SCOPE)
+    _migrate_summary_unique_ids(registry, _SCOPE)
+
+    new_id = registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{new_suffix}")
+    assert new_id == old.entity_id
+    assert len(registry.entities) == 1
+
+
+@pytest.mark.parametrize(("old_suffix", "new_suffix"), _RENAMES)
+async def test_migration_collision_keeps_both_and_warns(
+    hass, caplog, old_suffix, new_suffix
+):
+    registry = er.async_get(hass)
+    old = registry.async_get_or_create("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}")
+    new = registry.async_get_or_create("sensor", DOMAIN, f"{_SCOPE}_{new_suffix}")
+
+    _migrate_summary_unique_ids(registry, _SCOPE)
+
+    old_id = registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}")
+    new_id = registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{new_suffix}")
+    assert old_id == old.entity_id
+    assert new_id == new.entity_id
+    assert "reconcile" in caplog.text

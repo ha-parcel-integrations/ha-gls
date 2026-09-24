@@ -135,7 +135,7 @@ data, unrecorded) — don't surface them elsewhere.
 
 ## Entities (same set as DHL, entry-scoped)
 
-`sensor` (incoming summary + per-parcel + next_delivery + en_route_to_parcel_shop
+`sensor` (incoming summary + per-parcel + next_delivery + en_route_to_pickup_point
 + awaiting_pickup + delivered_parcels + diagnostic `last_update`), `button`
 (refresh), `calendar` (deliveries, read-only, enabled by default), device
 triggers.

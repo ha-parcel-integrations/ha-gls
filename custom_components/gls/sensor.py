@@ -29,6 +29,22 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
+def _migrate_summary_unique_ids(registry: er.EntityRegistry, entry_id: str) -> None:
+    """Preserve entity customisations while adopting canonical pickup IDs."""
+    old_unique_id = f"{entry_id}_en_route_to_parcel_shop"
+    new_unique_id = f"{entry_id}_en_route_to_pickup_point"
+    old_entity_id = registry.async_get_entity_id("sensor", DOMAIN, old_unique_id)
+    if old_entity_id is None:
+        return
+    if registry.async_get_entity_id("sensor", DOMAIN, new_unique_id) is not None:
+        _LOGGER.warning(
+            "Both legacy and canonical pickup summary entities exist; "
+            "reconcile %s and %s manually", old_unique_id, new_unique_id
+        )
+        return
+    registry.async_update_entity(old_entity_id, new_unique_id=new_unique_id)
+
+
 
 
 async def async_setup_entry(
@@ -52,10 +68,12 @@ async def async_setup_entry(
     # restarts). Scoped to the sensor domain so it never touches the refresh
     # button or the diagnostic last-update sensor.
     registry = er.async_get(hass)
+    _migrate_summary_unique_ids(registry, entry_id)
     non_parcel_unique_ids = {
         f"{entry_id}_incoming_parcels",
         f"{entry_id}_next_delivery",
-        f"{entry_id}_en_route_to_parcel_shop",
+        f"{entry_id}_en_route_to_pickup_point",
+        f"{entry_id}_en_route_to_parcel_shop",  # collision: preserve for reconciliation
         f"{entry_id}_awaiting_pickup",
         f"{entry_id}_delivered_parcels",
         f"{entry_id}_last_update",
@@ -78,7 +96,7 @@ async def async_setup_entry(
             GlsParcelSensor(coordinator, entry, parcel.get("barcode", ""))
         )
     entities.append(GlsNextDeliverySensor(coordinator, entry))
-    entities.append(GlsEnRouteToParcelShopSensor(coordinator, entry))
+    entities.append(GlsEnRouteToPickupPointSensor(coordinator, entry))
     entities.append(GlsAwaitingPickupSensor(coordinator, entry))
     entities.append(GlsDeliveredParcelsSensor(coordinator, entry))
     entities.append(GlsLastUpdateSensor(coordinator, entry))
@@ -238,11 +256,11 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         }
 
 
-class GlsEnRouteToParcelShopSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
-    """Active parcels still in transit to a GLS ParcelShop."""
+class GlsEnRouteToPickupPointSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+    """Active parcels still in transit to a GLS pickup point."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = "en_route_to_parcel_shop"
+    _attr_translation_key = "en_route_to_pickup_point"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
@@ -250,7 +268,7 @@ class GlsEnRouteToParcelShopSensor(CoordinatorEntity[GlsCoordinator], SensorEnti
     def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{entry.entry_id}_en_route_to_parcel_shop"
+        self._attr_unique_id = f"{entry.entry_id}_en_route_to_pickup_point"
         self._attr_device_info = build_device_info(entry)
 
     def _parcels(self) -> list[dict]:
@@ -288,7 +306,7 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     def _parcels(self) -> list[dict]:
         return [
             p for p in (self.coordinator.data or [])
-            if p.get("pickup") and p.get("status") == ParcelStatus.AT_PICKUP_POINT
+            if p.get("status") == ParcelStatus.AT_PICKUP_POINT
         ]
 
     @property
