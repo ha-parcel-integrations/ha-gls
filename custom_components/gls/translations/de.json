@@ -175,7 +175,7 @@
         "unit_of_measurement": "Pakete"
       },
       "awaiting_pickup": {
-        "name": "Wartet auf Abholung",
+        "name": "Abholbereit",
         "unit_of_measurement": "Pakete"
       },
       "delivered_parcels": {

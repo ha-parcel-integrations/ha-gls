@@ -175,7 +175,7 @@
         "unit_of_measurement": "pacchi"
       },
       "awaiting_pickup": {
-        "name": "In attesa di ritiro",
+        "name": "Pronto per il ritiro",
         "unit_of_measurement": "pacchi"
       },
       "delivered_parcels": {

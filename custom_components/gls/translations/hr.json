@@ -175,7 +175,7 @@
         "unit_of_measurement": "paketi"
       },
       "awaiting_pickup": {
-        "name": "Čeka preuzimanje",
+        "name": "Spremno za preuzimanje",
         "unit_of_measurement": "paketi"
       },
       "delivered_parcels": {

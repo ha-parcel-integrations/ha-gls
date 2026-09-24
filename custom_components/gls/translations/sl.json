@@ -175,7 +175,7 @@
         "unit_of_measurement": "pošiljke"
       },
       "awaiting_pickup": {
-        "name": "Čaka na prevzem",
+        "name": "Pripravljeno za prevzem",
         "unit_of_measurement": "pošiljke"
       },
       "delivered_parcels": {

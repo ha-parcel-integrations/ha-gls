@@ -175,7 +175,7 @@
         "unit_of_measurement": "zásielky"
       },
       "awaiting_pickup": {
-        "name": "Čaká na vyzdvihnutie",
+        "name": "Pripravené na vyzdvihnutie",
         "unit_of_measurement": "zásielky"
       },
       "delivered_parcels": {
