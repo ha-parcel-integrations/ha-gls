@@ -208,6 +208,14 @@ config entry's `appInstanceId` and bearer token.
   token-refresh or identity failure means nothing can authenticate, so the
   coordinator raises `UpdateFailed` rather than caching a per-parcel error.
 
+Its status mapping is **derivation-first**: `deliveredAt` decides `delivered`
+and `hasDeliveryAttemptFailed` decides `problem`, because no body has ever
+carried a status field. Only when both are silent does a small exact table of
+`raw_status` texts get a say, and it holds only wording a user has matched
+against the GLS app. That is safe because the transport pins
+`Accept-Language: de-DE`; any other text stays `unknown` and logs its
+raw_status/status pairing once, which is how the table grows.
+
 ### The group leaves: two endpoints, one fallback
 
 `rstt028` is the only call per poll in the common case — it carries everything

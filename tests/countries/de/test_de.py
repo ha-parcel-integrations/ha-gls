@@ -817,3 +817,55 @@ async def test_recaptcha_mention_is_warned_once(caplog):
             await async_get_parcel_de(session, de_session, "075624238061", "00000")
     recaptcha_warnings = [m for m in caplog.messages if "recaptcha" in m.lower()]
     assert len(recaptcha_warnings) == 1
+
+
+# ---------------------------------------------------------------------------
+# Confirmed status texts (ha-gls#14)
+# ---------------------------------------------------------------------------
+
+_OUT_FOR_DELIVERY_TEXT = "Das Paket wird voraussichtlich im Laufe des Tages zugestellt."
+
+
+def test_confirmed_out_for_delivery_text_maps_without_pairing_log(caplog):
+    raw = delivered_sample_de()
+    raw["deliveredAt"] = None
+    raw["latestStatusText"] = _OUT_FOR_DELIVERY_TEXT
+    with caplog.at_level("WARNING"):
+        parcel = normalize_parcel_de(raw)
+    assert parcel["status"] == ParcelStatus.OUT_FOR_DELIVERY
+    assert parcel["raw_status"] == _OUT_FOR_DELIVERY_TEXT
+    assert not [m for m in caplog.messages if "pairing" in m.lower()]
+
+
+def test_confirmed_text_also_applies_via_the_newest_event_fallback():
+    raw = delivered_sample_de()
+    raw["deliveredAt"] = None
+    raw["latestStatusText"] = ""
+    raw["deliveryEvents"] = [
+        {"description": _OUT_FOR_DELIVERY_TEXT, "occurrenceDateTime": "2026-09-25 09:00:00"}
+    ]
+    assert normalize_parcel_de(raw)["status"] == ParcelStatus.OUT_FOR_DELIVERY
+
+
+def test_confirmed_text_never_overrides_the_derivation():
+    for delivered_at, failed, expected in (
+        ("2026-09-25T12:00:00+00:00", False, ParcelStatus.DELIVERED),
+        (None, True, ParcelStatus.PROBLEM),
+    ):
+        status = map_parcel_status_de(
+            None,
+            delivered_at=delivered_at,
+            has_delivery_attempt_failed=failed,
+            raw_status=_OUT_FOR_DELIVERY_TEXT,
+        )
+        assert status == expected
+
+
+def test_unconfirmed_text_stays_unknown():
+    status = map_parcel_status_de(
+        None,
+        delivered_at=None,
+        has_delivery_attempt_failed=False,
+        raw_status="Das Paket ist unterwegs.",
+    )
+    assert status == ParcelStatus.UNKNOWN

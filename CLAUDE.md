@@ -81,7 +81,9 @@ national URL template's locale; `group_locale` is the pan-EU leaf's
 server-side, so a re-add answers a bare `409` with no `parcelNumber`; the
 per-process `_known_parcel_numbers` cache is seeded from persisted state by
 `_prepare_de_poll` before every poll and written back by `_persist_de_state`
-after. A `GlsDeSessionError` fails the **whole poll** (nothing can
+after. Status stays derivation-first; the `_STATUS_TEXT_MAP` fallback is
+exact-match on the pinned `de-DE` text and only takes user-confirmed wording —
+never a translation or a substring. A `GlsDeSessionError` fails the **whole poll** (nothing can
 authenticate), never one parcel. On `pop_reregistered()` every learned
 `parcelNumber` is stale and must be dropped. Full lifecycle:
 [`ARCHITECTURE.md`](ARCHITECTURE.md).

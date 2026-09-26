@@ -224,6 +224,16 @@ _ENUM_MAP: dict[str, ParcelStatus] = {
     "UNKNOWN": ParcelStatus.UNKNOWN,
 }
 
+# `raw_status` texts whose meaning a user confirmed against the GLS app.
+# Matched exactly and only in the pinned `de-DE` locale; never extended by
+# translation or substring, since unseen wording must stay `unknown` and
+# keep reaching the pairing log.
+_STATUS_TEXT_MAP: dict[str, ParcelStatus] = {
+    "Das Paket wird voraussichtlich im Laufe des Tages zugestellt.": (
+        ParcelStatus.OUT_FOR_DELIVERY
+    ),
+}
+
 # A `DELIVERED_TO_*` member mentioning one of these is the ParcelShop variant
 # (still awaiting collection); the exact member names were never fully
 # recovered, so this matches by substring rather than an exact set.
@@ -411,6 +421,7 @@ def map_parcel_status_de(
     *,
     delivered_at: str | None,
     has_delivery_attempt_failed: bool,
+    raw_status: str | None = None,
 ) -> ParcelStatus:
     """Map a DE parcel to a canonical status — **derivation-first, not enum-first**.
 
@@ -425,7 +436,8 @@ def map_parcel_status_de(
 
         delivered  <- delivered_at is not None
         problem    <- has_delivery_attempt_failed is True
-        unknown    <- otherwise (enum_value consulted here only)
+        unknown    <- otherwise (enum_value, then a confirmed raw_status
+                      text, consulted here only)
     """
     if delivered_at is not None:
         return ParcelStatus.DELIVERED
@@ -433,6 +445,10 @@ def map_parcel_status_de(
         return ParcelStatus.PROBLEM
     if enum_value:
         mapped = _map_enum_de(enum_value)
+        if mapped is not None:
+            return mapped
+    if raw_status:
+        mapped = _STATUS_TEXT_MAP.get(raw_status.strip())
         if mapped is not None:
             return mapped
     return ParcelStatus.UNKNOWN
@@ -550,14 +566,6 @@ def normalize_parcel_de(
     if isinstance(real_time, dict) and "timeFrame" in real_time:
         _warn_time_frame_type(real_time.get("timeFrame"))
 
-    delivered_at = _parse_de_timestamp(raw.get("deliveredAt"))
-    has_delivery_attempt_failed = bool(raw.get("hasDeliveryAttemptFailed"))
-    status = map_parcel_status_de(
-        None,
-        delivered_at=delivered_at,
-        has_delivery_attempt_failed=has_delivery_attempt_failed,
-    )
-
     # Canonical mapping: latestStatusText, else the newest
     # deliveryEvents[].description — the fallback is not optional. Two
     # captures had latestStatusText == "" (raw_status came out None with no
@@ -570,7 +578,17 @@ def normalize_parcel_de(
         events_newest_first = raw.get("deliveryEvents") or []
         if events_newest_first:
             raw_status = events_newest_first[0].get("description")
-    _warn_status_text_pairing(raw_status, status)
+
+    delivered_at = _parse_de_timestamp(raw.get("deliveredAt"))
+    has_delivery_attempt_failed = bool(raw.get("hasDeliveryAttemptFailed"))
+    status = map_parcel_status_de(
+        None,
+        delivered_at=delivered_at,
+        has_delivery_attempt_failed=has_delivery_attempt_failed,
+        raw_status=raw_status,
+    )
+    if (raw_status or "").strip() not in _STATUS_TEXT_MAP:
+        _warn_status_text_pairing(raw_status, status)
 
     events = list(raw.get("deliveryEvents") or [])
     events.reverse()  # newest-first on the wire -> oldest-first canonical
