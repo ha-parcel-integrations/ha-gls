@@ -3,7 +3,7 @@ description: The integration logged a warning about a GLS state it does not know
 title: "[status] "
 labels: ["unrecognised-status"]
 assignees:
-  - peternijssen
+  - peter-mdf
 body:
   - type: markdown
     attributes:
