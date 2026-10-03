@@ -4,19 +4,19 @@
     "step": {
       "user": {
         "title": "Nastavit GLS",
-        "description": "Vyberte zemi, do které vám balíky chodí, a PSČ, na které obvykle chodí. Balíky přidáte až po nastavení.\n\nVaše země není v seznamu? [Vyžádejte si další zemi]({issue_url}).",
+        "description": "Vyberte zemi, do které vám zásilky chodí, a PSČ, na které obvykle chodí. Zásilky přidáte až po nastavení.\n\nVaše země není v seznamu? [Vyžádejte si další zemi]({issue_url}).",
         "data": {
           "country": "Země",
           "postal_code": "PSČ"
         },
         "data_description": {
-          "postal_code": "např. {postcode_example}. Použije se jako výchozí doručovací adresa pro balíky, které přidáte."
+          "postal_code": "např. {postcode_example}. Použije se jako výchozí doručovací adresa pro zásilky, které přidáte."
         }
       }
     },
     "error": {
       "cannot_connect": "GLS není dostupné. Zkontrolujte své připojení k síti.",
-      "invalid_parcel_no": "To nevypadá jako číslo balíku ani sledovací kód GLS.",
+      "invalid_parcel_no": "To nevypadá jako číslo zásilky ani sledovací kód GLS.",
       "invalid_postcode": "Zadejte platné PSČ pro vybranou zemi, např. {postcode_example}.",
       "de_registration_failed": "Nepodařilo se zaregistrovat anonymní relaci GLS Německo. Zkontrolujte své připojení k síti a zkuste to znovu."
     },
@@ -30,33 +30,33 @@
         "title": "Možnosti GLS",
         "sections": {
           "parcels": {
-            "name": "Balíky",
+            "name": "Zásilky",
             "data": {
-              "add": "Přidat balík",
-              "remove": "Odebrat balíky"
+              "add": "Přidat zásilku",
+              "remove": "Odebrat zásilky"
             },
             "data_description": {
-              "add": "Zadejte číslo balíku nebo sledovací kód GLS, který chcete sledovat. Použije se PSČ hubu."
+              "add": "Zadejte číslo zásilky nebo sledovací kód GLS, který chcete sledovat. Použije se PSČ hubu."
             }
           },
           "delivered": {
-            "name": "Doručené balíky",
+            "name": "Doručené zásilky",
             "data": {
               "delivered_filter_type": "Filtrovat podle",
               "delivered_filter_amount": "Počet"
             },
             "data_description": {
-              "delivered_filter_type": "Zobrazit doručené balíky za posledních X dní, nebo omezit na X nejnovějších.",
-              "delivered_filter_amount": "Počet dní nebo balíků k zobrazení."
+              "delivered_filter_type": "Zobrazit doručené zásilky za posledních X dní, nebo omezit na X nejnovějších.",
+              "delivered_filter_amount": "Počet dní nebo zásilek k zobrazení."
             }
           },
           "history": {
-            "name": "Historie balíku",
+            "name": "Historie zásilky",
             "data": {
               "include_history": "Zahrnout historii stavů"
             },
             "data_description": {
-              "include_history": "Přidá k balíku atribut s historií, který zobrazuje každou změnu stavu (čas, stav, původní text). Ve výchozím nastavení vypnuto."
+              "include_history": "Přidá ke každé zásilce atribut s historií, který zobrazuje každou změnu stavu (čas, stav, původní text). Ve výchozím nastavení vypnuto."
             }
           }
         },
@@ -81,8 +81,8 @@
       }
     },
     "error": {
-      "invalid_parcel_no": "To nevypadá jako číslo balíku ani sledovací kód GLS.",
-      "already_tracked": "Tento balík už se sleduje."
+      "invalid_parcel_no": "To nevypadá jako číslo zásilky ani sledovací kód GLS.",
+      "already_tracked": "Tato zásilka už se sleduje."
     }
   },
   "selector": {
@@ -113,18 +113,18 @@
     "delivered_filter_type": {
       "options": {
         "days": "Dny",
-        "parcels": "Počet balíků"
+        "parcels": "Počet zásilek"
       }
     }
   },
   "services": {
     "track_parcel": {
-      "name": "Sledovat balík",
-      "description": "Začne sledovat balík GLS podle čísla.",
+      "name": "Sledovat zásilku",
+      "description": "Začne sledovat zásilku GLS podle čísla.",
       "fields": {
         "tracking_code": {
           "name": "Sledovací kód",
-          "description": "Číslo balíku nebo sledovací kód GLS."
+          "description": "Číslo zásilky nebo sledovací kód GLS."
         },
         "postal_code": {
           "name": "PSČ",
@@ -133,8 +133,8 @@
       }
     },
     "untrack_parcel": {
-      "name": "Přestat sledovat balík",
-      "description": "Přestane sledovat balík GLS podle čísla.",
+      "name": "Přestat sledovat zásilku",
+      "description": "Přestane sledovat zásilku GLS podle čísla.",
       "fields": {
         "tracking_code": {
           "name": "Sledovací kód",
@@ -145,16 +145,16 @@
   },
   "device_automation": {
     "trigger_type": {
-      "parcel_registered": "Byl zaregistrován balík",
-      "parcel_status_changed": "Změnil se stav balíku",
-      "parcel_delivered": "Balík byl doručen",
-      "parcel_delivery_time_changed": "Změnil se očekávaný čas doručení balíku"
+      "parcel_registered": "Zásilka byla zaregistrována",
+      "parcel_status_changed": "Stav zásilky se změnil",
+      "parcel_delivered": "Zásilka byla doručena",
+      "parcel_delivery_time_changed": "Očekávaný čas doručení zásilky se změnil"
     }
   },
   "entity": {
     "button": {
       "refresh": {
-        "name": "Obnovit"
+        "name": "Aktualizovat"
       }
     },
     "calendar": {
@@ -164,29 +164,29 @@
     },
     "sensor": {
       "incoming_parcels": {
-        "name": "Příchozí balíky",
-        "unit_of_measurement": "balíků"
+        "name": "Příchozí zásilky",
+        "unit_of_measurement": "zásilky"
       },
       "next_delivery": {
-        "name": "Další doručení"
+        "name": "Očekávané doručení"
       },
       "en_route_to_pickup_point": {
         "name": "Na cestě do ParcelShopu",
-        "unit_of_measurement": "balíků"
+        "unit_of_measurement": "zásilky"
       },
       "awaiting_pickup": {
         "name": "Připraveno k vyzvednutí",
-        "unit_of_measurement": "balíků"
+        "unit_of_measurement": "zásilky"
       },
       "delivered_parcels": {
-        "name": "Doručené balíky",
-        "unit_of_measurement": "balíků"
+        "name": "Doručené zásilky",
+        "unit_of_measurement": "zásilky"
       },
       "last_update": {
         "name": "Poslední úspěšná aktualizace"
       },
       "parcel": {
-        "name": "Balík {barcode}"
+        "name": "Zásilka {barcode}"
       }
     }
   }
