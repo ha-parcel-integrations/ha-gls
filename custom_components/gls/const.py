@@ -79,6 +79,13 @@ CAPABILITIES_BY_VARIANT = {
     "Poland": frozenset({"url", "history"}),
 }
 
+# Fields not confirmed yet — the docs site shows them as "awaiting data".
+# Move a field into the declaration above once a real parcel shows it.
+PENDING_CAPABILITIES_BY_VARIANT = {
+    "Germany": frozenset({"delivery_window"}),
+    "Canada": frozenset({"delivery_window"}),
+}
+
 
 class GlsApiError(Exception):
     """Raised when a GLS parcel-backend call returns an unexpected status.
