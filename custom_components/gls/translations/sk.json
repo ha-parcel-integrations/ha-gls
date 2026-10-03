@@ -154,7 +154,7 @@
   "entity": {
     "button": {
       "refresh": {
-        "name": "Obnoviť"
+        "name": "Aktualizovať"
       }
     },
     "calendar": {
@@ -168,7 +168,7 @@
         "unit_of_measurement": "zásielky"
       },
       "next_delivery": {
-        "name": "Nasledujúce doručenie"
+        "name": "Očakávané doručenie"
       },
       "en_route_to_pickup_point": {
         "name": "Na ceste do ParcelShopu",
