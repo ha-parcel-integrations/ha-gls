@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Opsæt GLS",
+        "description": "Vælg det land, dine pakker leveres til, og det postnummer de normalt sendes til. Du tilføjer pakker efter opsætningen.\n\nEr dit land ikke på listen? [Anmod om et andet land]({issue_url}).",
+        "data": {
+          "country": "Land",
+          "postal_code": "Postnummer"
+        },
+        "data_description": {
+          "postal_code": "f.eks. {postcode_example}. Bruges som standardleveringsadresse for de pakker, du tilføjer; i Canada aktiverer det udvidede sporingsdetaljer. Sporing i USA bruger det ikke."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan ikke få forbindelse til GLS. Kontrollér din netværksforbindelse.",
+      "invalid_parcel_no": "Det ser ikke ud som et GLS-pakkenummer eller et sporings-id.",
+      "invalid_postcode": "Indtast et gyldigt postnummer for det valgte land, f.eks. {postcode_example}.",
+      "de_registration_failed": "Kunne ikke registrere en anonym GLS Tyskland-session. Kontrollér din netværksforbindelse og prøv igen."
+    },
+    "abort": {
+      "already_configured": "Der er allerede opsat et GLS-hub for dette postnummer."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS-indstillinger",
+        "sections": {
+          "parcels": {
+            "name": "Pakker",
+            "data": {
+              "add": "Tilføj en pakke",
+              "remove": "Fjern pakker"
+            },
+            "data_description": {
+              "add": "Indtast et GLS-pakkenummer eller sporings-id for at begynde at spore det. Det bruger hubbens postnummer."
+            }
+          },
+          "delivered": {
+            "name": "Leverede pakker",
+            "data": {
+              "delivered_filter_type": "Filtrer efter",
+              "delivered_filter_amount": "Antal"
+            },
+            "data_description": {
+              "delivered_filter_type": "Vis leverede pakker fra de sidste X dage, eller begræns til de X seneste.",
+              "delivered_filter_amount": "Antal dage eller pakker der skal vises."
+            }
+          },
+          "history": {
+            "name": "Pakkehistorik",
+            "data": {
+              "include_history": "Inkluder statushistorik"
+            },
+            "data_description": {
+              "include_history": "Tilføj en historikattribut pr. pakke, der viser hver statusopdatering (tidsstempel, status, originaltekst). Slået fra som standard."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Pakker",
+          "settings": "Indstillinger"
+        }
+      },
+      "parcels": {
+        "title": "Pakker",
+        "data": {
+          "tracking_codes": "Sporingskoder"
+        }
+      },
+      "settings": {
+        "title": "Indstillinger",
+        "data": {
+          "delivered_filter_type": "Leverede pakker: filtrer efter",
+          "delivered_filter_amount": "Leverede pakker: antal",
+          "include_history": "Medtag statushistorik"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Det ser ikke ud som et GLS-pakkenummer eller et sporings-id.",
+      "already_tracked": "Den pakke spores allerede."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Canada",
+        "ch": "Schweiz",
+        "li": "Liechtenstein",
+        "nl": "Nederlandene",
+        "de": "Tyskland",
+        "cz": "Tjekkiet",
+        "sk": "Slovakiet",
+        "at": "Østrig",
+        "ie": "Irland",
+        "fr": "Frankrig",
+        "si": "Slovenien",
+        "hr": "Kroatien",
+        "it": "Italien",
+        "be": "Belgien",
+        "dk": "Danmark",
+        "fi": "Finland",
+        "hu": "Ungarn",
+        "lu": "Luxembourg",
+        "rs": "Serbien",
+        "us": "USA",
+        "pl": "Polen",
+        "es": "Spanien",
+        "pt": "Portugal"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dage",
+        "parcels": "Antal pakker"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Spor pakke",
+      "description": "Begynder at spore en GLS-pakke ud fra dens nummer.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sporingskode",
+          "description": "GLS-pakkenummeret eller sporings-id."
+        },
+        "postal_code": {
+          "name": "Postnummer",
+          "description": "Leveringspostnummer. Vælger hubben, når der er opsat flere; ellers bruges det eneste hub."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Stop sporing af pakke",
+      "description": "Stopper sporing af en GLS-pakke ud fra dens nummer.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sporingskode",
+          "description": "Det GLS-sporingsnummer, der ikke længere skal spores."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "En pakke blev registreret",
+      "parcel_status_changed": "En pakkes status ændrede sig",
+      "parcel_delivered": "En pakke blev leveret",
+      "parcel_delivery_time_changed": "En pakkes forventede leveringstid ændrede sig"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Opdater"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Leveringer"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Indkommende pakker",
+        "unit_of_measurement": "pakker"
+      },
+      "next_delivery": {
+        "name": "Næste levering"
+      },
+      "en_route_to_pickup_point": {
+        "name": "På vej til ParcelShop",
+        "unit_of_measurement": "pakker"
+      },
+      "awaiting_pickup": {
+        "name": "Klar til afhentning",
+        "unit_of_measurement": "pakker"
+      },
+      "delivered_parcels": {
+        "name": "Leverede pakker",
+        "unit_of_measurement": "pakker"
+      },
+      "last_update": {
+        "name": "Sidste vellykkede opdatering"
+      },
+      "parcel": {
+        "name": "Pakke {barcode}"
+      }
+    }
+  }
+}
