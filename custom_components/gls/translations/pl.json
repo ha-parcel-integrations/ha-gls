@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfiguracja GLS",
+        "description": "Wybierz kraj, do którego dostarczane są Twoje przesyłki, oraz kod pocztowy, pod który zwykle trafiają. Przesyłki dodasz po konfiguracji.\n\nNie ma Twojego kraju na liście? [Poproś o kolejny kraj]({issue_url}).",
+        "data": {
+          "country": "Kraj",
+          "postal_code": "Kod pocztowy"
+        },
+        "data_description": {
+          "postal_code": "np. {postcode_example}. Używany jako domyślny adres dostawy dla dodawanych przesyłek; w Kanadzie włącza rozszerzone szczegóły śledzenia. Śledzenie w USA go nie używa."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć się z GLS. Sprawdź połączenie sieciowe.",
+      "invalid_parcel_no": "To nie wygląda na numer przesyłki GLS ani identyfikator śledzenia.",
+      "invalid_postcode": "Podaj prawidłowy kod pocztowy dla wybranego kraju, np. {postcode_example}.",
+      "de_registration_failed": "Nie udało się zarejestrować anonimowej sesji GLS Niemcy. Sprawdź połączenie sieciowe i spróbuj ponownie."
+    },
+    "abort": {
+      "already_configured": "Hub GLS dla tego kodu pocztowego jest już skonfigurowany."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje GLS",
+        "sections": {
+          "parcels": {
+            "name": "Paczki",
+            "data": {
+              "add": "Dodaj paczkę",
+              "remove": "Usuń paczki"
+            },
+            "data_description": {
+              "add": "Podaj numer przesyłki GLS lub identyfikator śledzenia, aby zacząć ją śledzić. Używa kodu pocztowego huba."
+            }
+          },
+          "delivered": {
+            "name": "Doręczone przesyłki",
+            "data": {
+              "delivered_filter_type": "Filtruj według",
+              "delivered_filter_amount": "Liczba"
+            },
+            "data_description": {
+              "delivered_filter_type": "Pokaż doręczone przesyłki z ostatnich X dni lub ogranicz do X najnowszych.",
+              "delivered_filter_amount": "Liczba dni lub przesyłek do pokazania."
+            }
+          },
+          "history": {
+            "name": "Historia przesyłki",
+            "data": {
+              "include_history": "Uwzględnij historię statusów"
+            },
+            "data_description": {
+              "include_history": "Dodaje do każdej przesyłki atrybut historii z każdą aktualizacją statusu (znacznik czasu, status, oryginalny tekst). Domyślnie wyłączone."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Przesyłki",
+          "settings": "Ustawienia"
+        }
+      },
+      "parcels": {
+        "title": "Przesyłki",
+        "data": {
+          "tracking_codes": "Numery przesyłek"
+        }
+      },
+      "settings": {
+        "title": "Ustawienia",
+        "data": {
+          "delivered_filter_type": "Doręczone przesyłki: filtruj według",
+          "delivered_filter_amount": "Dostarczone przesyłki: liczba",
+          "include_history": "Uwzględnij historię statusu"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "To nie wygląda na numer przesyłki GLS ani identyfikator śledzenia.",
+      "already_tracked": "Ta paczka jest już śledzona."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Kanada",
+        "ch": "Szwajcaria",
+        "li": "Liechtenstein",
+        "nl": "Holandia",
+        "de": "Niemcy",
+        "cz": "Czechy",
+        "sk": "Słowacja",
+        "at": "Austria",
+        "ie": "Irlandia",
+        "fr": "Francja",
+        "si": "Słowenia",
+        "hr": "Chorwacja",
+        "it": "Włochy",
+        "be": "Belgia",
+        "dk": "Dania",
+        "fi": "Finlandia",
+        "hu": "Węgry",
+        "lu": "Luksemburg",
+        "rs": "Serbia",
+        "us": "Stany Zjednoczone",
+        "pl": "Polska",
+        "es": "Hiszpania",
+        "pt": "Portugalia"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dni",
+        "parcels": "Liczba przesyłek"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Śledź paczkę",
+      "description": "Rozpoczyna śledzenie przesyłki GLS na podstawie jej numeru.",
+      "fields": {
+        "tracking_code": {
+          "name": "Numer przesyłki",
+          "description": "Numer przesyłki GLS lub identyfikator śledzenia."
+        },
+        "postal_code": {
+          "name": "Kod pocztowy",
+          "description": "Kod pocztowy dostawy. Wybiera hub, gdy skonfigurowano kilka; w przeciwnym razie używa jedynego huba."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Przestań śledzić paczkę",
+      "description": "Przerywa śledzenie przesyłki GLS na podstawie jej numeru.",
+      "fields": {
+        "tracking_code": {
+          "name": "Numer przesyłki",
+          "description": "Numer śledzenia GLS, który ma przestać być śledzony."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Przesyłka została zarejestrowana",
+      "parcel_status_changed": "Status paczki się zmienił",
+      "parcel_delivered": "Przesyłka została doręczona",
+      "parcel_delivery_time_changed": "Przewidywany czas dostawy paczki się zmienił"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Odśwież"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Dostawy"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Nadchodzące przesyłki",
+        "unit_of_measurement": "przesyłki"
+      },
+      "next_delivery": {
+        "name": "Następna dostawa"
+      },
+      "en_route_to_pickup_point": {
+        "name": "W drodze do punktu odbioru",
+        "unit_of_measurement": "przesyłki"
+      },
+      "awaiting_pickup": {
+        "name": "Oczekuje na odbiór",
+        "unit_of_measurement": "przesyłki"
+      },
+      "delivered_parcels": {
+        "name": "Doręczone przesyłki",
+        "unit_of_measurement": "przesyłki"
+      },
+      "last_update": {
+        "name": "Ostatnia udana aktualizacja"
+      },
+      "parcel": {
+        "name": "Przesyłka {barcode}"
+      }
+    }
+  }
+}
