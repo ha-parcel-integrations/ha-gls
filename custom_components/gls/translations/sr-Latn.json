@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Podešavanje GLS-a",
+        "description": "Izaberi zemlju u koju se dostavljaju tvoji paketi i poštanski broj na koji obično idu. Pakete dodaješ nakon podešavanja.\n\nTvoja zemlja nije na listi? [Zatraži drugu zemlju]({issue_url}).",
+        "data": {
+          "country": "Zemlja",
+          "postal_code": "Poštanski broj"
+        },
+        "data_description": {
+          "postal_code": "npr. {postcode_example}. Koristi se kao podrazumevana adresa dostave za pakete koje dodaš; u Kanadi omogućava detaljnije praćenje. Praćenje u SAD ga ne koristi."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "GLS nije dostupan. Proveri mrežnu vezu.",
+      "invalid_parcel_no": "Ovo ne izgleda kao GLS broj paketa ili identifikator praćenja.",
+      "invalid_postcode": "Unesi važeći poštanski broj za izabranu zemlju, npr. {postcode_example}.",
+      "de_registration_failed": "Nije moguće registrovati anonimnu sesiju GLS Nemačka. Proveri mrežnu vezu i probaj ponovo."
+    },
+    "abort": {
+      "already_configured": "GLS hab za ovaj poštanski broj je već podešen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS opcije",
+        "sections": {
+          "parcels": {
+            "name": "Paketi",
+            "data": {
+              "add": "Dodaj paket",
+              "remove": "Ukloni pakete"
+            },
+            "data_description": {
+              "add": "Unesi GLS broj paketa ili identifikator praćenja da započneš praćenje. Koristi poštanski broj haba."
+            }
+          },
+          "delivered": {
+            "name": "Dostavljeni paketi",
+            "data": {
+              "delivered_filter_type": "Filtriraj po",
+              "delivered_filter_amount": "Količina"
+            },
+            "data_description": {
+              "delivered_filter_type": "Prikaži dostavljene pakete iz poslednjih X dana ili ograniči na X najnovijih.",
+              "delivered_filter_amount": "Broj dana ili paketa za prikaz."
+            }
+          },
+          "history": {
+            "name": "Istorija paketa",
+            "data": {
+              "include_history": "Uključi istoriju statusa"
+            },
+            "data_description": {
+              "include_history": "Dodaje atribut istorije po paketu sa svakim ažuriranjem statusa (vremenska oznaka, status, originalni tekst). Podrazumevano isključeno."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Paketi",
+          "settings": "Podešavanja"
+        }
+      },
+      "parcels": {
+        "title": "Paketi",
+        "data": {
+          "tracking_codes": "Kodovi za praćenje"
+        }
+      },
+      "settings": {
+        "title": "Podešavanja",
+        "data": {
+          "delivered_filter_type": "Dostavljeni paketi: filtriraj po",
+          "delivered_filter_amount": "Dostavljeni paketi: količina",
+          "include_history": "Uključi istoriju statusa"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Ovo ne izgleda kao GLS broj paketa ili identifikator praćenja.",
+      "already_tracked": "Taj paket se već prati."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Kanada",
+        "ch": "Švajcarska",
+        "li": "Lihtenštajn",
+        "nl": "Holandija",
+        "de": "Nemačka",
+        "cz": "Češka",
+        "sk": "Slovačka",
+        "at": "Austrija",
+        "ie": "Irska",
+        "fr": "Francuska",
+        "si": "Slovenija",
+        "hr": "Hrvatska",
+        "it": "Italija",
+        "be": "Belgija",
+        "dk": "Danska",
+        "fi": "Finska",
+        "hu": "Mađarska",
+        "lu": "Luksemburg",
+        "rs": "Srbija",
+        "us": "Sjedinjene Američke Države",
+        "pl": "Poljska",
+        "es": "Španija",
+        "pt": "Portugal"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dani",
+        "parcels": "Broj paketa"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Prati paket",
+      "description": "Počinje praćenje GLS paketa po njegovom broju.",
+      "fields": {
+        "tracking_code": {
+          "name": "Kod za praćenje",
+          "description": "GLS broj paketa ili identifikator praćenja."
+        },
+        "postal_code": {
+          "name": "Poštanski broj",
+          "description": "Poštanski broj dostave. Bira hab kada je podešeno više njih; u suprotnom koristi jedini hab."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Prekini praćenje paketa",
+      "description": "Prekida praćenje GLS paketa po njegovom broju.",
+      "fields": {
+        "tracking_code": {
+          "name": "Kod za praćenje",
+          "description": "GLS broj za praćenje koje treba prekinuti."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Paket je registrovan",
+      "parcel_status_changed": "Status paketa se promenio",
+      "parcel_delivered": "Paket je dostavljen",
+      "parcel_delivery_time_changed": "Očekivano vreme dostave paketa se promenilo"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Osveži"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Dostave"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Paketi u dolasku",
+        "unit_of_measurement": "paketa"
+      },
+      "next_delivery": {
+        "name": "Sledeća dostava"
+      },
+      "en_route_to_pickup_point": {
+        "name": "Na putu do ParcelShop-a",
+        "unit_of_measurement": "paketa"
+      },
+      "awaiting_pickup": {
+        "name": "Spremno za preuzimanje",
+        "unit_of_measurement": "paketa"
+      },
+      "delivered_parcels": {
+        "name": "Dostavljeni paketi",
+        "unit_of_measurement": "paketa"
+      },
+      "last_update": {
+        "name": "Poslednje uspešno ažuriranje"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      }
+    }
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Подешавање GLS-а",
+        "description": "Изабери земљу у коју се достављају твоји пакети и поштански број на који обично иду. Пакете додајеш након подешавања.\n\nТвоја земља није на листи? [Затражи другу земљу]({issue_url}).",
+        "data": {
+          "country": "Земља",
+          "postal_code": "Поштански број"
+        },
+        "data_description": {
+          "postal_code": "нпр. {postcode_example}. Користи се као подразумевана адреса доставе за пакете које додаш; у Канади омогућава детаљније праћење. Праћење у САД га не користи."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "GLS није доступан. Провери мрежну везу.",
+      "invalid_parcel_no": "Ово не изгледа као GLS број пакета или идентификатор праћења.",
+      "invalid_postcode": "Унеси важећи поштански број за изабрану земљу, нпр. {postcode_example}.",
+      "de_registration_failed": "Није могуће регистровати анонимну сесију GLS Немачка. Провери мрежну везу и пробај поново."
+    },
+    "abort": {
+      "already_configured": "GLS хаб за овај поштански број је већ подешен."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS опције",
+        "sections": {
+          "parcels": {
+            "name": "Пакети",
+            "data": {
+              "add": "Додај пакет",
+              "remove": "Уклони пакете"
+            },
+            "data_description": {
+              "add": "Унеси GLS број пакета или идентификатор праћења да започнеш праћење. Користи поштански број хаба."
+            }
+          },
+          "delivered": {
+            "name": "Достављени пакети",
+            "data": {
+              "delivered_filter_type": "Филтрирај по",
+              "delivered_filter_amount": "Количина"
+            },
+            "data_description": {
+              "delivered_filter_type": "Прикажи достављене пакете из последњих X дана или ограничи на X најновијих.",
+              "delivered_filter_amount": "Број дана или пакета за приказ."
+            }
+          },
+          "history": {
+            "name": "Историја пакета",
+            "data": {
+              "include_history": "Укључи историју статуса"
+            },
+            "data_description": {
+              "include_history": "Додаје атрибут историје по пакету са сваким ажурирањем статуса (временска ознака, статус, оригинални текст). Подразумевано искључено."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Пакети",
+          "settings": "Подешавања"
+        }
+      },
+      "parcels": {
+        "title": "Пакети",
+        "data": {
+          "tracking_codes": "Кодови за праћење"
+        }
+      },
+      "settings": {
+        "title": "Подешавања",
+        "data": {
+          "delivered_filter_type": "Достављени пакети: филтрирај по",
+          "delivered_filter_amount": "Достављени пакети: количина",
+          "include_history": "Укључи историју статуса"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Ово не изгледа као GLS број пакета или идентификатор праћења.",
+      "already_tracked": "Тај пакет се већ прати."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Канада",
+        "ch": "Швајцарска",
+        "li": "Лихтенштајн",
+        "nl": "Холандија",
+        "de": "Немачка",
+        "cz": "Чешка",
+        "sk": "Словачка",
+        "at": "Аустрија",
+        "ie": "Ирска",
+        "fr": "Француска",
+        "si": "Словенија",
+        "hr": "Хрватска",
+        "it": "Италија",
+        "be": "Белгија",
+        "dk": "Данска",
+        "fi": "Финска",
+        "hu": "Мађарска",
+        "lu": "Луксембург",
+        "rs": "Србија",
+        "us": "Сједињене Америчке Државе",
+        "pl": "Пољска",
+        "es": "Шпанија",
+        "pt": "Португал"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Дани",
+        "parcels": "Број пакета"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Прати пакет",
+      "description": "Почиње праћење GLS пакета по његовом броју.",
+      "fields": {
+        "tracking_code": {
+          "name": "Код за праћење",
+          "description": "GLS број пакета или идентификатор праћења."
+        },
+        "postal_code": {
+          "name": "Поштански број",
+          "description": "Поштански број доставе. Бира хаб када је подешено више њих; у супротном користи једини хаб."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Прекини праћење пакета",
+      "description": "Прекида праћење GLS пакета по његовом броју.",
+      "fields": {
+        "tracking_code": {
+          "name": "Код за праћење",
+          "description": "GLS број за праћење које треба прекинути."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Пакет је регистрован",
+      "parcel_status_changed": "Статус пакета се променио",
+      "parcel_delivered": "Пакет је достављен",
+      "parcel_delivery_time_changed": "Очекивано време доставе пакета се променило"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Освежи"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Доставе"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Пакети у доласку",
+        "unit_of_measurement": "пакета"
+      },
+      "next_delivery": {
+        "name": "Следећа достава"
+      },
+      "en_route_to_pickup_point": {
+        "name": "На путу до ParcelShop-а",
+        "unit_of_measurement": "пакета"
+      },
+      "awaiting_pickup": {
+        "name": "Спремно за преузимање",
+        "unit_of_measurement": "пакета"
+      },
+      "delivered_parcels": {
+        "name": "Достављени пакети",
+        "unit_of_measurement": "пакета"
+      },
+      "last_update": {
+        "name": "Последње успешно ажурирање"
+      },
+      "parcel": {
+        "name": "Пакет {barcode}"
+      }
+    }
+  }
+}
