@@ -225,7 +225,8 @@ async def test_same_postcode_different_country_hub_allowed(hass):
 
 
 @pytest.mark.parametrize(
-    "country", ["BE", "CH", "DK", "FI", "HU", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"]
+    "country",
+    ["BE", "CH", "DK", "FI", "HU", "LI", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"],
 )
 async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
     hass, country
@@ -244,7 +245,8 @@ async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
 
 
 @pytest.mark.parametrize(
-    "country", ["BE", "CH", "DK", "FI", "HU", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"]
+    "country",
+    ["BE", "CH", "DK", "FI", "HU", "LI", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"],
 )
 async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
     result = await hass.config_entries.flow.async_init(
@@ -273,6 +275,35 @@ async def test_ie_eircode_accepts_spaced_form(hass):
     )
     assert result["type"] == "create_entry"
     assert result["options"][CONF_POSTAL_CODE] == "D02AF30"
+
+
+@pytest.mark.parametrize("postcode", ["9485", "9490", "9498"])
+async def test_li_accepts_every_postcode_in_the_reserved_block(hass, postcode):
+    """Liechtenstein's whole postcode range is 9485-9498, so the rule is a
+    block rather than CH's generic four digits — the ends must both pass."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: "li", CONF_POSTAL_CODE: postcode},
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_POSTAL_CODE] == postcode
+
+
+@pytest.mark.parametrize("postcode", ["9484", "9499", "8001"])
+async def test_li_rejects_a_swiss_postcode_outside_the_block(hass, postcode):
+    """A Swiss postcode is valid for CH and wrong for an LI hub; 8001 is CH's
+    own example, and 9484/9499 bracket the block."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: "li", CONF_POSTAL_CODE: postcode},
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
 
 
 # ---------------------------------------------------------------------------

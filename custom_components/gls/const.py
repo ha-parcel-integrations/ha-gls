@@ -321,6 +321,25 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "https://gls-group.eu/EU/en/parcel-tracking?match={parcel_no}"
         ),
     },
+    "LI": {
+        "host": "gls-group.com",
+        "group_locale": "LI/en",
+        # Liechtenstein's postcodes are a reserved block inside the Swiss
+        # 4-digit scheme (9485 Nendeln .. 9498 Planken), and the block is the
+        # whole country — so the rule is tighter than CH's on purpose rather
+        # than a copy of it. GLS Switzerland carries these parcels; the row
+        # exists so a Liechtenstein hub is labelled as one, which is all it
+        # buys (the pan-EU index is country-independent, so CH already
+        # returned the same answer).
+        "postcode_regex": r"^94(8[5-9]|9[0-8])$",
+        "postcode_example": "9490",
+        # No LI consumer site: gls-group.com/LI/{en,de}/parcel-tracking/ 302s
+        # into the group 404 handler (checked 2026-10-12), exactly as CH's
+        # does, so it reuses the EU entry point CH already points at.
+        "tracking_url": (
+            "https://gls-group.eu/EU/en/parcel-tracking?match={parcel_no}"
+        ),
+    },
     "CZ": {
         "host": "gls-group.com",  # .eu and .com are interchangeable
         "group_locale": "CZ/en",
@@ -469,7 +488,8 @@ COUNTRIES: dict[str, dict[str, str]] = {
 # ``country == "CZ"`` special case, so a later group-leaf country only needs
 # a ``COUNTRIES`` row plus one more entry here.
 GROUP_LEAF_COUNTRIES = frozenset(
-    {"BE", "CH", "CZ", "DK", "FI", "HU", "SK", "AT", "IE", "FR", "LU", "RS", "SI", "HR", "IT"}
+    {"BE", "CH", "CZ", "DK", "FI", "HU", "SK", "AT", "IE", "FR", "LI", "LU", "RS",
+     "SI", "HR", "IT"}
 )
 
 # Linked from the setup form so users can ask for a country we don't cover

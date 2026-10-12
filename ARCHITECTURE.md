@@ -64,11 +64,12 @@ no account-level list call to branch on.)
 | **US** | national JSON POST, no postcode | keyless | `async_get_parcel_us` |
 | **PL** | national GET, no postcode | keyless | `async_get_parcel_pl` |
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
-| **15 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
+| **16 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
-in `const.py` holds 20 rows: `NL`, `CA`, `US`, `PL`, `DE`, and the group leaves `BE`,
-`CH`, `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LU`, `RS`, `SI`, `HR`, `IT`.
+in `const.py` holds 21 rows: `NL`, `CA`, `US`, `PL`, `DE`, and the group leaves `BE`,
+`CH`, `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LI`, `LU`, `RS`, `SI`, `HR`,
+`IT`.
 Each row carries a host, a postcode regex, and either a `culture` or a
 `group_locale` (below). Constructing a `country="DE"` client without a
 `GlsDeSession` raises `RuntimeError`, not `GlsApiError` — that is a wiring bug,
