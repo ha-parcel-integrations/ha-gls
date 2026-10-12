@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "GLS beállítása",
+        "description": "Válaszd ki az országot, ahová a csomagjaidat szállítják, és a postai irányítószámot, ahová általában mennek. A csomagokat a beállítás után adhatod hozzá.\n\nNem szerepel az országod a listán? [Kérj másik országot]({issue_url}).",
+        "data": {
+          "country": "Ország",
+          "postal_code": "Postai irányítószám"
+        },
+        "data_description": {
+          "postal_code": "pl. {postcode_example}. A hozzáadott csomagok alapértelmezett szállítási címeként szolgál; Kanadában részletesebb nyomkövetést tesz lehetővé. Az Egyesült Államok nyomkövetése nem használja."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "A GLS nem érhető el. Ellenőrizd a hálózati kapcsolatot.",
+      "invalid_parcel_no": "Ez nem tűnik GLS csomagszámnak vagy nyomkövetési azonosítónak.",
+      "invalid_postcode": "Adj meg egy érvényes postai irányítószámot a kiválasztott országhoz, pl. {postcode_example}.",
+      "de_registration_failed": "Nem sikerült anonim GLS Németország munkamenetet regisztrálni. Ellenőrizd a hálózati kapcsolatot, és próbáld újra."
+    },
+    "abort": {
+      "already_configured": "Ehhez a postai irányítószámhoz már be van állítva egy GLS hub."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS beállításai",
+        "sections": {
+          "parcels": {
+            "name": "Csomagok",
+            "data": {
+              "add": "Csomag hozzáadása",
+              "remove": "Csomagok eltávolítása"
+            },
+            "data_description": {
+              "add": "Adj meg egy GLS csomagszámot vagy nyomkövetési azonosítót a követés megkezdéséhez. A hub postai irányítószámát használja."
+            }
+          },
+          "delivered": {
+            "name": "Kézbesített csomagok",
+            "data": {
+              "delivered_filter_type": "Szűrés",
+              "delivered_filter_amount": "Mennyiség"
+            },
+            "data_description": {
+              "delivered_filter_type": "Az elmúlt X nap kézbesített csomagjainak megjelenítése, vagy korlátozás a legutóbbi X darabra.",
+              "delivered_filter_amount": "A megjelenítendő napok vagy csomagok száma."
+            }
+          },
+          "history": {
+            "name": "Csomagelőzmények",
+            "data": {
+              "include_history": "Állapotelőzmények megjelenítése"
+            },
+            "data_description": {
+              "include_history": "Minden csomaghoz hozzáad egy előzmény attribútumot, amely felsorolja az egyes állapotfrissítéseket (időbélyeg, állapot, eredeti szöveg). Alapértelmezés szerint kikapcsolva."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Csomagok",
+          "settings": "Beállítások"
+        }
+      },
+      "parcels": {
+        "title": "Csomagok",
+        "data": {
+          "tracking_codes": "Követési kódok"
+        }
+      },
+      "settings": {
+        "title": "Beállítások",
+        "data": {
+          "delivered_filter_type": "Kézbesített csomagok: szűrés",
+          "delivered_filter_amount": "Kézbesített csomagok: darabszám",
+          "include_history": "Állapotelőzmények megjelenítése"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Ez nem tűnik GLS csomagszámnak vagy nyomkövetési azonosítónak.",
+      "already_tracked": "Ezt a csomagot már követik."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Kanada",
+        "ch": "Svájc",
+        "li": "Liechtenstein",
+        "nl": "Hollandia",
+        "de": "Németország",
+        "cz": "Csehország",
+        "sk": "Szlovákia",
+        "at": "Ausztria",
+        "ie": "Írország",
+        "fr": "Franciaország",
+        "si": "Szlovénia",
+        "hr": "Horvátország",
+        "it": "Olaszország",
+        "be": "Belgium",
+        "dk": "Dánia",
+        "fi": "Finnország",
+        "hu": "Magyarország",
+        "lu": "Luxemburg",
+        "rs": "Szerbia",
+        "us": "Egyesült Államok",
+        "pl": "Lengyelország",
+        "es": "Spanyolország",
+        "pt": "Portugália"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Nap",
+        "parcels": "Csomagok száma"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Csomag követése",
+      "description": "Elkezdi követni egy GLS csomagot a száma alapján.",
+      "fields": {
+        "tracking_code": {
+          "name": "Nyomkövetési kód",
+          "description": "A GLS csomagszám vagy nyomkövetési azonosító."
+        },
+        "postal_code": {
+          "name": "Postai irányítószám",
+          "description": "Szállítási postai irányítószám. Kiválasztja a hubot, ha több van beállítva; egyébként az egyetlen hubot használja."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Csomag követésének leállítása",
+      "description": "Leállítja egy GLS csomag követését a száma alapján.",
+      "fields": {
+        "tracking_code": {
+          "name": "Nyomkövetési kód",
+          "description": "A GLS nyomkövetési szám, amelynek követése leáll."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Egy csomagot regisztráltak",
+      "parcel_status_changed": "Egy csomag állapota megváltozott",
+      "parcel_delivered": "Egy csomagot kézbesítettek",
+      "parcel_delivery_time_changed": "Egy csomag várható kézbesítési ideje megváltozott"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Frissítés"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Kézbesítések"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Érkező csomagok",
+        "unit_of_measurement": "csomag"
+      },
+      "next_delivery": {
+        "name": "Következő kézbesítés"
+      },
+      "en_route_to_pickup_point": {
+        "name": "Úton a ParcelShophoz",
+        "unit_of_measurement": "csomag"
+      },
+      "awaiting_pickup": {
+        "name": "Átvételre kész",
+        "unit_of_measurement": "csomag"
+      },
+      "delivered_parcels": {
+        "name": "Kézbesített csomagok",
+        "unit_of_measurement": "csomag"
+      },
+      "last_update": {
+        "name": "Utolsó sikeres frissítés"
+      },
+      "parcel": {
+        "name": "Csomag {barcode}"
+      }
+    }
+  }
+}
