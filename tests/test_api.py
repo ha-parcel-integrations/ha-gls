@@ -175,3 +175,26 @@ async def test_it_dispatch_delegates_to_the_group_transport_with_its_own_country
         "20121",
         country="IT",
     )
+
+
+async def test_es_dispatch_delegates_to_the_signed_spanish_transport():
+    client = GlsApiClient(MagicMock(), "api.consignee.gls-spain.es", "es-ES", country="ES")
+    with patch(
+        "custom_components.gls.api.async_get_parcel_es",
+        new=AsyncMock(return_value={"expeditionCode": "990011223"}),
+    ) as mock_transport:
+        result = await client.async_get_parcel("990011223", "28001")
+    assert result == {"expeditionCode": "990011223"}
+    mock_transport.assert_awaited_once_with(client._session, "990011223", "28001")
+
+
+async def test_pt_dispatch_uses_the_same_spanish_transport():
+    """Portugal answers on the same host and the same request shape; it is a
+    COUNTRIES row on one transport, not a transport of its own."""
+    client = GlsApiClient(MagicMock(), "api.consignee.gls-spain.es", "pt-PT", country="PT")
+    with patch(
+        "custom_components.gls.api.async_get_parcel_es",
+        new=AsyncMock(return_value={}),
+    ) as mock_transport:
+        await client.async_get_parcel("990011223", "1000-001")
+    mock_transport.assert_awaited_once_with(client._session, "990011223", "1000-001")

@@ -102,6 +102,33 @@ TO_REDACT = {
     "controlNumber",
     "podSignatureId",
     "stopId",
+    # GLS Spain / Portugal is the most PII-dense surface in the family: one
+    # reply carries both addresses, the sender, the name of whoever signed,
+    # the pickup point's collection code and PIN, and — uniquely in this
+    # suite — the recipient's identity-document number. Status codes and
+    # sentences stay readable, as with CA and US, because that is exactly
+    # what the unrecognised-status template asks users to attach.
+    #
+    # "receiverDocumentId" is an identity-document number and is the most
+    # sensitive field this integration ever sees. It must never reach a
+    # diagnostics export, a fixture or a log line.
+    "receiverDocumentId",
+    "receiverName",
+    "destination",
+    "origin",
+    "clientReference",
+    "address",
+    "phones",
+    "collectionCode",
+    "pin",
+    # The carrier's own misspelling of "reason", carrying an internal reason
+    # string on a scan. Redact that exact spelling; do not "fix" it, or the
+    # field stops being redacted the moment the carrier keeps the typo.
+    "reaseon",
+    # ES's internal shipment id, which is also its consumer deep link — same
+    # identifier class as DE's "id" above.
+    "expeditionUuid",
+    "expeditionCode",
 }
 
 

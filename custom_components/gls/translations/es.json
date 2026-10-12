@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar GLS",
+        "description": "Elige el país al que se entregan tus paquetes y el código postal al que suelen ir. Los paquetes se añaden después de la configuración.\n\n¿No aparece tu país? [Solicita otro país]({issue_url}).",
+        "data": {
+          "country": "País",
+          "postal_code": "Código postal"
+        },
+        "data_description": {
+          "postal_code": "p. ej. {postcode_example}. Se usa como dirección de entrega predeterminada para los paquetes que añadas; en Canadá habilita detalles de seguimiento ampliados. El seguimiento de Estados Unidos no lo usa."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se puede contactar con GLS. Comprueba tu conexión de red.",
+      "invalid_parcel_no": "Esto no parece un número de paquete ni un ID de seguimiento de GLS.",
+      "invalid_postcode": "Introduce un código postal válido para el país seleccionado, p. ej. {postcode_example}.",
+      "de_registration_failed": "No se ha podido registrar una sesión anónima de GLS Alemania. Comprueba tu conexión de red e inténtalo de nuevo."
+    },
+    "abort": {
+      "already_configured": "Ya hay un hub de GLS configurado para este código postal."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de GLS",
+        "sections": {
+          "parcels": {
+            "name": "Paquetes",
+            "data": {
+              "add": "Añadir un paquete",
+              "remove": "Eliminar paquetes"
+            },
+            "data_description": {
+              "add": "Introduce un número de paquete o un ID de seguimiento de GLS para empezar a seguirlo. Usa el código postal del hub."
+            }
+          },
+          "delivered": {
+            "name": "Paquetes entregados",
+            "data": {
+              "delivered_filter_type": "Filtrar por",
+              "delivered_filter_amount": "Cantidad"
+            },
+            "data_description": {
+              "delivered_filter_type": "Muestra los paquetes entregados de los últimos X días, o limita a los X más recientes.",
+              "delivered_filter_amount": "Número de días o paquetes a mostrar."
+            }
+          },
+          "history": {
+            "name": "Historial de paquetes",
+            "data": {
+              "include_history": "Incluir historial de estados"
+            },
+            "data_description": {
+              "include_history": "Añade un atributo de historial por paquete con cada actualización de estado (marca de tiempo, estado, texto original). Desactivado por defecto."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Paquetes",
+          "settings": "Ajustes"
+        }
+      },
+      "parcels": {
+        "title": "Paquetes",
+        "data": {
+          "tracking_codes": "Códigos de seguimiento"
+        }
+      },
+      "settings": {
+        "title": "Ajustes",
+        "data": {
+          "delivered_filter_type": "Paquetes entregados: filtrar por",
+          "delivered_filter_amount": "Paquetes entregados: cantidad",
+          "include_history": "Incluir historial de estado"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Esto no parece un número de paquete ni un ID de seguimiento de GLS.",
+      "already_tracked": "Ese paquete ya se está rastreando."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Canadá",
+        "ch": "Suiza",
+        "li": "Liechtenstein",
+        "nl": "Países Bajos",
+        "de": "Alemania",
+        "cz": "República Checa",
+        "sk": "Eslovaquia",
+        "at": "Austria",
+        "ie": "Irlanda",
+        "fr": "Francia",
+        "si": "Eslovenia",
+        "hr": "Croacia",
+        "it": "Italia",
+        "be": "Bélgica",
+        "dk": "Dinamarca",
+        "fi": "Finlandia",
+        "hu": "Hungría",
+        "lu": "Luxemburgo",
+        "rs": "Serbia",
+        "us": "Estados Unidos",
+        "pl": "Polonia",
+        "es": "España",
+        "pt": "Portugal"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Días",
+        "parcels": "Número de paquetes"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Rastrear paquete",
+      "description": "Empieza a seguir un paquete de GLS por su número.",
+      "fields": {
+        "tracking_code": {
+          "name": "Código de seguimiento",
+          "description": "El número de paquete o ID de seguimiento de GLS."
+        },
+        "postal_code": {
+          "name": "Código postal",
+          "description": "Código postal de entrega. Selecciona el hub cuando hay varios configurados; si no, se usa el único hub."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Dejar de rastrear paquete",
+      "description": "Deja de seguir un paquete de GLS por su número.",
+      "fields": {
+        "tracking_code": {
+          "name": "Código de seguimiento",
+          "description": "El número de seguimiento de GLS que se dejará de seguir."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Se registró un paquete",
+      "parcel_status_changed": "El estado de un paquete ha cambiado",
+      "parcel_delivered": "Se entregó un paquete",
+      "parcel_delivery_time_changed": "La hora de entrega prevista de un paquete ha cambiado"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Actualizar"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Entregas"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Paquetes entrantes",
+        "unit_of_measurement": "paquetes"
+      },
+      "next_delivery": {
+        "name": "Próxima entrega"
+      },
+      "en_route_to_pickup_point": {
+        "name": "En camino a ParcelShop",
+        "unit_of_measurement": "paquetes"
+      },
+      "awaiting_pickup": {
+        "name": "Listo para recoger",
+        "unit_of_measurement": "paquetes"
+      },
+      "delivered_parcels": {
+        "name": "Paquetes entregados",
+        "unit_of_measurement": "paquetes"
+      },
+      "last_update": {
+        "name": "Última actualización correcta"
+      },
+      "parcel": {
+        "name": "Paquete {barcode}"
+      }
+    }
+  }
+}

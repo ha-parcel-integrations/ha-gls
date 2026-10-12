@@ -1,4 +1,6 @@
 """Tests for the GLS config and options flow."""
+import json
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -417,3 +419,84 @@ async def test_options_settings_has_no_polling_field(hass):
     entry.add_to_hass(hass)
     result = await _open_options_step(hass, entry, "settings")
     assert "refresh_interval" not in result["data_schema"].schema
+
+
+@pytest.mark.parametrize(("country", "postcode"), [("es", "28001"), ("pt", "1000-001")])
+async def test_es_and_pt_user_flow_accept_their_own_postcode_example(
+    hass, country, postcode
+):
+    """For ES/PT the postcode is half the lookup key, not hub validation — so
+    it has to be accepted in the country's own written form."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: country, CONF_POSTAL_CODE: postcode},
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_COUNTRY] == country.upper()
+
+
+async def test_pt_postcode_accepts_the_unhyphenated_form(hass):
+    """Normalisation only strips spaces, so the hyphen is optional the way
+    PL's is."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: "pt", CONF_POSTAL_CODE: "1000001"},
+    )
+    assert result["type"] == "create_entry"
+
+
+@pytest.mark.parametrize("country", ["es", "pt"])
+async def test_es_and_pt_reject_a_bad_postcode(hass, country):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: country, CONF_POSTAL_CODE: "!!!"},
+    )
+    assert result["errors"][CONF_POSTAL_CODE] == "invalid_postcode"
+
+
+# ---------------------------------------------------------------------------
+# Country dropdown labels
+# ---------------------------------------------------------------------------
+
+
+_COMPONENT = Path(__file__).resolve().parent.parent / "custom_components" / "gls"
+
+
+def _country_label_block(payload: dict) -> dict | None:
+    """Find the selector options block that holds the country labels."""
+    if isinstance(payload, dict):
+        options = payload.get("options")
+        if isinstance(options, dict) and {"nl", "de"} <= set(options):
+            return options
+        for value in payload.values():
+            found = _country_label_block(value)
+            if found is not None:
+                return found
+    return None
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        _COMPONENT / "strings.json",
+        *sorted((_COMPONENT / "translations").glob("*.json")),
+    ],
+    ids=lambda path: path.name,
+)
+def test_every_country_has_a_dropdown_label(path):
+    """A country in ``COUNTRIES`` with no label shows the raw option key
+    ("es" instead of "Spain") in the setup dropdown, because the selector's
+    option values *are* the translation keys. Adding a country touches eleven
+    files, so this asserts the set rather than trusting the edit."""
+    labels = _country_label_block(json.loads(path.read_text(encoding="utf-8")))
+    assert labels is not None, f"{path.name} has no country options block"
+    assert set(labels) == {code.lower() for code in COUNTRIES}

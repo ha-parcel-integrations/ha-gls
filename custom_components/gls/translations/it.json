@@ -108,7 +108,9 @@
         "lu": "Lussemburgo",
         "rs": "Serbia",
         "us": "Stati Uniti",
-        "pl": "Polonia"
+        "pl": "Polonia",
+        "es": "Spagna",
+        "pt": "Portogallo"
       }
     },
     "delivered_filter_type": {

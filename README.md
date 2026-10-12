@@ -7,7 +7,7 @@
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
-A custom Home Assistant integration that tracks your GLS parcels in Austria, Belgium, Canada, Croatia, the Czech Republic, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Liechtenstein, Luxembourg, the Netherlands, Poland, Serbia, Slovakia, Slovenia, Switzerland and the United States. No GLS account is needed — you enter the tracking number and delivery postal code yourself.
+A custom Home Assistant integration that tracks your GLS parcels in Austria, Belgium, Canada, Croatia, the Czech Republic, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Liechtenstein, Luxembourg, the Netherlands, Poland, Portugal, Serbia, Slovakia, Slovenia, Spain, Switzerland and the United States. No GLS account is needed — you enter the tracking number and delivery postal code yourself.
 
 ## Contents
 
@@ -45,8 +45,8 @@ A custom Home Assistant integration that tracks your GLS parcels in Austria, Bel
   **Canada**, **Croatia**, **the Czech Republic**, **Denmark**, **Finland**,
   **France**, **Germany**, **Hungary**, **Ireland**, **Italy**,
   **Liechtenstein**, **Luxembourg**, **the Netherlands**, **Poland**,
-  **Serbia**, **Slovakia**, **Slovenia**, **Switzerland** and
-  **the United States** are available today;
+  **Portugal**, **Serbia**, **Slovakia**, **Slovenia**, **Spain**,
+  **Switzerland** and **the United States** are available today;
   the setup form links to the
   [organisation discussion](https://github.com/ha-parcel-integrations/.github/discussions/new/choose)
   for requesting another country
@@ -107,6 +107,11 @@ per-parcel sensors appear immediately, no restart or manual refresh needed:
 You can use either identifier GLS gives out: the long parcel number
 (e.g. `13290054100304`) or the short tracking ID (e.g. `00L1B3BX`). Find
 them in the GLS track & trace mail/SMS or on gls-info.nl.
+
+**Spain and Portugal** — the delivery postal code is part of the lookup here,
+not just a hub setting: GLS Spain matches the number and the postal code
+together, so a parcel delivered to a different postal code than the hub's
+needs its own (`gls.track_parcel` takes a `postal_code`).
 
 ## Options
 

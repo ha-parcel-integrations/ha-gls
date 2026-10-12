@@ -1,6 +1,6 @@
 # Working in this repository
 
-Home Assistant custom integration for **GLS** parcel tracking (21 countries).
+Home Assistant custom integration for **GLS** parcel tracking (23 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
 doubt**. Account-less (user-entered tracking codes). No DTO layer.
@@ -62,7 +62,7 @@ dropdown (Phase 1) is gone; see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 never part of the alias. Don't conflate them.
 
 **Dispatch lives in `api.py`, not the coordinator** — `GlsApiClient.async_get_parcel`
-picks NL / CA / US / PL / DE / group; the coordinator polls a flat pair list and never learns
+picks NL / CA / US / PL / DE / ES+PT / group; the coordinator polls a flat pair list and never learns
 the country. DPD dispatches in its coordinator instead; **don't "align" the
 two.** Concern-level files (`coordinator.py`, `sensor.py`, `diagnostics.py`, …)
 stay free of per-country branching — they dispatch into `countries/<code>/`.
@@ -108,8 +108,66 @@ the group's machine vocabulary (**match exactly** — `DELIVEREDPS` contains
 `DELIVERED`), while events carry only Polish text, mapped from captured values
 only. An unrecognised shipment code falls back to the newest event's status.
 
+**Spain and Portugal are one signed transport, and the postcode is half the
+lookup key.** `countries/es/signing.py` stays **pure** — a signature bug and a
+rejected key look alike on the wire, so the signature must be provable without
+a network. The signed path **excludes** the URL's `/api/v5` prefix. **Re-stamp
+and re-sign inside the request function, never above a retry loop**: a reused
+timestamp is rejected. The three failure branches are distinguishable and must
+stay reported apart — `404` + the body's own `notFound` is the *only* absence,
+`401 InvalidCredentialsError` is clock skew, `403 ForbiddenError` is the key;
+anything else, and HTML on a `200`, is a transport failure. **`incidence` is
+mapped on its sentence, not its code** (the code covers an ordinary missed
+delivery as much as a refusal), which is why `Accept-Language` is pinned and
+never follows the user's HA locale, and why the redirect sentence is an
+anchored prefix and never a substring test. **`agency` is the destination
+depot and is present on every shipment** — `pickup_point` is gated on a GLS
+Point *scan*, not on a field's presence, or every Spanish parcel gets a
+phantom one. Timestamps are true UTC instants: do **not** apply the
+wall-clock reconstruction the group leaves need. ES/PT are the only rows
+besides NL whose `tracking_url` carries the postcode, and the generic GROUP
+fallback must **not** be used for them — Spanish consignments are not in the
+pan-EU index.
+
+**`barcode` is the code the user tracked — a deliberate ES divergence from the
+suite's "always take the response's own number" rule; don't align it with PL
+or NL.** Those return the same identifier the user holds; Spain answers a
+14-digit parcel barcode with a 10-digit `expeditionCode`, the *shipment*
+number, which the recipient never sees. Both forms resolve, the per-parcel
+sensor's `unique_id` is built from this field, so switching would rename every
+Spanish entity to a number its owner cannot recognise, for nothing.
+`expeditionCode` is an **int** on the wire and stands in only when the user's
+own code is missing.
+
+**Three real parcels confirmed the surface (2026-10-12)**, Portugal's among
+them — so PT is a confirmed contract, not just a shared host. `pickup_point`
+and `weight` graduated out of `PENDING_CAPABILITIES_BY_VARIANT` on them;
+`delivery_window` is still pending, because all three were delivered and
+`state.deliveryDate` has only ever been seen agreeing with the actual. Still
+unconfirmed: a *moving* parcel, and eleven of the eighteen state codes.
+
+**`incidence` is read by its sentence because the code genuinely does not
+decide** — the redirect wording has been seen under both `incidence` and
+`picked`. Four sentences are mapped from real parcels; only the redirect is
+not a `PROBLEM`.
+
+**One transport, two countries — so nothing here may say "Spain" to a user.**
+The log lines read "GLS Spain/Portugal" because a Portuguese parcel goes
+through this exact code, and a Spain-only warning reads as the wrong-country
+bug it isn't. **PT also has its own consumer link host**
+(`mygls.gls-portugal.pt`): the Spanish host does not resolve a Portuguese
+consignment, and because the page is a Flutter SPA it answers `200` either
+way, so getting that host wrong fails *silently* — a status check cannot
+verify these links, only a browser can. Don't collapse the two `tracking_url`
+rows.
+
+**History ties are not reversed.** Three observed pairs share a minute (the
+agency scan and the van loading); the carrier states no order, and reversing
+them prints "Out for delivery" before "At delivery agency".
+
 **`CAPABILITIES_BY_VARIANT` holds one frozenset per country**
-(`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Poland"` / `"Other"`), **not** a single intersected
+(`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Poland"` /
+`"Spain"` / `"Other"`), **not** a single intersected
 `CAPABILITIES` — the old intersection model made NL's full support invisible on
 the docs site the moment a weaker country landed (replaced 2026-08-23). Keep
 each entry in lockstep with its `normalize_parcel_<cc>()`; every entry must stay

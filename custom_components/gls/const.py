@@ -77,6 +77,7 @@ CAPABILITIES_BY_VARIANT = {
     "Canada": frozenset({"weight", "dimensions", "url", "history"}),
     "United States": frozenset({"url", "history"}),
     "Poland": frozenset({"url", "history"}),
+    "Spain and Portugal": frozenset({"weight", "pickup_point", "url", "history"}),
 }
 
 # Fields not confirmed yet — the docs site shows them as "awaiting data".
@@ -84,6 +85,13 @@ CAPABILITIES_BY_VARIANT = {
 PENDING_CAPABILITIES_BY_VARIANT = {
     "Germany": frozenset({"delivery_window"}),
     "Canada": frozenset({"delivery_window"}),
+    # ``pickup_point`` graduated on a real parcel (2026-10-12) that was
+    # diverted to a GLS Point and collected there, with a second parcel
+    # delivered to the door confirming the negative. ``delivery_window`` is
+    # still waiting: both captures are delivered, so ``state.deliveryDate``
+    # has only ever been seen agreeing with the actual delivery date, and
+    # whether it is an estimate *before* delivery is still unknown.
+    "Spain and Portugal": frozenset({"delivery_window"}),
 }
 
 
@@ -144,6 +152,30 @@ GLS_PL_TRACKING_URL = (
     "https://mygls.gls-poland.com.pl/api/v1/mygls-tracking/public/tracking/"
     "shipment/track/{parcel_no}"
 )
+
+# GLS Spain runs its own national consignee backend, which also answers
+# Portuguese consignments. It is the only GLS surface in this integration that
+# signs each request, and the only one where the postcode is half the lookup
+# key rather than hub validation: the service matches number *and* postcode
+# together, so there is no recognition surface at all. One POST returns the
+# current state and the full history, so there is no detail fan-out.
+GLS_ES_HOST = "api.consignee.gls-spain.es"
+GLS_ES_BASE_URL = f"https://{GLS_ES_HOST}/api/v5"
+# The path as sent, and also the path that gets signed -- the version prefix
+# above is deliberately *not* part of the signed string. See
+# ``countries/es/signing.py``.
+GLS_ES_FIND_PATH = "/expeditions/find"
+# Fixed value the consumer tracking page carries for every visitor; it is not
+# issued or revoked per user, and nothing about a hub changes it. Used only to
+# compute ``X-Signature`` -- see ``countries/es/signing.py`` for the scheme and
+# for why it must be recomputed on every attempt.
+GLS_ES_SIGNING_KEY = "gls"
+# The page identifies itself with this on every call.
+GLS_ES_AGENT = "pwa"
+# Pinned, never the user's HA locale: the status *sentences* are localized and
+# the ``incidence`` mapping reads one of them, so following the user's language
+# would silently stop the map matching. See ``countries/es/``.
+GLS_ES_ACCEPT_LANGUAGE = "en_US"
 
 # GLS Germany has no keyless endpoint: every route on the national parcel
 # backend needs the anonymous bearer token ``countries/de/session.py`` mints
@@ -293,6 +325,33 @@ COUNTRIES: dict[str, dict[str, str]] = {
         # No US-specific tracking_url: the only consumer entry point seen is
         # the mobile tracker's own message-link journey, which needs an id
         # the integration never holds. Falls back to TRACKING_URL, as DE does.
+    },
+    "ES": {
+        "host": GLS_ES_HOST,
+        "culture": "es-ES",
+        "postcode_regex": r"^\d{5}$",
+        "postcode_example": "28001",
+        # Unlike every other tracking_url here, this one is load-bearing: the
+        # consumer page keys on the number *and* the postcode, exactly as NL's
+        # does. The generic GROUP fallback must NOT be used for ES -- Spanish
+        # consignments are not in the pan-EU index (they answer 404 E800
+        # there), so the fallback link would show the user a not-found page.
+        "tracking_url": "https://mygls.gls-spain.es/e/{parcel_no}/{postal_code}/es",
+    },
+    "PT": {
+        "host": GLS_ES_HOST,
+        "culture": "pt-PT",
+        # NNNN-NNN; normalisation only strips spaces, so the hyphen is
+        # optional here the way PL's is.
+        "postcode_regex": r"^\d{4}-?\d{3}$",
+        "postcode_example": "1000-001",
+        # Portugal has its own consumer host -- the Spanish one does not
+        # resolve a Portuguese consignment, and because the page is a Flutter
+        # SPA it answers 200 either way, so a wrong host here fails silently
+        # rather than visibly. Same /e/{number}/{postcode}/{lang} path shape;
+        # the app ships es/en/pt locales, so pt is the native choice, as ES
+        # uses es.
+        "tracking_url": "https://mygls.gls-portugal.pt/e/{parcel_no}/{postal_code}/pt",
     },
     "PL": {
         "host": "mygls.gls-poland.com.pl",
@@ -481,6 +540,13 @@ COUNTRIES: dict[str, dict[str, str]] = {
         ),
     },
 }
+
+# Every ``COUNTRIES`` row served by the signed Spanish consignee transport
+# (``countries/es/``). Portugal answers the same host with the same request
+# shape *and* the same response contract — confirmed on a real Portuguese
+# parcel (2026-10-12), which is what a shared host alone never proves. Its
+# consumer *link* host is its own, though; see the PT row above.
+ES_COUNTRIES = frozenset({"ES", "PT"})
 
 # Every ``COUNTRIES`` row served by the pan-EU group-leaf transport
 # (``countries/group/``) rather than a national backend — the dispatchers in

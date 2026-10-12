@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar GLS",
+        "description": "Escolhe o país onde as tuas encomendas são entregues e o código postal habitual. As encomendas são adicionadas depois da configuração.\n\nO teu país não está na lista? [Pede outro país]({issue_url}).",
+        "data": {
+          "country": "País",
+          "postal_code": "Código postal"
+        },
+        "data_description": {
+          "postal_code": "p. ex. {postcode_example}. Usado como endereço de entrega predefinido para as encomendas que adicionares; no Canadá ativa detalhes de seguimento mais completos. O seguimento nos Estados Unidos não o usa."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Não é possível contactar a GLS. Verifica a tua ligação de rede.",
+      "invalid_parcel_no": "Isto não parece um número de encomenda nem um ID de seguimento da GLS.",
+      "invalid_postcode": "Introduz um código postal válido para o país selecionado, p. ex. {postcode_example}.",
+      "de_registration_failed": "Não foi possível registar uma sessão anónima da GLS Alemanha. Verifica a tua ligação de rede e tenta novamente."
+    },
+    "abort": {
+      "already_configured": "Já existe um hub GLS configurado para este código postal."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções da GLS",
+        "sections": {
+          "parcels": {
+            "name": "Encomendas",
+            "data": {
+              "add": "Adicionar uma encomenda",
+              "remove": "Remover encomendas"
+            },
+            "data_description": {
+              "add": "Introduz um número de encomenda ou um ID de seguimento da GLS para começar a segui-la. Usa o código postal do hub."
+            }
+          },
+          "delivered": {
+            "name": "Encomendas entregues",
+            "data": {
+              "delivered_filter_type": "Filtrar por",
+              "delivered_filter_amount": "Quantidade"
+            },
+            "data_description": {
+              "delivered_filter_type": "Mostrar encomendas entregues dos últimos X dias, ou limitar às X mais recentes.",
+              "delivered_filter_amount": "Número de dias ou encomendas a mostrar."
+            }
+          },
+          "history": {
+            "name": "Histórico de encomendas",
+            "data": {
+              "include_history": "Incluir histórico de estados"
+            },
+            "data_description": {
+              "include_history": "Adiciona um atributo de histórico por encomenda com cada atualização de estado (data/hora, estado, texto original). Desativado por predefinição."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Encomendas",
+          "settings": "Definições"
+        }
+      },
+      "parcels": {
+        "title": "Encomendas",
+        "data": {
+          "tracking_codes": "Códigos de rastreio"
+        }
+      },
+      "settings": {
+        "title": "Definições",
+        "data": {
+          "delivered_filter_type": "Encomendas entregues: filtrar por",
+          "delivered_filter_amount": "Encomendas entregues: quantidade",
+          "include_history": "Incluir histórico de estados"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Isto não parece um número de encomenda nem um ID de seguimento da GLS.",
+      "already_tracked": "Essa encomenda já está a ser seguida."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Canadá",
+        "ch": "Suíça",
+        "li": "Liechtenstein",
+        "nl": "Países Baixos",
+        "de": "Alemanha",
+        "cz": "República Checa",
+        "sk": "Eslováquia",
+        "at": "Áustria",
+        "ie": "Irlanda",
+        "fr": "França",
+        "si": "Eslovénia",
+        "hr": "Croácia",
+        "it": "Itália",
+        "be": "Bélgica",
+        "dk": "Dinamarca",
+        "fi": "Finlândia",
+        "hu": "Hungria",
+        "lu": "Luxemburgo",
+        "rs": "Sérvia",
+        "us": "Estados Unidos",
+        "pl": "Polónia",
+        "es": "Espanha",
+        "pt": "Portugal"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dias",
+        "parcels": "Número de encomendas"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Seguir encomenda",
+      "description": "Começa a seguir uma encomenda GLS pelo seu número.",
+      "fields": {
+        "tracking_code": {
+          "name": "Código de rastreio",
+          "description": "O número de encomenda ou ID de seguimento da GLS."
+        },
+        "postal_code": {
+          "name": "Código postal",
+          "description": "Código postal de entrega. Seleciona o hub quando existem vários configurados; caso contrário, usa o único hub."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Deixar de seguir encomenda",
+      "description": "Deixa de seguir uma encomenda GLS pelo seu número.",
+      "fields": {
+        "tracking_code": {
+          "name": "Código de rastreio",
+          "description": "O número de seguimento da GLS que deve deixar de ser seguido."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Uma encomenda foi registada",
+      "parcel_status_changed": "O estado de uma encomenda mudou",
+      "parcel_delivered": "Uma encomenda foi entregue",
+      "parcel_delivery_time_changed": "A hora de entrega prevista de uma encomenda mudou"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Atualizar"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Entregas"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Encomendas recebidas",
+        "unit_of_measurement": "encomendas"
+      },
+      "next_delivery": {
+        "name": "Próxima entrega"
+      },
+      "en_route_to_pickup_point": {
+        "name": "A caminho do ParcelShop",
+        "unit_of_measurement": "encomendas"
+      },
+      "awaiting_pickup": {
+        "name": "Pronta para recolha",
+        "unit_of_measurement": "encomendas"
+      },
+      "delivered_parcels": {
+        "name": "Encomendas entregues",
+        "unit_of_measurement": "encomendas"
+      },
+      "last_update": {
+        "name": "Última atualização com sucesso"
+      },
+      "parcel": {
+        "name": "Encomenda {barcode}"
+      }
+    }
+  }
+}

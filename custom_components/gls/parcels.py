@@ -19,10 +19,12 @@ from .const import (
     DEFAULT_COUNTRY,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
+    ES_COUNTRIES,
     GROUP_LEAF_COUNTRIES,
 )
 from .countries.ca import normalize_parcel_ca
 from .countries.de import normalize_parcel_de
+from .countries.es import normalize_parcel_es
 from .countries.group import normalize_parcel_group
 from .countries.nl import normalize_parcel_nl
 from .countries.pl import normalize_parcel_pl
@@ -34,13 +36,16 @@ _NORMALIZERS = {
     "DE": normalize_parcel_de,
     "PL": normalize_parcel_pl,
     "US": normalize_parcel_us,
+    **dict.fromkeys(ES_COUNTRIES, normalize_parcel_es),
     **dict.fromkeys(GROUP_LEAF_COUNTRIES, normalize_parcel_group),
 }
 
 # Normalizers whose ``barcode`` source is the code the user entered rather than
 # a field of the payload, so they take the extra ``parcel_no`` argument. NL's
 # and DE's signatures deliberately stay without it.
-_NEEDS_PARCEL_NO = frozenset({"CA", "PL", "US"}) | frozenset(GROUP_LEAF_COUNTRIES)
+_NEEDS_PARCEL_NO = (
+    frozenset({"CA", "PL", "US"}) | ES_COUNTRIES | frozenset(GROUP_LEAF_COUNTRIES)
+)
 
 
 def normalize_parcel(

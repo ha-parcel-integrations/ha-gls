@@ -108,7 +108,9 @@
         "lu": "Luxembursko",
         "rs": "Srbsko",
         "us": "Spojené štáty",
-        "pl": "Poľsko"
+        "pl": "Poľsko",
+        "es": "Španielsko",
+        "pt": "Portugalsko"
       }
     },
     "delivered_filter_type": {

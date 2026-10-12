@@ -249,3 +249,72 @@ async def test_diagnostics_redacts_cz_custref_and_signature_value(hass):
     assert references["CUSTREF"] == "**REDACTED**"
     assert references["UNITNO"] == "**REDACTED**"
     assert references["WEIGHT"] == "0.9 kg"  # never touched
+
+
+async def test_diagnostics_redacts_the_spanish_raw_payload(hass):
+    """ES is the most PII-dense surface in the family, and the one that
+    carries an identity-document number. Status codes and sentences stay
+    readable — that is what the unrecognised-status template asks for."""
+    entry = MagicMock()
+    entry.data = {}
+    entry.options = {"parcels": [{"parcel_no": "990011223", "postal_code": "28001"}]}
+    entry.runtime_data.coordinator.data = [
+        {
+            "barcode": "990011223",
+            "status": "delivered",
+            "raw_status": "delivered",
+            "raw": {
+                "expeditionCode": "990011223",
+                "expeditionUuid": "00000000-0000-0000-0000-000000000000",
+                "state": {
+                    "code": "delivered",
+                    "description": "Delivered",
+                    "receiverName": "A Person",
+                    "receiverDocumentId": "12345678Z",
+                },
+                "destination": {"address": {"postalCode": "28001"}},
+                "origin": {"address": {"postalCode": "08001"}},
+                "clientReference": "ORDER-1",
+                "agency": {"name": "MADRID", "address": "A street", "phones": ["+34"]},
+                "parcelShop": {
+                    "name": "Libreria",
+                    "address": "Another street",
+                    "collectionCode": "AB12",
+                    "pin": "9999",
+                },
+                "tracking": [
+                    {
+                        "code": "delivered",
+                        "description": "Delivered",
+                        "at": "2026-10-09T09:12:00Z",
+                        "reaseon": "left with neighbour",
+                    }
+                ],
+            },
+        }
+    ]
+    entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
+    entry.runtime_data.coordinator.current_tier_minutes = 45
+    entry.runtime_data.coordinator.update_interval = None
+
+    result = await async_get_config_entry_diagnostics(hass, entry)
+    raw = result["incoming"][0]["raw"]
+
+    # The field that must never leave the machine.
+    assert raw["state"]["receiverDocumentId"] == "**REDACTED**"
+    assert raw["state"]["receiverName"] == "**REDACTED**"
+    assert raw["expeditionCode"] == "**REDACTED**"
+    assert raw["expeditionUuid"] == "**REDACTED**"
+    assert raw["destination"] == "**REDACTED**"
+    assert raw["origin"] == "**REDACTED**"
+    assert raw["clientReference"] == "**REDACTED**"
+    assert raw["agency"]["address"] == "**REDACTED**"
+    assert raw["agency"]["phones"] == "**REDACTED**"
+    assert raw["parcelShop"]["collectionCode"] == "**REDACTED**"
+    assert raw["parcelShop"]["pin"] == "**REDACTED**"
+    # The carrier's own misspelling, redacted at that exact spelling.
+    assert raw["tracking"][0]["reaseon"] == "**REDACTED**"
+    # Still readable, on purpose.
+    assert raw["state"]["code"] == "delivered"
+    assert raw["tracking"][0]["description"] == "Delivered"

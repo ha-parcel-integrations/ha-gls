@@ -40,6 +40,7 @@ custom_components/gls/
     ├── ca/              postcode-enhanced keyless GET + normalize + status map
     ├── us/              keyless POST + newest-of-several-shipments selection
     ├── pl/              keyless national GET + Polish-text event map
+    ├── es/              signed POST: __init__.py (transport) + signing.py (pure HMAC)
     ├── de/              bearer POST: __init__.py (transport) + session.py (lifecycle)
     └── group/           pan-EU rstt028/rstt029 leaves + normalize + status map
 ```
@@ -64,12 +65,13 @@ no account-level list call to branch on.)
 | **US** | national JSON POST, no postcode | keyless | `async_get_parcel_us` |
 | **PL** | national GET, no postcode | keyless | `async_get_parcel_pl` |
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
+| **ES / PT** | national signed JSON POST, postcode in the key | signed request | `async_get_parcel_es` |
 | **16 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
-in `const.py` holds 21 rows: `NL`, `CA`, `US`, `PL`, `DE`, and the group leaves `BE`,
-`CH`, `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LI`, `LU`, `RS`, `SI`, `HR`,
-`IT`.
+in `const.py` holds 23 rows: `NL`, `CA`, `US`, `PL`, `DE`, `ES`, `PT`, and the group
+leaves `BE`, `CH`, `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LI`, `LU`, `RS`,
+`SI`, `HR`, `IT`.
 Each row carries a host, a postcode regex, and either a `culture` or a
 `group_locale` (below). Constructing a `country="DE"` client without a
 `GlsDeSession` raises `RuntimeError`, not `GlsApiError` — that is a wiring bug,
@@ -308,6 +310,64 @@ already been collected). So a body claiming `DELIVERED` whose newest event is
 the drop-off fires a one-shot WARNING rather than being silently corrected —
 that log is the answer arriving.
 
+### Spain signs its requests, and the postcode is half the key
+
+ES is the only transport here that signs, and `countries/es/signing.py` is a
+pure function of `(method, path, timestamp)` for one reason: a signature bug
+and a rejected key look alike on the wire, so the signature itself has to be
+provable without a network. The signed path excludes the URL's version prefix,
+which is the least obvious way to get this wrong and has its own test.
+
+**Re-stamp and re-sign on every attempt, including retries.** The service
+rejects a timestamp minutes from its own clock, so building the signature
+above a retry loop fails. The three error branches are distinguishable and
+reported as such — `404` + the body's own `notFound` is a true absence, `401`
+`InvalidCredentialsError` is clock skew or a reused signature, `403`
+`ForbiddenError` is a rejected key. Anything else, and any HTML on a `200`,
+is a transport failure and **never** a missing parcel.
+
+The postcode is **load-bearing** here rather than hub validation: the service
+matches the number *together with* it and has no recognition surface at all,
+so a request without one is not sent. That is also why ES/PT are the only rows
+besides NL whose `tracking_url` takes the postcode — and why the generic GROUP
+fallback link must not be used for them, since Spanish consignments are not in
+the pan-EU index and the link would show a not-found page.
+
+**`incidence` is mapped on its sentence, not its code.** The code covers an
+ordinary missed delivery as readily as a refusal or a diversion to a GLS
+Point, so mapping on it alone would report every missed delivery as an
+exception. That is why the request pins `Accept-Language` and never follows the
+user's HA locale, and why the redirect sentence is matched with an anchored
+prefix rather than a substring test.
+
+**`agency` is the destination depot and is on every shipment.** `pickup_point`
+is gated on a GLS Point *scan* naming the shop, not on the field being
+present — reading either field unconditionally would give every Spanish parcel
+a phantom pickup point, the defect fixed in Correos 1.0.0.
+
+Three real parcels confirmed the surface on 2026-10-12 — one diverted to a GLS
+Point and collected there, one delivered to the door after a failed attempt,
+and one Portuguese parcel that failed twice before being collected at a point.
+All three map end to end without a warning, and `pickup_point` and `weight`
+graduated out of `PENDING_CAPABILITIES_BY_VARIANT` on them. Portugal is
+therefore a confirmed contract rather than a shared host. What the three did
+not settle stays one-shot-logged: `state.deliveryDate`'s meaning before
+delivery (all are delivered, and it agreed with the actual on each) and eleven
+of the eighteen state codes.
+
+Two consequences of one transport serving two countries. Its log lines say
+"GLS Spain/Portugal", because a Portuguese parcel runs through this code and a
+Spain-only warning reads as a wrong-country bug. And the consumer *link* host
+is per country — `mygls.gls-portugal.pt` for PT — because the Spanish host
+does not resolve a Portuguese consignment, and since that page is an SPA
+answering `200` for anything, the wrong host there fails silently.
+
+`barcode` keeps the code the user tracked rather than the response's own, which
+is a deliberate divergence from PL and NL: those answer with the identifier the
+user holds, while Spain answers a 14-digit parcel barcode with a 10-digit
+`expeditionCode` — the shipment number, which the recipient never sees. Both
+resolve, and the per-parcel `unique_id` is built from this field.
+
 ### Capabilities are per country, not intersected
 
 `CAPABILITIES_BY_VARIANT` holds one frozenset per variant — `"Netherlands"`,
@@ -379,5 +439,17 @@ Same set as DHL, entry-scoped: `sensor` (incoming summary, per-parcel,
    `GlsApiClient.async_get_parcel`.
 4. Add a `CAPABILITIES_BY_VARIANT` entry describing exactly which canonical
    fields the new normalizer populates — or reuse `"Other"` if it matches the
-   group-leaf set.
-5. Add its language to `translations/`.
+   group-leaf set. A field that is in the payload but gated on something no
+   real parcel has shown yet goes in `PENDING_CAPABILITIES_BY_VARIANT`
+   instead, not in the declaration.
+5. Add its label to `strings.json` and every file in `translations/`.
+6. **Add `translations/<lang>.json` if the country speaks a language the repo
+   does not already carry.** The suite convention is one translation per
+   option in the country picker, so a new country with a new language is two
+   pieces of work, not one — and `tests/test_config_flow.py` asserts the label
+   set, not the language set, so a missing language fails silently as an
+   English dropdown entry. Reuse the wording sibling repos already use for
+   shared keys (`tools/translation_report.py` reports the drift) rather than
+   translating afresh.
+7. Add it to the parametrized country lists in `tests/test_config_flow.py`
+   and, for a group leaf, `tests/countries/group/test_group.py`.
