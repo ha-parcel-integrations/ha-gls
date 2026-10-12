@@ -66,7 +66,7 @@
         }
       },
       "parcels": {
-        "title": "Przesyłki",
+        "title": "Zarządzaj przesyłkami",
         "data": {
           "tracking_codes": "Numery przesyłek"
         }

@@ -66,7 +66,7 @@
         }
       },
       "parcels": {
-        "title": "Encomendas",
+        "title": "Gerir encomendas",
         "data": {
           "tracking_codes": "Códigos de rastreio"
         }
