@@ -20,7 +20,7 @@ def reset_one_shot_warnings():
     makes them leak across tests, so whether a warning fires would otherwise
     depend on test order.
     """
-    from custom_components.gls.countries import ca, de, es, fr, group, nl, pl, us
+    from custom_components.gls.countries import ca, de, es, fr, group, it, nl, pl, us
     from custom_components.gls.countries.de import session
 
     de._recaptcha_warned = False
@@ -62,6 +62,7 @@ def reset_one_shot_warnings():
     es._orphan_parcel_shop_warned = False
     fr._resolved.clear()
     fr._failures_logged.clear()
+    it._failures_logged.clear()
     yield
 
 

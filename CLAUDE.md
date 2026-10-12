@@ -165,10 +165,10 @@ rows.
 agency scan and the van loading); the carrier states no order, and reversing
 them prints "Out for delivery" before "At delivery agency".
 
-**France is tracked on the group leaf and takes a second endpoint for one job
-only.** It is strictly additive — a failure degrades to exactly the
-pre-existing behaviour — and **it is not a transport**; don't "finish" it into
-one.
+**France and Italy are tracked on the group leaf, and each takes a second
+endpoint for one job only.** Both are strictly additive — a failure degrades
+to exactly the pre-existing behaviour — and **neither is a transport**; don't
+"finish" them into one.
 - **`countries/fr/` translates, it does not track.** It resolves the
   8-character alphanumeric reference both group leaves reject (`404
   E206`/`E800`) into the numeric AWB they index. A plain numeric code **never**
@@ -179,6 +179,17 @@ one.
   mismatch. A full French transport was considered and **rejected**: its status
   vocabulary is one value wide (`LIV` only). Don't re-propose it on payload
   richness alone.
+- **`countries/it/` supplies history only, and only fills a gap.** Italy keeps
+  `progressBar.statusInfo` — a complete machine vocabulary — because
+  `rstt030`'s history carries **no event code at all**, only a localized
+  sentence. A migration would trade reliable status for history; **don't make
+  it.** `rstt030` rows need no translation (`date`/`time`/`evtDscr` is the
+  group builder's own shape) and have no `evtNo`, so per-event `status` is
+  `None` on purpose. An `rstt028` history is **never** replaced — it carries
+  per-event codes the national rows do not. `type=NAT` is pinned
+  unconditionally: omitting it answers `400` with **HTML**. `rstt030` is
+  published for `IT` alone (eleven other paths `403`) — it is not a
+  country-expansion lever.
 
 **`CAPABILITIES_BY_VARIANT` holds one frozenset per country**
 (`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Poland"` /

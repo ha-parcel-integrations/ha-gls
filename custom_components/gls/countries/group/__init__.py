@@ -34,6 +34,7 @@ from ...const import (
     GlsApiError,
     ParcelStatus,
 )
+from ..it import async_get_history_it
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -421,7 +422,37 @@ async def async_get_parcel_group(
         if status >= 500:
             _warn_unexpected_5xx_once()
         raise GlsApiError(status)
+    await _async_fill_italian_history(session, host, parcel_no, country, body)
     return body
+
+
+async def _async_fill_italian_history(
+    session: aiohttp.ClientSession,
+    host: str,
+    parcel_no: str,
+    country: str,
+    body: dict[str, Any],
+) -> None:
+    """Fill an Italian body's empty ``history`` from the national leaf.
+
+    Italy keeps its *status* here — ``progressBar.statusInfo`` is a complete
+    machine vocabulary, and the national leaf has no event codes at all — but
+    this leaf's overview carries no history, and ``rstt028``'s history needs a
+    matching postcode. ``rstt030`` returns the whole history without one, in
+    the same ``date``/``time``/``evtDscr`` row shape read below, so the rows
+    drop in untranslated. See ``countries/it/``.
+
+    **Only ever fills a gap, never replaces.** A history that came back from
+    ``rstt028`` carries per-event ``evtNo`` codes, which the national rows do
+    not, so the group's own answer is strictly richer whenever it exists and
+    is kept. This is also what keeps the change additive: an Italian parcel
+    that works today is unaffected except for history it did not have.
+    """
+    if country != "IT" or body.get("history"):
+        return
+    rows = await async_get_history_it(session, host, parcel_no)
+    if rows:
+        body["history"] = rows
 
 
 # ---------------------------------------------------------------------------

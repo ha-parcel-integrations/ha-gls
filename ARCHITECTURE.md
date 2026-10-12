@@ -43,6 +43,7 @@ custom_components/gls/
     ├── es/              signed POST: __init__.py (transport) + signing.py (pure HMAC)
     ├── de/              bearer POST: __init__.py (transport) + session.py (lifecycle)
     ├── fr/              reference -> AWB resolver only; France tracks on group/
+    ├── it/              national history leaf only; Italy tracks on group/
     └── group/           pan-EU rstt028/rstt029 leaves + normalize + status map
 ```
 
@@ -69,13 +70,14 @@ no account-level list call to branch on.)
 | **ES / PT** | national signed JSON POST, postcode in the key | signed request | `async_get_parcel_es` |
 | **16 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
-France additionally consults a **second** endpoint, and is not tracked
-there — it still takes its status and mapping from the leaf it already
-shipped on:
+Two countries additionally consult a **second** endpoint, and neither of them
+is tracked there — both still take their status and mapping from the leaf
+they already shipped on:
 
 | Country | Second call | For | Entry point |
 |---|---|---|---|
 | **FR** | national `consignee-ws` | translating the alphanumeric reference into the numeric AWB, before the group call | `async_resolve_reference_fr` |
+| **IT** | national `rstt030` | history, when the group body carries none | `async_get_history_it` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
 in `const.py` holds 23 rows: `NL`, `CA`, `US`, `PL`, `DE`, `ES`, `PT`, and the group
@@ -377,14 +379,15 @@ user holds, while Spain answers a 14-digit parcel barcode with a 10-digit
 `expeditionCode` — the shipment number, which the recipient never sees. Both
 resolve, and the per-parcel `unique_id` is built from this field.
 
-### France takes a second endpoint, and is tracked on neither of them
+### France and Italy each take a second endpoint, and are tracked on neither
 
-France keeps its status, mapping and history semantics from the group leaf it
-already shipped on. The national surface is used for one narrow job, and it is
-**strictly additive** — a failure degrades to exactly the behaviour that
-shipped before, so it cannot regress a parcel that works today.
+Both countries keep their status, mapping and history semantics from the
+group leaves they already shipped on. The national surfaces are used for one
+narrow job each, and both are **strictly additive** — a failure degrades to
+exactly the behaviour that shipped before, so neither can regress a parcel
+that works today.
 
-French parcels present two identifier
+**FR: the alphanumeric reference.** French parcels present two identifier
 forms. The numeric AWB resolves on the group leaves; the 8-character
 alphanumeric reference a GLS France notification carries is rejected by both
 with `404 E206`/`E800`, because the group index has never held that form — so
@@ -401,6 +404,24 @@ A full French transport was considered and rejected: its own status
 vocabulary is one value wide (only `LIV` has been observed), so moving France
 onto it would risk the field that matters most for a payload that is otherwise
 no better.
+
+**IT: history.** `rstt030` is the better Italian route on paper — the whole
+history, no postcode, where the group overview carries none and `rstt028`'s
+history needs a matching postcode (unverified for every group country but CZ).
+But its `history[]` has **no event code of any kind**, only a localized
+sentence, where the group leaf gives Italy a complete machine vocabulary. So
+status stays on the group leaf and history comes from `rstt030`, and the rows
+need no translation because `date`/`time`/`evtDscr` is the shape the group's
+own history builder already reads. Rows have no `evtNo`, so each event's
+`status` is `None` — a supported, neutral state, and the honest one.
+
+It **only ever fills a gap, never replaces**: an `rstt028` history carries
+per-event codes the national rows do not, so the group's own answer is kept
+whenever it exists. `type=NAT` is pinned unconditionally, because omitting it
+answers `400` with an HTML body — the shape the suite's rule says must never
+be read as a missing parcel, here produced by our own request. `rstt030` is
+published for `IT` alone; eleven other country paths answer `403`, so it is a
+better route for Italy and not a country-expansion lever.
 
 ### Capabilities are per country, not intersected
 
