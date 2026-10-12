@@ -42,6 +42,7 @@ custom_components/gls/
     ├── pl/              keyless national GET + Polish-text event map
     ├── es/              signed POST: __init__.py (transport) + signing.py (pure HMAC)
     ├── de/              bearer POST: __init__.py (transport) + session.py (lifecycle)
+    ├── fr/              reference -> AWB resolver only; France tracks on group/
     └── group/           pan-EU rstt028/rstt029 leaves + normalize + status map
 ```
 
@@ -67,6 +68,14 @@ no account-level list call to branch on.)
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
 | **ES / PT** | national signed JSON POST, postcode in the key | signed request | `async_get_parcel_es` |
 | **16 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
+
+France additionally consults a **second** endpoint, and is not tracked
+there — it still takes its status and mapping from the leaf it already
+shipped on:
+
+| Country | Second call | For | Entry point |
+|---|---|---|---|
+| **FR** | national `consignee-ws` | translating the alphanumeric reference into the numeric AWB, before the group call | `async_resolve_reference_fr` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
 in `const.py` holds 23 rows: `NL`, `CA`, `US`, `PL`, `DE`, `ES`, `PT`, and the group
@@ -367,6 +376,31 @@ is a deliberate divergence from PL and NL: those answer with the identifier the
 user holds, while Spain answers a 14-digit parcel barcode with a 10-digit
 `expeditionCode` — the shipment number, which the recipient never sees. Both
 resolve, and the per-parcel `unique_id` is built from this field.
+
+### France takes a second endpoint, and is tracked on neither of them
+
+France keeps its status, mapping and history semantics from the group leaf it
+already shipped on. The national surface is used for one narrow job, and it is
+**strictly additive** — a failure degrades to exactly the behaviour that
+shipped before, so it cannot regress a parcel that works today.
+
+French parcels present two identifier
+forms. The numeric AWB resolves on the group leaves; the 8-character
+alphanumeric reference a GLS France notification carries is rejected by both
+with `404 E206`/`E800`, because the group index has never held that form — so
+a user holding only that reference could not track at all. The national
+service indexes it *and returns the numeric AWB beside it*, so it is used as a
+translator: reference in, AWB out, and the AWB goes to the leaf. A plain
+numeric code never reaches the resolver, so it costs no extra request for
+anyone who works today. Three identifier forms come back in one reply and only
+`numeroGp` is the leaf's — picking another would look exactly like an outage.
+This does not overlap the shipped `E609` → `rstt029` fallback, which covers a
+*postcode* mismatch rather than an identifier form.
+
+A full French transport was considered and rejected: its own status
+vocabulary is one value wide (only `LIV` has been observed), so moving France
+onto it would risk the field that matters most for a payload that is otherwise
+no better.
 
 ### Capabilities are per country, not intersected
 

@@ -165,6 +165,21 @@ rows.
 agency scan and the van loading); the carrier states no order, and reversing
 them prints "Out for delivery" before "At delivery agency".
 
+**France is tracked on the group leaf and takes a second endpoint for one job
+only.** It is strictly additive — a failure degrades to exactly the
+pre-existing behaviour — and **it is not a transport**; don't "finish" it into
+one.
+- **`countries/fr/` translates, it does not track.** It resolves the
+  8-character alphanumeric reference both group leaves reject (`404
+  E206`/`E800`) into the numeric AWB they index. A plain numeric code **never**
+  reaches it, which is what keeps today's French parcels on today's path with
+  no extra request. Only `numeroGp` is the leaf's identifier — three forms come
+  back in one reply and picking another looks exactly like an outage. This is
+  **not** the shipped `E609` → `rstt029` fallback, which covers a postcode
+  mismatch. A full French transport was considered and **rejected**: its status
+  vocabulary is one value wide (`LIV` only). Don't re-propose it on payload
+  richness alone.
+
 **`CAPABILITIES_BY_VARIANT` holds one frozenset per country**
 (`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Poland"` /
 `"Spain"` / `"Other"`), **not** a single intersected

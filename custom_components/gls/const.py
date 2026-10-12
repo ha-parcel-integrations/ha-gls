@@ -169,13 +169,30 @@ GLS_ES_FIND_PATH = "/expeditions/find"
 # issued or revoked per user, and nothing about a hub changes it. Used only to
 # compute ``X-Signature`` -- see ``countries/es/signing.py`` for the scheme and
 # for why it must be recomputed on every attempt.
-GLS_ES_SIGNING_KEY = "gls"
+GLS_ES_SIGNING_KEY = 'gls'
 # The page identifies itself with this on every call.
 GLS_ES_AGENT = "pwa"
 # Pinned, never the user's HA locale: the status *sentences* are localized and
 # the ``incidence`` mapping reads one of them, so following the user's language
 # would silently stop the map matching. See ``countries/es/``.
 GLS_ES_ACCEPT_LANGUAGE = "en_US"
+
+# GLS France's national consignee service. This integration does NOT track
+# French parcels here — France stays on the pan-EU group leaf. It is used for
+# one narrow job the group leaves cannot do: resolving the 8-character
+# alphanumeric reference a GLS France notification carries, which both leaves
+# reject outright (404 E206/E800), into the numeric AWB they do index. The
+# reply carries both forms side by side, which is what makes the translation
+# possible. Keyless: no cookie, no token, and not even the portal's own
+# Origin/Referer headers.
+#
+# A 404 names the code that was requested ("No command found for code: X"),
+# which is the strongest form of semantic not-found this suite recognises —
+# it proves the service parsed the input rather than failing before it.
+GLS_FR_RESOLVE_URL = (
+    "https://public.infra-prod.prod.cloud.fr.gls-group.com"
+    "/consignee-ws/api/v1/command/public/codes/{reference}"
+)
 
 # GLS Germany has no keyless endpoint: every route on the national parcel
 # backend needs the anonymous bearer token ``countries/de/session.py`` mints

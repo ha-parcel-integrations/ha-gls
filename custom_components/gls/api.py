@@ -21,6 +21,7 @@ from .const import DEFAULT_COUNTRY, ES_COUNTRIES, GROUP_LEAF_COUNTRIES, GlsApiEr
 from .countries.ca import async_get_parcel_ca
 from .countries.de import async_get_parcel_de
 from .countries.es import async_get_parcel_es
+from .countries.fr import async_resolve_reference_fr, needs_resolving
 from .countries.group import async_get_parcel_group
 from .countries.nl import async_get_parcel_nl
 from .countries.pl import async_get_parcel_pl
@@ -85,11 +86,19 @@ class GlsApiClient:
         if self._country in ES_COUNTRIES:
             return await async_get_parcel_es(self._session, parcel_no, postal_code)
         if self._country in GROUP_LEAF_COUNTRIES:
+            awb = parcel_no
+            if self._country == "FR" and needs_resolving(parcel_no):
+                # France only: translate the alphanumeric reference a GLS
+                # France notification carries into the numeric AWB the group
+                # index actually holds. A plain numeric code never gets here,
+                # and a failed translation falls through with the original
+                # code, so this can only add successes. See ``countries/fr/``.
+                awb = await async_resolve_reference_fr(self._session, parcel_no) or parcel_no
             return await async_get_parcel_group(
                 self._session,
                 self._host,
                 self._group_locale,
-                parcel_no,
+                awb,
                 postal_code,
                 country=self._country,
             )

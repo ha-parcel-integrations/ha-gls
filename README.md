@@ -108,6 +108,10 @@ You can use either identifier GLS gives out: the long parcel number
 (e.g. `13290054100304`) or the short tracking ID (e.g. `00L1B3BX`). Find
 them in the GLS track & trace mail/SMS or on gls-info.nl.
 
+**France** — the 8-character reference in a GLS France notification or a
+`moncolis` link (e.g. `AB12CD34`) now works as well as the numeric parcel
+number, so you can paste whichever one you were given.
+
 **Spain and Portugal** — the delivery postal code is part of the lookup here,
 not just a hub setting: GLS Spain matches the number and the postal code
 together, so a parcel delivered to a different postal code than the hub's
