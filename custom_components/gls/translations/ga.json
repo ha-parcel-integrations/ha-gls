@@ -1,0 +1,196 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Socraigh GLS",
+        "description": "Roghnaigh an tír a seachadtar do phacáistí chuici agus an cód poist a mbíonn sé i gceist leis go hiondúil. Cuireann tú pacáistí leis tar éis an socrú.\n\nNach bhfuil do thír ar an liosta? [Iarr tír eile]({issue_url}).",
+        "data": {
+          "country": "Tír",
+          "postal_code": "Cód poist"
+        },
+        "data_description": {
+          "postal_code": "m.sh. {postcode_example}. Úsáidtear é mar sheoladh seachadta réamhshocraithe do na pacáistí a chuireann tú leis; i gcás Cheanada cuireann sé sonraí rianaithe breise ar fáil. Ní úsáideann rianú na Stát Aontaithe é."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Níorbh fhéidir teacht ar GLS. Seiceáil do nasc líonra.",
+      "invalid_parcel_no": "Ní cosúil gur uimhir phacáiste GLS ná aitheantas rianaithe é sin.",
+      "invalid_postcode": "Cuir isteach cód poist bailí don tír roghnaithe, m.sh. {postcode_example}.",
+      "de_registration_failed": "Níorbh fhéidir seisiún gan ainm le GLS Gearmáine a chlárú. Seiceáil do nasc líonra agus bain triail eile as."
+    },
+    "abort": {
+      "already_configured": "Tá mol GLS don chód poist seo socraithe cheana féin."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Roghanna GLS",
+        "sections": {
+          "parcels": {
+            "name": "Pacáistí",
+            "data": {
+              "add": "Cuir pacáiste leis",
+              "remove": "Bain pacáistí"
+            },
+            "data_description": {
+              "add": "Cuir isteach uimhir phacáiste GLS nó aitheantas rianaithe chun tosú ar é a rianú. Úsáideann sé cód poist an mhoil."
+            }
+          },
+          "delivered": {
+            "name": "Pacáistí seachadta",
+            "data": {
+              "delivered_filter_type": "Scag de réir",
+              "delivered_filter_amount": "Méid"
+            },
+            "data_description": {
+              "delivered_filter_type": "Taispeáin pacáistí a seachadadh sna X lá is déanaí, nó teorannaigh do na X is déanaí.",
+              "delivered_filter_amount": "Líon na laethanta nó na bpacáistí le taispeáint."
+            }
+          },
+          "history": {
+            "name": "Stair an phacáiste",
+            "data": {
+              "include_history": "Cuir stair na stádas san áireamh"
+            },
+            "data_description": {
+              "include_history": "Cuireann sé aitreabúid staire le gach pacáiste ina liostaítear gach athrú stádais (stampa ama, stádas, buntéacs). Múchta de réir réamhshocraithe."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Pacáistí",
+          "settings": "Socruithe"
+        }
+      },
+      "parcels": {
+        "title": "Bainistigh pacáistí",
+        "data": {
+          "tracking_codes": "Cóid rianaithe"
+        }
+      },
+      "settings": {
+        "title": "Socruithe",
+        "data": {
+          "delivered_filter_type": "Pacáistí seachadta: scag de réir",
+          "delivered_filter_amount": "Pacáistí seachadta: méid",
+          "include_history": "Cuir stair na stádas san áireamh"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Ní cosúil gur uimhir phacáiste GLS ná aitheantas rianaithe é sin.",
+      "already_tracked": "Tá an pacáiste sin á rianú cheana féin."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Ceanada",
+        "ch": "An Eilvéis",
+        "li": "Lichtinstéin",
+        "nl": "An Ísiltír",
+        "de": "An Ghearmáin",
+        "cz": "Poblacht na Seice",
+        "sk": "An tSlóvaic",
+        "at": "An Ostair",
+        "ie": "Éire",
+        "fr": "An Fhrainc",
+        "si": "An tSlóivéin",
+        "hr": "An Chróit",
+        "it": "An Iodáil",
+        "be": "An Bheilg",
+        "dk": "An Danmhairg",
+        "fi": "An Fhionlainn",
+        "hu": "An Ungáir",
+        "lu": "Lucsamburg",
+        "rs": "An tSeirbia",
+        "us": "Stáit Aontaithe Mheiriceá",
+        "pl": "An Pholainn",
+        "es": "An Spáinn",
+        "pt": "An Phortaingéil"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Laethanta",
+        "parcels": "Líon na bpacáistí"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Rian pacáiste",
+      "description": "Tosaigh ag rianú pacáiste GLS de réir a uimhreach.",
+      "fields": {
+        "tracking_code": {
+          "name": "Cód rianaithe",
+          "description": "Uimhir phacáiste GLS nó an aitheantas rianaithe."
+        },
+        "postal_code": {
+          "name": "Cód poist",
+          "description": "Cód poist an seachadta. Roghnaíonn sé an mol nuair atá níos mó ná ceann amháin socraithe; thairis sin úsáidtear an t-aon mhol atá ann."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Ná rian pacáiste a thuilleadh",
+      "description": "Stop ag rianú pacáiste GLS de réir a uimhreach.",
+      "fields": {
+        "tracking_code": {
+          "name": "Cód rianaithe",
+          "description": "An uimhir rianaithe GLS nach bhfuil le rianú a thuilleadh."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Cláraíodh pacáiste",
+      "parcel_status_changed": "D'athraigh stádas pacáiste",
+      "parcel_delivered": "Seachadadh pacáiste",
+      "parcel_delivery_time_changed": "D'athraigh am seachadta measta pacáiste"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Athnuaigh"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Seachadtaí"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Pacáistí ag teacht isteach",
+        "unit_of_measurement": "pacáistí"
+      },
+      "next_delivery": {
+        "name": "An chéad seachadadh eile"
+      },
+      "en_route_to_pickup_point": {
+        "name": "Ar an mbealach go ParcelShop",
+        "unit_of_measurement": "pacáistí"
+      },
+      "awaiting_pickup": {
+        "name": "Ag fanacht le bailiú",
+        "unit_of_measurement": "pacáistí"
+      },
+      "delivered_parcels": {
+        "name": "Pacáistí seachadta",
+        "unit_of_measurement": "pacáistí"
+      },
+      "last_update": {
+        "name": "An nuashonrú rathúil is déanaí"
+      },
+      "parcel": {
+        "name": "Pacáiste {barcode}"
+      }
+    }
+  }
+}
