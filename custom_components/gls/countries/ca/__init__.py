@@ -23,6 +23,10 @@ _STATUS_MAP = {
     "shipment created": ParcelStatus.REGISTERED,
     "information received": ParcelStatus.REGISTERED,
     "created": ParcelStatus.REGISTERED,
+    # The wire value is "Pickup"; "Picked Up" is the official guide's wording
+    # and has never been seen. Both mean collection from the sender — the scan
+    # lands a minute after "Shipment Created", before the terminal events.
+    "pickup": ParcelStatus.IN_TRANSIT,
     "picked up": ParcelStatus.IN_TRANSIT,
     "in transit": ParcelStatus.IN_TRANSIT,
     "on delivery": ParcelStatus.OUT_FOR_DELIVERY,

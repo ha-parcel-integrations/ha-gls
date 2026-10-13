@@ -76,6 +76,8 @@ def delivered_sample() -> dict:
     ("value", "expected"),
     [
         ("Shipment Created", ParcelStatus.REGISTERED),
+        ("Pickup", ParcelStatus.IN_TRANSIT),
+        ("Picked Up", ParcelStatus.IN_TRANSIT),
         ("In Transit", ParcelStatus.IN_TRANSIT),
         ("On Delivery", ParcelStatus.OUT_FOR_DELIVERY),
         ("Delivered", ParcelStatus.DELIVERED),
