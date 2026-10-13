@@ -191,6 +191,15 @@ to exactly the pre-existing behaviour — and **neither is a transport**; don't
   published for `IT` alone (eleven other paths `403`) — it is not a
   country-expansion lever.
 
+**`E800` is not absence, and Romania is why.** `rstt028` is keyed on the group
+`tuNo`; a Romanian label code carries one more check digit than that, so it
+answers `E800` on the detail leaf while `rstt029` resolves it by AWB alone.
+Both fall back to `rstt029`, and the `E800` warning fires **only when the
+fallback disagrees** — a genuinely absent parcel answers both leaves and must
+stay silent. **Don't "simplify" `E800` back to an immediate `None`**: that is
+what made Romanian parcels unfindable. The cost is one extra request per poll
+for a parcel that really is absent, which is accepted.
+
 **The group leaf reports its own coverage gaps, and that is deliberate.**
 `rstt028` is captured for CZ alone (`GROUP_RSTT028_CONFIRMED`), so a `200`
 from any other group country warns **once per country** with a pre-filled

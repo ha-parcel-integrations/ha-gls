@@ -147,23 +147,30 @@ def _warn_postcode_mismatch_once(parcel_no: str) -> None:
     )
 
 
-def _warn_e800_once(parcel_no: str) -> None:
-    """One-shot per parcel: an E800 on rstt028 for a parcel that may still be live.
+def _warn_e800_once(parcel_no: str, country: str) -> None:
+    """One-shot per parcel: ``rstt028`` said E800 but ``rstt029`` resolved it.
 
-    E800 usually means "this leaf does not carry the consignment", but one
-    Spanish code proved that isn't always true —
-    this is the mechanism that would justify widening the E609-only retry
-    trigger, so it stays a WARNING rather than silence.
+    E800 reads as "this leaf does not carry the consignment", and that is
+    what it usually means. One Spanish code proved it isn't always true, and
+    a real Romanian parcel showed why: ``rstt028`` is keyed on the group
+    ``tuNo``, so the longer code printed on an RO label answers E800 there
+    while ``rstt029`` resolves it by AWB alone (both forms resolve there, and
+    a wrong check digit resolves on neither). Reaching this warning means
+    status is live but history and weight are not, so it names that cost
+    rather than asking the user whether the parcel exists.
     """
     if parcel_no in _e800_warned:
         return
     _e800_warned.add(parcel_no)
+    finding = f"country={country} rstt028=E800 rstt029=200 (status only, no weight/history)"
     _LOGGER.warning(
-        "GLS's group leaf does not carry parcel %s — if this parcel is "
-        "genuinely on its way, please open an issue so we can check whether "
-        "a different lookup is needed: %s",
+        "GLS's detailed lookup does not recognise parcel %s, but its "
+        "overview lookup does — status will keep updating, while history "
+        "and weight stay empty for this parcel. Please open this pre-filled "
+        "issue and submit it (%s), or paste this line into one: %s",
         parcel_no,
-        _NEW_ISSUE_URL,
+        _coverage_issue_url(country, finding),
+        finding,
     )
 
 
@@ -455,15 +462,17 @@ async def async_get_parcel_group(
     """Fetch one group-leaf parcel's tracking details.
 
     ``rstt028`` is the only call per poll in the common case — it carries
-    everything ``rstt029`` does plus history, weight and references. Falls
-    back to ``rstt029`` only on an ``E609`` (AWB right, postcode wrong), so
-    a parcel with a stale stored postcode still shows its status. ``E206``
-    (malformed reference) reports as ``None``, the same "not found" signal
-    NL's ``204`` uses. ``E800`` (AWB not in the group index) also reports as
-    ``None`` but fires a one-shot WARNING first — it usually means absence,
-    but not always, and that WARNING is the
-    mechanism that would justify widening the retry trigger one day. Any
-    other non-2xx status raises
+    everything ``rstt029`` does plus history, weight and references. Two
+    errors fall back to ``rstt029``: an ``E609`` (AWB right, postcode wrong),
+    so a parcel with a stale stored postcode still shows its status, and an
+    ``E800`` (code not in this leaf's index), because that is not absence on
+    its own — the longer code on a Romanian label is not the ``tuNo``
+    ``rstt028`` indexes. The ``E800`` fallback keeps the one-shot WARNING,
+    but fires it only when ``rstt029`` disagrees: an absent parcel answers
+    both leaves and stays silent.
+
+    ``E206`` (malformed reference) reports as ``None``, the same "not found"
+    signal NL's ``204`` uses. Any other non-2xx status raises
     :class:`~...const.GlsApiError`; a non-JSON body raises
     :class:`GlsGroupMaintenanceError`.
     """
@@ -486,8 +495,16 @@ async def async_get_parcel_group(
             session, host, group_locale, parcel_no, country
         )
     if last_error == "E800":
-        _warn_e800_once(parcel_no)
-        return None
+        # Not absence on its own: ``rstt028`` is keyed on the group ``tuNo``,
+        # and a Romanian label code carries one more check digit than that,
+        # so it answers E800 here while ``rstt029`` resolves it. Prove
+        # absence on the AWB-only leaf before reporting it.
+        fallback = await _async_get_parcel_group_fallback(
+            session, host, group_locale, parcel_no, country
+        )
+        if fallback is not None:
+            _warn_e800_once(parcel_no, country)
+        return fallback
     if last_error:
         # E206 (malformed reference) — a semantic "we don't have this", not
         # a postcode problem.

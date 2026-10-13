@@ -234,13 +234,23 @@ raw_status/status pairing once, which is how the table grows.
 
 `rstt028` is the only call per poll in the common case — it carries everything
 `rstt029` does plus history, weight and references. `rstt029` is an AWB-only
-fallback used **only** on an `E609` (AWB right, postcode wrong), returning the
-same `progressBar` shape so status mapping is unaffected.
+fallback on **two** errors, returning the same `progressBar` shape so status
+mapping is unaffected:
 
-- **`E800`** means the AWB is not in the group index — the group equivalent of
-  NL's `204`. It usually means the leaf does not carry the consignment, but it
-  can also hit a parcel that is still live, so it warns once per parcel rather
-  than dropping it.
+- **`E609`** — AWB right, postcode wrong. The parcel still shows its status,
+  and the mismatch warns once per parcel.
+- **`E800`** — the code is not in `rstt028`'s index. On its own that is *not*
+  absence: `rstt028` is keyed on the group `tuNo`, and a Romanian label code
+  carries one more check digit than that, so it 404s there while `rstt029`
+  resolves it by AWB alone. So absence is proved on the fallback leaf before
+  it is reported, and the one-shot warning fires only when the two leaves
+  disagree — a genuinely absent parcel answers both and stays silent. That is
+  the group equivalent of NL's `204`.
+
+  Because the overview leaf carries no `history`, `infos` or `references`, a
+  parcel that reaches this path tracks its status but never gains weight or
+  history; the warning says so rather than asking the user whether the parcel
+  exists.
 **A detail leaf answering for an unconfirmed country is itself a finding.**
 `rstt028` is captured for `CZ` alone (`GROUP_RSTT028_CONFIRMED`), because the
 call needs the recipient's own postcode — research cannot supply one, only a

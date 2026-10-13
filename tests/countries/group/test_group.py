@@ -522,20 +522,60 @@ async def test_transport_strips_whitespace_from_postal_code():
     assert "postalCode=11000" in url
 
 
-async def test_transport_e800_returns_none_and_warns_once(caplog):
-    """E800 usually means absence — it stays a semantic "not found" — but
-    now fires a one-shot WARNING per parcel, since one Spanish code proved E800 isn't always absence."""
+async def test_transport_e800_absent_on_both_leaves_returns_none_silently(caplog):
+    """E800 plus an empty fallback is genuine absence — ``None``, and no
+    WARNING: nothing is wrong and there is nothing for the user to report."""
     session = _session_with(
         _get_ctx(404, '{"lastError":"E800","exceptionText":"x"}'),
+        _get_ctx(404, '{"lastError":"E000","exceptionText":"x"}'),
+    )
+    with caplog.at_level("WARNING"):
+        result = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
+    assert result is None
+    assert not any("does not recognise parcel" in m for m in caplog.messages)
+
+
+async def test_transport_e800_falls_back_to_rstt029_and_warns_once(caplog):
+    """An E800 is not absence on its own: a Romanian label code carries a
+    check digit the ``rstt028`` index does not, so it 404s there while
+    ``rstt029`` resolves it. The parcel must still track, and the WARNING
+    fires once per parcel to say history and weight will stay empty."""
+    fallback = {
+        "tuStatus": [
+            {
+                "tuNo": AWB,
+                "postalCode": "",
+                "owners": [],
+                "progressBar": captured_sample_cz()["progressBar"],
+            }
+        ]
+    }
+    session = _session_with(
         _get_ctx(404, '{"lastError":"E800","exceptionText":"x"}'),
+        _get_ctx(200, _json.dumps(fallback)),
+        _get_ctx(404, '{"lastError":"E800","exceptionText":"x"}'),
+        _get_ctx(200, _json.dumps(fallback)),
     )
     with caplog.at_level("WARNING"):
         first = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
         second = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
-    assert first is None
-    assert second is None
-    warnings = [m for m in caplog.messages if "does not carry parcel" in m]
+
+    assert first is not None and second is not None
+    assert first["tuNo"] == AWB
+
+    warnings = [m for m in caplog.messages if "does not recognise parcel" in m]
     assert len(warnings) == 1
+    # The warning carries the pre-filled coverage link, not the status template.
+    assert "template=country_coverage.yml" in warnings[0]
+    assert "rstt028=E800" in warnings[0]
+
+    # The fallback leaf carries no history/weight — normalize must report that
+    # as absent rather than failing.
+    parcel = normalize_parcel_group(
+        first, country="RO", parcel_no=AWB, include_history=True
+    )
+    assert parcel["weight"] is None
+    assert parcel["history"] == []
 
 
 async def test_rstt028_answering_for_an_unconfirmed_country_warns_once(caplog):
@@ -595,7 +635,7 @@ async def test_transport_e206_returns_none_without_e800_warning(caplog):
     with caplog.at_level("WARNING"):
         result = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
     assert result is None
-    assert not any("does not carry parcel" in m for m in caplog.messages)
+    assert not any("does not recognise parcel" in m for m in caplog.messages)
 
 
 async def test_transport_e609_falls_back_to_rstt029(caplog):
