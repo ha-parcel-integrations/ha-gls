@@ -22,6 +22,7 @@ import re
 import time
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote, urlencode
 
 import aiohttp
 
@@ -29,6 +30,7 @@ from ...const import (
     COUNTRIES,
     GLS_GROUP_RSTT028_URL,
     GLS_GROUP_RSTT029_URL,
+    GROUP_RSTT028_CONFIRMED,
     HISTORY_MAX_EVENTS,
     TRACKING_URL,
     GlsApiError,
@@ -42,6 +44,34 @@ _NEW_ISSUE_URL = (
     "https://github.com/ha-parcel-integrations/ha-gls/issues/new"
     "?template=unrecognised_status.yml"
 )
+
+# Reports about which *country* a leaf answered for go to their own template,
+# not the status one — the question is coverage, not an unmapped code.
+_COVERAGE_ISSUE_URL = (
+    "https://github.com/ha-parcel-integrations/ha-gls/issues/new"
+    "?template=country_coverage.yml"
+)
+
+
+def _coverage_issue_url(country: str, finding: str) -> str:
+    """Build a ``country_coverage.yml`` link with the report already written.
+
+    GitHub's issue forms prefill from query parameters keyed on each field's
+    ``id``, so the user lands on a form they only have to submit — far more
+    reports arrive that way than from "please tell us what you saw".
+
+    Carries the country and the observed field summary only. The tracking
+    number is deliberately **not** prefilled: the template asks for it in its
+    own optional field, where the user can decline, and none of these findings
+    need it to be useful.
+    """
+    # ``quote_via=quote`` so spaces encode as %20 rather than "+": both are
+    # legal in a query string, but only one of them is unambiguous in every
+    # parser that might sit between the log line and the issue form.
+    params = urlencode(
+        {"country": country, "finding": finding}, quote_via=quote
+    )
+    return f"{_COVERAGE_ISSUE_URL}&{params}"
 
 
 class GlsGroupMaintenanceError(GlsApiError):
@@ -83,7 +113,9 @@ _unexpected_info_type_logged: set[str] = set()
 _e800_warned: set[str] = set()
 _type_retry_warned: set[str] = set()
 _unexpected_5xx_warned = False
-
+# Keyed on the *country*, not the parcel: the question it reports is about the
+# country's detail leaf, so a second parcel from the same country adds nothing.
+_rstt028_unconfirmed_warned: set[str] = set()
 
 def _warn_outage_once() -> None:
     """One-shot: the first time a group leaf answers with its maintenance page."""
@@ -132,6 +164,48 @@ def _warn_e800_once(parcel_no: str) -> None:
         "a different lookup is needed: %s",
         parcel_no,
         _NEW_ISSUE_URL,
+    )
+
+
+def _warn_rstt028_unconfirmed_once(country: str, body: dict[str, Any]) -> None:
+    """Report a detail leaf answering for a country it never had, once.
+
+    Nothing is wrong here — this is the good case. It is a WARNING anyway, and
+    deliberately: an INFO line is invisible in a default Home Assistant log,
+    and this is the one observation the project cannot make for itself. The
+    detail leaf needs the recipient's own postcode, so only the person
+    receiving the parcel can ever confirm it works, and for most group
+    countries nobody has. Reporting one turns a guess in the docs into a fact.
+
+    The summary names what the response actually carried, because "it answered"
+    and "it answered with history and weight" are different findings. No
+    tracking number and no address go into it.
+    """
+    if country in _rstt028_unconfirmed_warned:
+        return
+    _rstt028_unconfirmed_warned.add(country)
+    history = body.get("history") or []
+    # A presence check, not ``_extract_weight_kg`` — that one logs its own
+    # one-shot warnings as a side effect, and this line only needs to say
+    # whether the field was there at all.
+    has_weight = any(
+        (info or {}).get("type") == "WEIGHT" for info in body.get("infos") or []
+    )
+    finding = (
+        f"country={country} rstt028=200 "
+        f"history={len(history)} events "
+        f"weight={'yes' if has_weight else 'no'} "
+        f"references={'yes' if body.get('references') else 'no'}"
+    )
+    _LOGGER.warning(
+        "Good news worth reporting: GLS's detailed lookup answered for %s, "
+        "which has never been confirmed before — only someone receiving a "
+        "parcel there can confirm it, which is why you are seeing this. "
+        "Please open this pre-filled issue and submit it (%s), or paste this "
+        "line into one: %s",
+        country,
+        _coverage_issue_url(country, finding),
+        finding,
     )
 
 
@@ -422,6 +496,8 @@ async def async_get_parcel_group(
         if status >= 500:
             _warn_unexpected_5xx_once()
         raise GlsApiError(status)
+    if country not in GROUP_RSTT028_CONFIRMED:
+        _warn_rstt028_unconfirmed_once(country, body)
     await _async_fill_italian_history(session, host, parcel_no, country, body)
     return body
 

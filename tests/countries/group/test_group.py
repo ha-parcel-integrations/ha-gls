@@ -48,6 +48,7 @@ def _reset_one_shot_state():
         group_module._weight_format_logged.clear()
         group_module._unexpected_info_type_logged.clear()
         group_module._e800_warned.clear()
+        group_module._rstt028_unconfirmed_warned.clear()
         group_module._type_retry_warned.clear()
         group_module._unexpected_5xx_warned = False
 
@@ -481,6 +482,18 @@ def _get_ctx(status: int, text: str = "") -> MagicMock:
     return ctx
 
 
+def _get_json_ctx(status: int, payload: object) -> MagicMock:
+    """A context for the ``rstt030`` leaf, which reads ``response.json()``
+    rather than ``response.text()`` like the group leaves do."""
+    response = AsyncMock()
+    response.status = status
+    response.json = AsyncMock(return_value=payload)
+    ctx = MagicMock()
+    ctx.__aenter__ = AsyncMock(return_value=response)
+    ctx.__aexit__ = AsyncMock(return_value=False)
+    return ctx
+
+
 def _session_with(*responses: MagicMock) -> MagicMock:
     session = MagicMock()
     session.get = MagicMock(side_effect=list(responses))
@@ -523,6 +536,58 @@ async def test_transport_e800_returns_none_and_warns_once(caplog):
     assert second is None
     warnings = [m for m in caplog.messages if "does not carry parcel" in m]
     assert len(warnings) == 1
+
+
+async def test_rstt028_answering_for_an_unconfirmed_country_warns_once(caplog):
+    """The detail leaf needs the recipient's own postcode, so only a real user
+    can confirm it works for their country. That confirmation is the one thing
+    the project cannot observe for itself, so it is a WARNING (an INFO would
+    be invisible) carrying a pre-filled issue link."""
+    body = captured_sample_cz()
+    session = _session_with(
+        _get_ctx(200, _json.dumps(body)),
+        _get_ctx(200, _json.dumps(body)),
+    )
+    with caplog.at_level("WARNING"):
+        await async_get_parcel_group(session, HOST, "AT/en", AWB, "1010", country="AT")
+        await async_get_parcel_group(session, HOST, "AT/en", AWB, "1010", country="AT")
+
+    hits = [m for m in caplog.messages if "detailed lookup answered for" in m]
+    assert len(hits) == 1
+    message = hits[0]
+    # The pre-filled link and the copyable line must both carry the finding.
+    assert "template=country_coverage.yml" in message
+    assert "country=AT" in message
+    assert "history=" in message and "weight=" in message
+    # Never the tracking number — the issue template asks for that separately.
+    assert AWB not in message
+
+
+async def test_rstt028_does_not_warn_for_an_already_confirmed_country(caplog):
+    """CZ is the one group country whose detail leaf is captured, so it must
+    stay silent — the list is what switches the warning off."""
+    session = _session_with(_get_ctx(200, _json.dumps(captured_sample_cz())))
+    with caplog.at_level("WARNING"):
+        await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE, country="CZ")
+    assert not any("detailed lookup answered for" in m for m in caplog.messages)
+
+
+async def test_rstt028_coverage_warning_is_not_fired_by_the_fallback(caplog):
+    """Only a real ``rstt028`` 200 is a confirmation. The fallback leaf is the
+    one we already know works everywhere, so it must not claim one."""
+    fallback = {
+        "tuStatus": [
+            {"tuNo": AWB, "postalCode": "", "owners": [],
+             "progressBar": captured_sample_cz()["progressBar"]}
+        ]
+    }
+    session = _session_with(
+        _get_ctx(404, '{"lastError":"E609"}'),
+        _get_ctx(200, _json.dumps(fallback)),
+    )
+    with caplog.at_level("WARNING"):
+        await async_get_parcel_group(session, HOST, "AT/en", AWB, "1010", country="AT")
+    assert not any("detailed lookup answered for" in m for m in caplog.messages)
 
 
 async def test_transport_e206_returns_none_without_e800_warning(caplog):

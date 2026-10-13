@@ -1,0 +1,74 @@
+name: 🌍 Country lookup report
+description: The integration logged a warning asking you to report what GLS answered for your country.
+title: "[coverage] "
+labels: ["country-coverage"]
+assignees:
+  - peter-mdf
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks — this one genuinely needs you.
+
+        GLS's pan-EU tracker has two lookups. The **overview** one works
+        everywhere and gives the parcel's status. The **detailed** one also
+        carries history, weight and the sender's reference, but it needs the
+        recipient's own postal code — so it can only ever be confirmed by
+        someone who actually receives a parcel in that country.
+
+        That is why the integration warned you: it saw something worth
+        recording, and nobody else can record it. Everything below should
+        already be filled in from the link you clicked — **no personal data
+        is involved**, just a country and which fields came back.
+  - type: input
+    id: country
+    attributes:
+      label: Country
+      description: Prefilled from the warning.
+      placeholder: "e.g. AT"
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: What the integration observed
+      description: Prefilled from the warning — leave it exactly as it is.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: tracking_code
+    attributes:
+      label: The tracking number (optional)
+      description: |
+        Only if you are comfortable sharing it, and only while the parcel is
+        still in transit. It lets the exact response be re-read rather than
+        guessed, which usually saves a round of questions. A delivered
+        parcel's number is no longer useful, so feel free to leave this empty.
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      placeholder: "e.g. 1.14.0"
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "e.g. 2026.7.0"
+  - type: markdown
+    attributes:
+      value: |
+        ### 💡 Even better: attach a diagnostics file
+
+        Diagnostics show the exact payload behind the warning, which settles
+        in one step what the fields above can only hint at.
+
+        1. In Home Assistant, open **Settings → Devices & services**.
+        2. Open this integration, then click the **⋮** (three dots) on its entry.
+        3. Choose **Download diagnostics**.
+        4. Open the file and check it before attaching. Home Assistant redacts
+           known personal fields, but that list is per-integration and can
+           miss something an API happens to return in an unlisted place (a
+           name, an address, a link containing a tracking number). Please
+           hand-redact anything that still looks personal.
+        5. Drag the file onto this issue to attach it.

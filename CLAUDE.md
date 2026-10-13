@@ -191,6 +191,17 @@ to exactly the pre-existing behaviour — and **neither is a transport**; don't
   published for `IT` alone (eleven other paths `403`) — it is not a
   country-expansion lever.
 
+**The group leaf reports its own coverage gaps, and that is deliberate.**
+`rstt028` is captured for CZ alone (`GROUP_RSTT028_CONFIRMED`), so a `200`
+from any other group country warns **once per country** with a pre-filled
+`country_coverage.yml` link. It is a WARNING although nothing is wrong: an
+INFO is invisible in a default HA log, and only someone receiving a parcel in
+that country can ever confirm the detail leaf — the call needs their own
+postcode. **Add the country to `GROUP_RSTT028_CONFIRMED` when a report lands**;
+that is the off switch, not a log-level change. Neither this warning nor the
+`E800` one prefills the tracking number — the template asks for it in its own
+optional field, where the user can decline.
+
 **`CAPABILITIES_BY_VARIANT` holds one frozenset per country**
 (`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Poland"` /
 `"Spain"` / `"Other"`), **not** a single intersected

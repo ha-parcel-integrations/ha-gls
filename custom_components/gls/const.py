@@ -596,6 +596,21 @@ GROUP_LEAF_COUNTRIES = frozenset(
      "SI", "HR", "IT"}
 )
 
+# Group-leaf countries whose ``rstt028`` — the *detail* leaf, the only one
+# carrying history/weight/references — has actually been seen answering 200.
+# Everything else in GROUP_LEAF_COUNTRIES ships on the confirmed overview leaf
+# with its detail half unproven: the call needs the recipient's own postcode,
+# which research cannot supply and only a real user has.
+#
+# So ``countries/group/`` warns once per country when a detail leaf answers for
+# a country that is *not* in here, asking the user to report it. Add the
+# country here when that report lands (and move its fields out of
+# PENDING_CAPABILITIES_BY_VARIANT if they graduated) — that is what switches
+# the warning off. Romania is the counter-example worth remembering: its
+# ``rstt028`` is confirmed *unreachable* with the code off the label, so it
+# will never arrive here by that route.
+GROUP_RSTT028_CONFIRMED = frozenset({"CZ"})
+
 # Linked from the setup form so users can ask for a country we don't cover
 # yet. Country/carrier requests go through the organisation discussion (the
 # suite's standard "how a carrier arrives" channel), never a direct issue —

@@ -241,6 +241,17 @@ same `progressBar` shape so status mapping is unaffected.
   NL's `204`. It usually means the leaf does not carry the consignment, but it
   can also hit a parcel that is still live, so it warns once per parcel rather
   than dropping it.
+**A detail leaf answering for an unconfirmed country is itself a finding.**
+`rstt028` is captured for `CZ` alone (`GROUP_RSTT028_CONFIRMED`), because the
+call needs the recipient's own postcode — research cannot supply one, only a
+real user has it. So a `200` from a country outside that set warns once per
+country, with a summary of what the body carried (`history=n events`,
+`weight=yes|no`, `references=yes|no`) and a **pre-filled**
+`country_coverage.yml` issue link. It is a WARNING despite being good news:
+an INFO line is invisible in a default HA log, and this is the one observation
+the project cannot make for itself. Add the country to
+`GROUP_RSTT028_CONFIRMED` when the report lands — that is what switches the
+warning off.
 - **The maintenance page is an HTML `200`**, indistinguishable from a real
   response by status code alone, so a non-JSON body raises
   `GlsGroupMaintenanceError` (a `GlsApiError` subclass) and warns once.
