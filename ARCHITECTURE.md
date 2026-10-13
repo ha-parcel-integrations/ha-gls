@@ -251,6 +251,14 @@ mapping is unaffected:
   parcel that reaches this path tracks its status but never gains weight or
   history; the warning says so rather than asking the user whether the parcel
   exists.
+Both fallbacks run through `_async_fallback_with_italian_history`, not
+`_async_get_parcel_group_fallback` directly, so Italy's `rstt030` fill reaches
+them. That matters most on `E609`: `rstt030` needs no postcode, so a parcel
+that fell back *because* its postcode mismatched is exactly the one the fill
+can still help — and it used to be the one that missed out, because the fill
+only ran on `rstt028`'s success path. Every other country is unaffected; the
+fill returns immediately unless `country == "IT"`.
+
 **A detail leaf answering for an unconfirmed country is itself a finding.**
 `rstt028` is captured for `CZ` alone (`GROUP_RSTT028_CONFIRMED`), because the
 call needs the recipient's own postcode — research cannot supply one, only a

@@ -491,7 +491,7 @@ async def async_get_parcel_group(
     last_error = body.get("lastError")
     if last_error == "E609":
         _warn_postcode_mismatch_once(parcel_no)
-        return await _async_get_parcel_group_fallback(
+        return await _async_fallback_with_italian_history(
             session, host, group_locale, parcel_no, country
         )
     if last_error == "E800":
@@ -499,7 +499,7 @@ async def async_get_parcel_group(
         # and a Romanian label code carries one more check digit than that,
         # so it answers E800 here while ``rstt029`` resolves it. Prove
         # absence on the AWB-only leaf before reporting it.
-        fallback = await _async_get_parcel_group_fallback(
+        fallback = await _async_fallback_with_italian_history(
             session, host, group_locale, parcel_no, country
         )
         if fallback is not None:
@@ -516,6 +516,30 @@ async def async_get_parcel_group(
     if country not in GROUP_RSTT028_CONFIRMED:
         _warn_rstt028_unconfirmed_once(country, body)
     await _async_fill_italian_history(session, host, parcel_no, country, body)
+    return body
+
+
+async def _async_fallback_with_italian_history(
+    session: aiohttp.ClientSession,
+    host: str,
+    group_locale: str,
+    parcel_no: str,
+    country: str,
+) -> dict[str, Any] | None:
+    """``rstt029``, then Italy's history fill — the pairing both leaves need.
+
+    The fallback leaf carries no history at all, which is exactly the gap
+    ``rstt030`` exists to close, and ``rstt030`` needs no postcode. So an
+    Italian parcel that falls back *because* its postcode does not match is
+    the case that benefits most, and it used to be the one case that missed
+    out: the fill only ran on ``rstt028``'s success path. Every other country
+    is unaffected — the fill returns immediately unless ``country == "IT"``.
+    """
+    body = await _async_get_parcel_group_fallback(
+        session, host, group_locale, parcel_no, country
+    )
+    if body is not None:
+        await _async_fill_italian_history(session, host, parcel_no, country, body)
     return body
 
 

@@ -630,6 +630,90 @@ async def test_rstt028_coverage_warning_is_not_fired_by_the_fallback(caplog):
     assert not any("detailed lookup answered for" in m for m in caplog.messages)
 
 
+async def test_italian_history_fills_on_the_fallback_path(caplog):
+    """Italy's ``rstt030`` needs no postcode, so a parcel that fell back
+    *because* its postcode mismatched is the case that benefits most — and it
+    used to be the one case that missed out, because the fill only ran on
+    ``rstt028``'s success path."""
+    fallback = {
+        "tuStatus": [
+            {
+                "tuNo": AWB,
+                "postalCode": "",
+                "owners": [],
+                "progressBar": captured_sample_cz()["progressBar"],
+            }
+        ]
+    }
+    rows = {
+        "tuStatus": [
+            {
+                "tuNo": AWB,
+                "history": [
+                    {"date": "2026-10-13", "time": "09:00:00", "evtDscr": "Delivered."}
+                ],
+            }
+        ]
+    }
+    session = _session_with(
+        _get_ctx(404, '{"lastError":"E609"}'),
+        _get_ctx(200, _json.dumps(fallback)),
+        _get_json_ctx(200, rows),
+    )
+    body = await async_get_parcel_group(
+        session, HOST, "IT/en", AWB, "20121", country="IT"
+    )
+    urls = [call[0][0] for call in session.get.call_args_list]
+    assert "rstt030" in urls[2]
+    assert len(body["history"]) == 1
+
+
+async def test_italian_history_fill_also_runs_on_the_e800_fallback(caplog):
+    """The E800 route reaches the same fallback, so it must reach the same
+    fill — otherwise widening E800 would have created a second blind spot."""
+    fallback = {
+        "tuStatus": [
+            {"tuNo": AWB, "postalCode": "", "owners": [],
+             "progressBar": captured_sample_cz()["progressBar"]}
+        ]
+    }
+    rows = {
+        "tuStatus": [
+            {
+                "tuNo": AWB,
+                "history": [
+                    {"date": "2026-10-13", "time": "09:00:00", "evtDscr": "Delivered."}
+                ],
+            }
+        ]
+    }
+    session = _session_with(
+        _get_ctx(404, '{"lastError":"E800"}'),
+        _get_ctx(200, _json.dumps(fallback)),
+        _get_json_ctx(200, rows),
+    )
+    body = await async_get_parcel_group(
+        session, HOST, "IT/en", AWB, "20121", country="IT"
+    )
+    assert len(body["history"]) == 1
+
+
+async def test_fallback_path_skips_the_italian_fill_for_other_countries():
+    """The fill is Italy-only — no other country may pay for an extra call."""
+    fallback = {
+        "tuStatus": [
+            {"tuNo": AWB, "postalCode": "", "owners": [],
+             "progressBar": captured_sample_cz()["progressBar"]}
+        ]
+    }
+    session = _session_with(
+        _get_ctx(404, '{"lastError":"E609"}'),
+        _get_ctx(200, _json.dumps(fallback)),
+    )
+    await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE, country="CZ")
+    assert len(session.get.call_args_list) == 2
+
+
 async def test_transport_e206_returns_none_without_e800_warning(caplog):
     session = _session_with(_get_ctx(404, '{"lastError":"E206","exceptionText":"x"}'))
     with caplog.at_level("WARNING"):
@@ -780,6 +864,7 @@ async def test_type_retry_preferred_first_hit_no_warning(caplog):
     session = _session_with(
         _get_ctx(404, '{"lastError":"E609"}'),  # primary -> fallback
         _get_ctx(200, _fallback_ok_body()),  # type=NAT hits immediately
+        _get_json_ctx(200, {"tuStatus": []}),  # rstt030 fill, nothing to add
     )
     with caplog.at_level("WARNING"):
         body = await async_get_parcel_group(
@@ -942,8 +1027,13 @@ async def test_italy_group_leaf_end_to_end_needs_type_nat():
         awb, "20121", country="IT",
     )
     assert body["tuNo"] == "M4 663093258"
-    assert len(session.get.call_args_list) == 2  # no wasted second attempt
-    fallback_url = session.get.call_args_list[1][0][0]
+    urls = [call[0][0] for call in session.get.call_args_list]
+    # Two calls: no wasted second type= attempt, and no rstt030 fill either —
+    # this fallback body already carries history, and the fill never replaces
+    # one. That rule has to hold on the fallback path too, not just rstt028's.
+    assert len(urls) == 2
+    assert not any("rstt030" in u for u in urls)
+    fallback_url = urls[1]
     assert "type=NAT" in fallback_url
 
     parcel = normalize_parcel_group(body, country="IT", parcel_no=awb)

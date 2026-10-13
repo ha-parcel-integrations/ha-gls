@@ -211,6 +211,12 @@ that is the off switch, not a log-level change. Neither this warning nor the
 `E800` one prefills the tracking number — the template asks for it in its own
 optional field, where the user can decline.
 
+**Both `rstt029` fallbacks go through `_async_fallback_with_italian_history`,
+never `_async_get_parcel_group_fallback` directly.** `rstt030` needs no
+postcode, so an Italian parcel that fell back *because* its postcode
+mismatched is the case it can still help; calling the raw fallback skips the
+fill and silently drops that history.
+
 **`CAPABILITIES_BY_VARIANT` holds one frozenset per country**
 (`"Netherlands"` / `"Germany"` / `"Canada"` / `"United States"` / `"Poland"` /
 `"Spain"` / `"Other"`), **not** a single intersected
