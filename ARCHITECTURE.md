@@ -68,7 +68,7 @@ no account-level list call to branch on.)
 | **PL** | national GET, no postcode | keyless | `async_get_parcel_pl` |
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
 | **ES / PT** | national signed JSON POST, postcode in the key | signed request | `async_get_parcel_es` |
-| **16 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
+| **17 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
 Two countries additionally consult a **second** endpoint, and neither of them
 is tracked there — both still take their status and mapping from the leaf
@@ -251,6 +251,7 @@ mapping is unaffected:
   parcel that reaches this path tracks its status but never gains weight or
   history; the warning says so rather than asking the user whether the parcel
   exists.
+
 Both fallbacks run through `_async_fallback_with_italian_history`, not
 `_async_get_parcel_group_fallback` directly, so Italy's `rstt030` fill reaches
 them. That matters most on `E609`: `rstt030` needs no postcode, so a parcel

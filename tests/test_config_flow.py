@@ -495,8 +495,8 @@ def _country_label_block(payload: dict) -> dict | None:
 def test_every_country_has_a_dropdown_label(path):
     """A country in ``COUNTRIES`` with no label shows the raw option key
     ("es" instead of "Spain") in the setup dropdown, because the selector's
-    option values *are* the translation keys. Adding a country touches eleven
-    files, so this asserts the set rather than trusting the edit."""
+    option values *are* the translation keys. Adding a country touches every
+    translation file, so this asserts the set rather than trusting the edit."""
     labels = _country_label_block(json.loads(path.read_text(encoding="utf-8")))
     assert labels is not None, f"{path.name} has no country options block"
     assert set(labels) == {code.lower() for code in COUNTRIES}

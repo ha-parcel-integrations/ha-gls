@@ -117,6 +117,7 @@ _unexpected_5xx_warned = False
 # country's detail leaf, so a second parcel from the same country adds nothing.
 _rstt028_unconfirmed_warned: set[str] = set()
 
+
 def _warn_outage_once() -> None:
     """One-shot: the first time a group leaf answers with its maintenance page."""
     global _outage_warned

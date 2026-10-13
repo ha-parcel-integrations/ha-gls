@@ -1,6 +1,6 @@
 # Working in this repository
 
-Home Assistant custom integration for **GLS** parcel tracking (23 countries).
+Home Assistant custom integration for **GLS** parcel tracking (24 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
 doubt**. Account-less (user-entered tracking codes). No DTO layer.
@@ -174,11 +174,11 @@ to exactly the pre-existing behaviour — and **neither is a transport**; don't
   E206`/`E800`) into the numeric AWB they index. A plain numeric code **never**
   reaches it, which is what keeps today's French parcels on today's path with
   no extra request. Only `numeroGp` is the leaf's identifier — three forms come
-  back in one reply and picking another looks exactly like an outage. This is
-  **not** the shipped `E609` → `rstt029` fallback, which covers a postcode
-  mismatch. A full French transport was considered and **rejected**: its status
-  vocabulary is one value wide (`LIV` only). Don't re-propose it on payload
-  richness alone.
+  back in one reply and picking another looks exactly like an outage. This
+  runs **before** the group call, keyed on the code's shape — it is not one of
+  the two response-driven `rstt029` fallbacks (`E609`, `E800`). A full French
+  transport was considered and **rejected**: its status vocabulary is one value
+  wide (`LIV` only). Don't re-propose it on payload richness alone.
 - **`countries/it/` supplies history only, and only fills a gap.** Italy keeps
   `progressBar.statusInfo` — a complete machine vocabulary — because
   `rstt030`'s history carries **no event code at all**, only a localized
@@ -199,6 +199,14 @@ fallback disagrees** — a genuinely absent parcel answers both leaves and must
 stay silent. **Don't "simplify" `E800` back to an immediate `None`**: that is
 what made Romanian parcels unfindable. The cost is one extra request per poll
 for a parcel that really is absent, which is accepted.
+
+Consequence for RO: a parcel added with the label code tracks its status but
+never gains `weight` or `history`, because the overview leaf carries neither.
+Normalising the code to the 11-digit `tuNo` would recover both, but that is
+**unverified** — no RO `rstt028` has ever returned `200` here (we have no RO
+delivery postcode, and `rstt028` rejects a malformed one with a `400` on
+`zipcode` rather than a `lastError`). Don't ship that normalisation on
+inference; it needs one real RO parcel with its postcode.
 
 **The group leaf reports its own coverage gaps, and that is deliberate.**
 `rstt028` is captured for CZ alone (`GROUP_RSTT028_CONFIRMED`), so a `200`

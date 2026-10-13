@@ -46,7 +46,7 @@ KNOWN_CAPABILITIES = frozenset(
 #                  capture) and there is no delivery-window field either;
 #                  pickup_point, url and history still populate.
 #   Other        — the pan-EU group-leaf backend (BE, CH, CZ, DK, FI, HU, SK,
-#                  AT, IE, FR, LU, RS, SI, HR and IT all route through it —
+#                  AT, IE, FR, LU, RS, SI, HR, IT and RO all route through it —
 #                  countries/group/). Populates
 #                  weight (infos[] WEIGHT) and url/history, but not
 #                  dimensions, delivery_window or pickup_point — the leaf
@@ -56,7 +56,10 @@ KNOWN_CAPABILITIES = frozenset(
 #                  comes from rstt028, which is confirmed on the wire for
 #                  CZ only as of the AT/IE/FR/SI/HR/IT rollout — see each
 #                  row's release notes for which countries' rstt028 is
-#                  still unverified.
+#                  still unverified. Romania is the one row where it is
+#                  confirmed *unreachable* with the code off the label: that
+#                  form answers E800 there, so an RO parcel added that way
+#                  shows status without weight or history.
 #   United States — the public summary response has no weight, dimensions,
 #                  pickup-point or ETA-window field, so only url (the generic
 #                  fallback link) and history (transitDetails[]) populate.
@@ -577,6 +580,18 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "https://gls-group.eu/RS/sr/pracenje-paketa/?match={parcel_no}"
         ),
     },
+    "RO": {
+        "host": "gls-group.com",
+        "group_locale": "RO/en",
+        # Six digits, and the one group row whose regex is also enforced
+        # server-side: ``rstt028`` answers 400 ``{"attribute": "zipcode"}``
+        # on an empty or malformed value instead of a ``lastError``.
+        "postcode_regex": r"^\d{6}$",
+        "postcode_example": "010011",
+        "tracking_url": (
+            "https://gls-group.com/RO/ro/urmarire-colet/?match={parcel_no}"
+        ),
+    },
 }
 
 # Every ``COUNTRIES`` row served by the signed Spanish consignee transport
@@ -593,7 +608,7 @@ ES_COUNTRIES = frozenset({"ES", "PT"})
 # a ``COUNTRIES`` row plus one more entry here.
 GROUP_LEAF_COUNTRIES = frozenset(
     {"BE", "CH", "CZ", "DK", "FI", "HU", "SK", "AT", "IE", "FR", "LI", "LU", "RS",
-     "SI", "HR", "IT"}
+     "SI", "HR", "IT", "RO"}
 )
 
 # Group-leaf countries whose ``rstt028`` — the *detail* leaf, the only one

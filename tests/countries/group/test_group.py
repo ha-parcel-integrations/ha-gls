@@ -982,6 +982,7 @@ def _group_shaped_fixture(country: str, awb: str, *, status_info: str = "DELIVER
         ("RS", "RSTEST00001", "11000"),
         ("SI", "SITEST00001", "1000"),
         ("HR", "HRTEST00001", "10000"),
+        ("RO", "ROTEST00001", "010011"),
     ],
 )
 async def test_group_leaf_country_end_to_end(country, awb, postal_code):
