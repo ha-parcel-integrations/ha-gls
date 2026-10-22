@@ -1,8 +1,9 @@
 """GLS parcel tracker custom component for Home Assistant."""
+
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
+import logging
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -49,7 +50,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     # then create a second hub and move the relevant codes there.
     old_parcels = entry.options.get(CONF_PARCELS, [])
     legacy_postcode = postal_code or next(
-        (parcel.get(CONF_POSTAL_CODE) for parcel in old_parcels if parcel.get(CONF_POSTAL_CODE)),
+        (
+            parcel.get(CONF_POSTAL_CODE)
+            for parcel in old_parcels
+            if parcel.get(CONF_POSTAL_CODE)
+        ),
         None,
     )
     normalized_parcels = [
@@ -116,7 +121,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     # it with backoff.
     await coordinator.async_config_entry_first_refresh()
 
-    entry.runtime_data = GlsData(client=client, coordinator=coordinator, de_session=de_session)
+    entry.runtime_data = GlsData(
+        client=client, coordinator=coordinator, de_session=de_session
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

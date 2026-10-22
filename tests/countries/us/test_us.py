@@ -1,4 +1,5 @@
 """Tests for the GLS US transport and mapping."""
+
 import logging
 from unittest.mock import AsyncMock, MagicMock
 
@@ -220,7 +221,10 @@ def test_sentinel_dates_never_make_a_record_look_current():
             },
             ParcelStatus.IN_TRANSIT,
         ),
-        ({"status": "ON THE WAY", "shipDate": "2026-09-07T00:00:00"}, ParcelStatus.REGISTERED),
+        (
+            {"status": "ON THE WAY", "shipDate": "2026-09-07T00:00:00"},
+            ParcelStatus.REGISTERED,
+        ),
         ({"status": "ON THE WAY"}, ParcelStatus.UNKNOWN),
     ],
 )

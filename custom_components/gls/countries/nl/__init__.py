@@ -7,11 +7,12 @@ this module by ``CONF_COUNTRY``. Packaged as ``countries/nl/`` for symmetry
 with ``countries/de/`` rather than because NL needs an extra submodule of its
 own — unlike DE, NL has no lifecycle module (no ``session.py`` here).
 """
+
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import logging
-from datetime import datetime
 from typing import Any
 
 import aiohttp
@@ -81,11 +82,11 @@ async def async_get_parcel_nl(
 # GLS numeric ``state`` → canonical ParcelStatus. GLS uses the same code on
 # the top-level parcel and on each history scan, so one map drives both.
 _STATE_MAP: dict[int, ParcelStatus] = {
-    0: ParcelStatus.REGISTERED,        # Aangekondigd bij GLS
-    1: ParcelStatus.IN_TRANSIT,        # Pakket ontvangen door GLS
-    2: ParcelStatus.IN_TRANSIT,        # Aangekomen op GLS depot
+    0: ParcelStatus.REGISTERED,  # Aangekondigd bij GLS
+    1: ParcelStatus.IN_TRANSIT,  # Pakket ontvangen door GLS
+    2: ParcelStatus.IN_TRANSIT,  # Aangekomen op GLS depot
     3: ParcelStatus.OUT_FOR_DELIVERY,  # Onderweg - geladen voor aflevering
-    4: ParcelStatus.DELIVERED,         # Afgeleverd
+    4: ParcelStatus.DELIVERED,  # Afgeleverd
 }
 
 # Points at the pre-filled issue template rather than a blank form, so a

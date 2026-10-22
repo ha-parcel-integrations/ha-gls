@@ -9,8 +9,10 @@ never been seen on the wire, and the derivation
 production behaviour — the maintainer's explicit build-past-the-gate
 decision.
 """
+
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -72,8 +74,7 @@ def delivered_sample_de(tracking_reference: str = "075624238061") -> dict:
         "deliveryEvents": [
             {
                 "description": (
-                    "Handing over the parcel to the recipient at the GLS "
-                    "ParcelShop."
+                    "Handing over the parcel to the recipient at the GLS ParcelShop."
                 ),
                 "locationDetails": None,
                 "coordinates": None,
@@ -233,7 +234,7 @@ def test_synthetic_enum_is_consulted_only_when_derivation_is_unknown(caplog):
 
 
 @pytest.mark.parametrize(
-    "value,expected",
+    ("value", "expected"),
     [
         ("DELIVERED", ParcelStatus.DELIVERED),
         ("NOT_DELIVERED", ParcelStatus.PROBLEM),
@@ -364,8 +365,7 @@ def test_raw_status_uses_non_empty_latest_status_text_directly():
     assert parcel["delivered_at"] == "2026-08-10T14:46:27+00:00"
     assert parcel["barcode"] == "REDACTED_TRACKING_REF"
     assert parcel["url"] == (
-        "https://gls-group.com/GROUP/en/parcel-tracking?match="
-        "REDACTED_PARCEL_NUMBER"
+        "https://gls-group.com/GROUP/en/parcel-tracking?match=REDACTED_PARCEL_NUMBER"
     )
 
 
@@ -507,8 +507,7 @@ def delivered_sample_de_full_lifecycle(
         "deliveryEvents": [
             {
                 "description": (
-                    "Das Paket wurde erfolgreich zugestellt (abgestellt / "
-                    "eingeworfen)."
+                    "Das Paket wurde erfolgreich zugestellt (abgestellt / eingeworfen)."
                 ),
                 "locationDetails": None,
                 "coordinates": None,
@@ -516,8 +515,7 @@ def delivered_sample_de_full_lifecycle(
             },
             {
                 "description": (
-                    "Das Paket wird voraussichtlich im Laufe des Tages "
-                    "zugestellt."
+                    "Das Paket wird voraussichtlich im Laufe des Tages zugestellt."
                 ),
                 "locationDetails": None,
                 "coordinates": None,
@@ -674,14 +672,12 @@ def test_no_time_frame_key_present_does_not_warn(caplog):
 # ---------------------------------------------------------------------------
 
 
-def _ctx(status: int, body: dict | None = None, headers: dict | None = None) -> MagicMock:
-    import json as _json
-
+def _ctx(
+    status: int, body: dict | None = None, headers: dict | None = None
+) -> MagicMock:
     response = AsyncMock()
     response.status = status
-    response.text = AsyncMock(
-        return_value=_json.dumps(body) if body is not None else ""
-    )
+    response.text = AsyncMock(return_value=json.dumps(body) if body is not None else "")
     response.headers = headers or {}
     ctx = MagicMock()
     ctx.__aenter__ = AsyncMock(return_value=response)
@@ -695,7 +691,7 @@ def _session_with(*responses: MagicMock) -> MagicMock:
     return session
 
 
-def _de_session(token: str = "tok") -> MagicMock:
+def _de_session(token: str = "tok") -> MagicMock:  # noqa: S107 - fake test value
     de_session = MagicMock()
     de_session.async_get_token = AsyncMock(return_value=token)
     de_session.async_handle_unauthorized = AsyncMock(return_value="tok-refreshed")
@@ -842,7 +838,10 @@ def test_confirmed_text_also_applies_via_the_newest_event_fallback():
     raw["deliveredAt"] = None
     raw["latestStatusText"] = ""
     raw["deliveryEvents"] = [
-        {"description": _OUT_FOR_DELIVERY_TEXT, "occurrenceDateTime": "2026-09-25 09:00:00"}
+        {
+            "description": _OUT_FOR_DELIVERY_TEXT,
+            "occurrenceDateTime": "2026-09-25 09:00:00",
+        }
     ]
     assert normalize_parcel_de(raw)["status"] == ParcelStatus.OUT_FOR_DELIVERY
 

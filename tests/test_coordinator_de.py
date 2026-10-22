@@ -5,8 +5,10 @@ NL behaviour is covered by test_coordinator.py and is untouched by any of
 this — every branch here is gated on ``country == "DE"`` and a non-``None``
 ``de_session``.
 """
+
 from unittest.mock import AsyncMock, MagicMock
 
+from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -32,7 +34,9 @@ def _reset_transport_cache():
     _known_parcel_numbers.clear()
 
 
-def _de_entry(parcels: list[dict], *, app_instance_id: str = "existing-id") -> MockConfigEntry:
+def _de_entry(
+    parcels: list[dict], *, app_instance_id: str = "existing-id"
+) -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
         unique_id="12345",
@@ -49,8 +53,6 @@ def _de_session(app_instance_id: str = "existing-id", *, reregistered: bool = Fa
 
 
 async def test_de_session_error_raises_update_failed(hass):
-    from homeassistant.helpers.update_coordinator import UpdateFailed
-
     entry = _de_entry([{CONF_PARCEL_NO: "075624238061", CONF_POSTAL_CODE: "00000"}])
     entry.add_to_hass(hass)
     client = AsyncMock()
@@ -138,9 +140,7 @@ async def test_nl_coordinator_never_touches_de_helpers(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id="1234AB",
-        options={
-            CONF_PARCELS: [{CONF_PARCEL_NO: "123", CONF_POSTAL_CODE: "1234AB"}]
-        },
+        options={CONF_PARCELS: [{CONF_PARCEL_NO: "123", CONF_POSTAL_CODE: "1234AB"}]},
     )
     entry.add_to_hass(hass)
     client = AsyncMock()

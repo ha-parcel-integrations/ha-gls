@@ -1,10 +1,11 @@
 """Tests for the GLS services (track_parcel / untrack_parcel)."""
+
 from unittest.mock import AsyncMock, patch
 
-import pytest
-import voluptuous as vol
 from homeassistant.exceptions import ServiceValidationError
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous as vol
 
 from custom_components.gls.const import (
     CONF_PARCEL_NO,
@@ -127,7 +128,9 @@ async def test_untrack_parcel_removes_from_options(hass):
         domain=DOMAIN,
         unique_id=DOMAIN,
         options={
-            CONF_PARCELS: [{CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "1234AB"}],
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "1234AB"}
+            ],
             CONF_POSTAL_CODE: "1234AB",
         },
     )
@@ -140,7 +143,10 @@ async def test_untrack_parcel_removes_from_options(hass):
         await hass.async_block_till_done()
 
         await hass.services.async_call(
-            DOMAIN, "untrack_parcel", {CONF_TRACKING_CODE: "9999999999999"}, blocking=True
+            DOMAIN,
+            "untrack_parcel",
+            {CONF_TRACKING_CODE: "9999999999999"},
+            blocking=True,
         )
         await hass.async_block_till_done()
 

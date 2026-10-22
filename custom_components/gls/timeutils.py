@@ -5,9 +5,10 @@ Deliberately dependency-free (stdlib only) so it can be imported by
 every ``countries/<code>.py`` module without creating an import cycle between
 them.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def parse_iso(value: str | None) -> datetime | None:
@@ -23,9 +24,9 @@ def parse_iso(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(str(value))
     except ValueError:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt

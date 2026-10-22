@@ -30,10 +30,11 @@ not-found / bad-key / clock-skew branches) is the part that is confirmed on
 the wire. Every mapping decision is therefore one-shot-logged so real usage
 answers the open questions instead of a second research pass.
 """
+
 from __future__ import annotations
 
-import logging
 from datetime import datetime
+import logging
 from typing import Any
 
 import aiohttp
@@ -207,7 +208,7 @@ def map_parcel_status_es(code: object, description: object = None) -> ParcelStat
     if mapped is not None:
         return mapped
     if value in _UNMAPPED_BY_DESIGN:
-        global _stored_seen
+        global _stored_seen  # noqa: PLW0603 - module-level one-shot flag, reset by tests
         if not _stored_seen:
             _stored_seen = True
             _LOGGER.debug(
@@ -228,7 +229,9 @@ def map_parcel_status_es(code: object, description: object = None) -> ParcelStat
     return ParcelStatus.UNKNOWN
 
 
-def map_event_status_es(code: object, description: object = None) -> ParcelStatus | None:
+def map_event_status_es(
+    code: object, description: object = None
+) -> ParcelStatus | None:
     """Map a history row, keeping an unmappable row neutral rather than wrong."""
     status = map_parcel_status_es(code, description)
     return None if status == ParcelStatus.UNKNOWN else status
@@ -276,9 +279,7 @@ async def async_get_parcel_es(
     # Stamped and signed inside the request, never above a retry loop: a
     # reused timestamp is rejected. See ``signing.py``.
     timestamp = request_timestamp()
-    signature = sign_request(
-        GLS_ES_SIGNING_KEY, "POST", GLS_ES_FIND_PATH, timestamp
-    )
+    signature = sign_request(GLS_ES_SIGNING_KEY, "POST", GLS_ES_FIND_PATH, timestamp)
     headers = {
         "Content-Type": _CONTENT_TYPE,
         "Accept": _ACCEPT,
@@ -303,7 +304,9 @@ async def async_get_parcel_es(
         except (aiohttp.ContentTypeError, ValueError):
             # The service is reached over a CDN that can interpose a challenge
             # page. HTML is never a missing parcel.
-            _LOGGER.warning("GLS Spain/Portugal returned a non-JSON body (HTTP %s)", status)
+            _LOGGER.warning(
+                "GLS Spain/Portugal returned a non-JSON body (HTTP %s)", status
+            )
             raise GlsApiError(status) from None
 
     error = body.get("error") if isinstance(body, dict) else None
@@ -357,7 +360,7 @@ def _parse_instant(value: object) -> datetime | None:
     if not isinstance(value, str) or not value.strip():
         return None
     try:
-        return datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        return datetime.fromisoformat(value.strip())
     except ValueError:
         return None
 
@@ -437,7 +440,7 @@ def _pickup_point(found: dict, scans: list[dict]) -> str | None:
     if not isinstance(shop, dict):
         return None
     if not any(row.get("code") in _PICKUP_SCAN_CODES for row in scans):
-        global _orphan_parcel_shop_warned
+        global _orphan_parcel_shop_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
         if not _orphan_parcel_shop_warned:
             _orphan_parcel_shop_warned = True
             _LOGGER.warning(
@@ -459,7 +462,7 @@ def _warn_delivery_date_in_flight_once() -> None:
     moving parcel is the answer arriving -- so it is reported rather than
     quietly published as an ETA.
     """
-    global _delivery_date_in_flight_warned
+    global _delivery_date_in_flight_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _delivery_date_in_flight_warned:
         return
     _delivery_date_in_flight_warned = True
@@ -535,7 +538,8 @@ def normalize_parcel_es(
         moments = [
             moment
             for row in scans
-            if row.get("code") == "delivered" and (moment := _parse_instant(row.get("at")))
+            if row.get("code") == "delivered"
+            and (moment := _parse_instant(row.get("at")))
         ]
         if not moments:
             moments = [

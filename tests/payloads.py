@@ -8,6 +8,7 @@ differ from what we assumed, there is then exactly one place to fix.
 Every helper returns a **fresh** dict, so a test may mutate what it gets back
 without leaking into the next one.
 """
+
 from __future__ import annotations
 
 ACTIVE_NO = "1111111111111"
@@ -63,7 +64,11 @@ def active_sample(parcel_no: str = ACTIVE_NO) -> dict:
     """An out-for-delivery parcel with an ETA window."""
     sample = delivered_sample(parcel_no)
     sample["state"] = 3
-    sample["deliveryScanInfo"] = {"isDelivered": False, "dateTime": None, "parcelShop": None}
+    sample["deliveryScanInfo"] = {
+        "isDelivered": False,
+        "dateTime": None,
+        "parcelShop": None,
+    }
     sample["deliveryStatus"] = {
         "etaTimestampMin": "2026-04-29T13:00:00Z",
         "etaTimestampMax": "2026-04-29T15:00:00Z",

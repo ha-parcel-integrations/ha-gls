@@ -11,6 +11,7 @@ existing imports (``from .api import GlsApiClient, GlsApiError``) and test
 patch targets (``custom_components.gls.api.GlsApiClient.async_get_parcel``)
 keep working unchanged.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -54,7 +55,7 @@ class GlsApiClient:
         culture: str,
         *,
         country: str = DEFAULT_COUNTRY,
-        de_session: "GlsDeSession | None" = None,
+        de_session: GlsDeSession | None = None,
         group_locale: str | None = None,
     ) -> None:
         """Initialise the client for one hub's country."""
@@ -65,9 +66,7 @@ class GlsApiClient:
         self._de_session = de_session
         self._group_locale = group_locale
 
-    async def async_get_parcel(
-        self, parcel_no: str, postal_code: str
-    ) -> dict | None:
+    async def async_get_parcel(self, parcel_no: str, postal_code: str) -> dict | None:
         """Fetch one parcel's tracking details via the hub's country transport."""
         if self._country == "DE":
             if self._de_session is None:
@@ -93,7 +92,10 @@ class GlsApiClient:
                 # index actually holds. A plain numeric code never gets here,
                 # and a failed translation falls through with the original
                 # code, so this can only add successes. See ``countries/fr/``.
-                awb = await async_resolve_reference_fr(self._session, parcel_no) or parcel_no
+                awb = (
+                    await async_resolve_reference_fr(self._session, parcel_no)
+                    or parcel_no
+                )
             return await async_get_parcel_group(
                 self._session,
                 self._host,

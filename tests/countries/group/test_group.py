@@ -13,6 +13,7 @@ shipped past its research gate, so their fixtures are honestly the CZ-shaped bod
 country's own host/locale/AWB, **not** a real capture — see each test's
 docstring.
 """
+
 from __future__ import annotations
 
 import json as _json
@@ -37,6 +38,7 @@ POSTAL_CODE = "11000"
 @pytest.fixture(autouse=True)
 def _reset_one_shot_state():
     """Keep countries/group's one-shot WARNING dedup state isolated per test."""
+
     def _reset():
         group_module._outage_warned = False
         group_module._postcode_mismatch_warned.clear()
@@ -69,7 +71,9 @@ def _history_event(date: str, time: str, evt_no: str, evt_dscr: str) -> dict:
 def captured_history_newest_first() -> list[dict]:
     """The eight real (redacted-free — no PII in this payload) history events."""
     return [
-        _history_event("2026-06-25", "13:38:31", "3.0", "The parcel has been delivered."),
+        _history_event(
+            "2026-06-25", "13:38:31", "3.0", "The parcel has been delivered."
+        ),
         _history_event(
             "2026-06-25",
             "13:19:02",
@@ -94,7 +98,9 @@ def captured_history_newest_first() -> list[dict]:
         _history_event(
             "2026-06-24", "21:23:15", "2.0", "The parcel has reached the parcel center."
         ),
-        _history_event("2026-06-24", "12:49:01", "0.0", "The parcel was handed over to GLS."),
+        _history_event(
+            "2026-06-24", "12:49:01", "0.0", "The parcel was handed over to GLS."
+        ),
         _history_event(
             "2026-06-24",
             "10:39:34",
@@ -105,7 +111,9 @@ def captured_history_newest_first() -> list[dict]:
     ]
 
 
-def captured_sample_cz(*, status_info: str = "DELIVERED", retour_flag: bool = False) -> dict:
+def captured_sample_cz(
+    *, status_info: str = "DELIVERED", retour_flag: bool = False
+) -> dict:
     """A trimmed, real (CUSTREF-redacted) captured GLS-CZ ``rstt028`` body."""
     return {
         "tuNo": AWB,
@@ -131,11 +139,36 @@ def captured_sample_cz(*, status_info: str = "DELIVERED", retour_flag: bool = Fa
             "colourIndex": 4,
             "evtNos": ["3.0", "3.896", "11.0", "2.0", "0.0", "0.100"],
             "statusBar": [
-                {"status": "PREADVICE", "imageStatus": "COMPLETE", "imageText": "Information", "statusText": ""},
-                {"status": "INTRANSIT", "imageStatus": "COMPLETE", "imageText": "In transit", "statusText": ""},
-                {"status": "INWAREHOUSE", "imageStatus": "COMPLETE", "imageText": "Depot", "statusText": ""},
-                {"status": "INDELIVERY", "imageStatus": "COMPLETE", "imageText": "Out for delivery", "statusText": ""},
-                {"status": "DELIVERED", "imageStatus": "CURRENT", "imageText": "Delivered", "statusText": "Delivered."},
+                {
+                    "status": "PREADVICE",
+                    "imageStatus": "COMPLETE",
+                    "imageText": "Information",
+                    "statusText": "",
+                },
+                {
+                    "status": "INTRANSIT",
+                    "imageStatus": "COMPLETE",
+                    "imageText": "In transit",
+                    "statusText": "",
+                },
+                {
+                    "status": "INWAREHOUSE",
+                    "imageStatus": "COMPLETE",
+                    "imageText": "Depot",
+                    "statusText": "",
+                },
+                {
+                    "status": "INDELIVERY",
+                    "imageStatus": "COMPLETE",
+                    "imageText": "Out for delivery",
+                    "statusText": "",
+                },
+                {
+                    "status": "DELIVERED",
+                    "imageStatus": "CURRENT",
+                    "imageText": "Delivered",
+                    "statusText": "Delivered.",
+                },
             ],
         },
         "history": captured_history_newest_first(),
@@ -148,7 +181,7 @@ def captured_sample_cz(*, status_info: str = "DELIVERED", retour_flag: bool = Fa
 
 
 @pytest.mark.parametrize(
-    "value,expected",
+    ("value", "expected"),
     [
         ("PREADVICE", ParcelStatus.REGISTERED),
         ("PROCESSING", ParcelStatus.REGISTERED),
@@ -193,7 +226,9 @@ def test_unmapped_status_is_unknown_and_warns_once(caplog):
 
 
 def test_retour_flag_overrides_delivered():
-    assert map_parcel_status_group("DELIVERED", retour_flag=True) == ParcelStatus.RETURNING
+    assert (
+        map_parcel_status_group("DELIVERED", retour_flag=True) == ParcelStatus.RETURNING
+    )
 
 
 def test_retour_flag_overrides_unmapped_without_warning(caplog):
@@ -286,7 +321,9 @@ def test_normalize_barcode_falls_back_without_a_supplied_parcel_no():
 
 
 def test_normalize_history_opt_in_is_reversed_to_oldest_first():
-    parcel = normalize_parcel_group(captured_sample_cz(), parcel_no=AWB, include_history=True)
+    parcel = normalize_parcel_group(
+        captured_sample_cz(), parcel_no=AWB, include_history=True
+    )
     history = parcel["history"]
     assert len(history) == 8
     assert history[0]["timestamp"] == "2026-06-24T10:39:34"
@@ -310,7 +347,9 @@ def test_normalize_history_opt_in_is_reversed_to_oldest_first():
 
 def test_normalize_history_does_not_deduplicate_repeated_evtno():
     """evtNo 3.896 and 2.0 both repeat in the capture — every entry stays."""
-    parcel = normalize_parcel_group(captured_sample_cz(), parcel_no=AWB, include_history=True)
+    parcel = normalize_parcel_group(
+        captured_sample_cz(), parcel_no=AWB, include_history=True
+    )
     assert len(parcel["history"]) == 8
 
 
@@ -393,7 +432,9 @@ def test_unexpected_top_level_key_is_warned_once(caplog):
 
 def test_known_keys_do_not_warn(caplog):
     with caplog.at_level("WARNING"):
-        normalize_parcel_group(captured_sample_cz(), parcel_no=AWB, include_history=True)
+        normalize_parcel_group(
+            captured_sample_cz(), parcel_no=AWB, include_history=True
+        )
     assert not any("unrecognised top-level" in m.lower() for m in caplog.messages)
 
 
@@ -410,7 +451,9 @@ def test_history_order_violation_warns_once(caplog):
 
 def test_correctly_ordered_history_does_not_warn(caplog):
     with caplog.at_level("WARNING"):
-        normalize_parcel_group(captured_sample_cz(), parcel_no=AWB, include_history=True)
+        normalize_parcel_group(
+            captured_sample_cz(), parcel_no=AWB, include_history=True
+        )
     assert not any("not newest-first" in m for m in caplog.messages)
 
 
@@ -530,7 +573,9 @@ async def test_transport_e800_absent_on_both_leaves_returns_none_silently(caplog
         _get_ctx(404, '{"lastError":"E000","exceptionText":"x"}'),
     )
     with caplog.at_level("WARNING"):
-        result = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
+        result = await async_get_parcel_group(
+            session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE
+        )
     assert result is None
     assert not any("does not recognise parcel" in m for m in caplog.messages)
 
@@ -557,8 +602,12 @@ async def test_transport_e800_falls_back_to_rstt029_and_warns_once(caplog):
         _get_ctx(200, _json.dumps(fallback)),
     )
     with caplog.at_level("WARNING"):
-        first = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
-        second = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
+        first = await async_get_parcel_group(
+            session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE
+        )
+        second = await async_get_parcel_group(
+            session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE
+        )
 
     assert first is not None and second is not None
     assert first["tuNo"] == AWB
@@ -608,7 +657,9 @@ async def test_rstt028_does_not_warn_for_an_already_confirmed_country(caplog):
     stay silent — the list is what switches the warning off."""
     session = _session_with(_get_ctx(200, _json.dumps(captured_sample_cz())))
     with caplog.at_level("WARNING"):
-        await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE, country="CZ")
+        await async_get_parcel_group(
+            session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE, country="CZ"
+        )
     assert not any("detailed lookup answered for" in m for m in caplog.messages)
 
 
@@ -617,8 +668,12 @@ async def test_rstt028_coverage_warning_is_not_fired_by_the_fallback(caplog):
     one we already know works everywhere, so it must not claim one."""
     fallback = {
         "tuStatus": [
-            {"tuNo": AWB, "postalCode": "", "owners": [],
-             "progressBar": captured_sample_cz()["progressBar"]}
+            {
+                "tuNo": AWB,
+                "postalCode": "",
+                "owners": [],
+                "progressBar": captured_sample_cz()["progressBar"],
+            }
         ]
     }
     session = _session_with(
@@ -673,8 +728,12 @@ async def test_italian_history_fill_also_runs_on_the_e800_fallback(caplog):
     fill — otherwise widening E800 would have created a second blind spot."""
     fallback = {
         "tuStatus": [
-            {"tuNo": AWB, "postalCode": "", "owners": [],
-             "progressBar": captured_sample_cz()["progressBar"]}
+            {
+                "tuNo": AWB,
+                "postalCode": "",
+                "owners": [],
+                "progressBar": captured_sample_cz()["progressBar"],
+            }
         ]
     }
     rows = {
@@ -702,22 +761,30 @@ async def test_fallback_path_skips_the_italian_fill_for_other_countries():
     """The fill is Italy-only — no other country may pay for an extra call."""
     fallback = {
         "tuStatus": [
-            {"tuNo": AWB, "postalCode": "", "owners": [],
-             "progressBar": captured_sample_cz()["progressBar"]}
+            {
+                "tuNo": AWB,
+                "postalCode": "",
+                "owners": [],
+                "progressBar": captured_sample_cz()["progressBar"],
+            }
         ]
     }
     session = _session_with(
         _get_ctx(404, '{"lastError":"E609"}'),
         _get_ctx(200, _json.dumps(fallback)),
     )
-    await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE, country="CZ")
+    await async_get_parcel_group(
+        session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE, country="CZ"
+    )
     assert len(session.get.call_args_list) == 2
 
 
 async def test_transport_e206_returns_none_without_e800_warning(caplog):
     session = _session_with(_get_ctx(404, '{"lastError":"E206","exceptionText":"x"}'))
     with caplog.at_level("WARNING"):
-        result = await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE)
+        result = await async_get_parcel_group(
+            session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE
+        )
     assert result is None
     assert not any("does not recognise parcel" in m for m in caplog.messages)
 
@@ -854,7 +921,11 @@ async def test_transport_primary_5xx_with_json_body_warns_once_and_raises(caplog
 
 def _fallback_ok_body(tu_no: str = AWB) -> str:
     return _json.dumps(
-        {"tuStatus": [{"tuNo": tu_no, "progressBar": captured_sample_cz()["progressBar"]}]}
+        {
+            "tuStatus": [
+                {"tuNo": tu_no, "progressBar": captured_sample_cz()["progressBar"]}
+            ]
+        }
     )
 
 
@@ -920,9 +991,8 @@ async def test_type_retry_both_fail_5xx_raises_gls_api_error(caplog):
         _get_ctx(500, '{"exceptionText":"x"}'),
         _get_ctx(502, '{"exceptionText":"x"}'),
     )
-    with caplog.at_level("WARNING"):
-        with pytest.raises(GlsApiError):
-            await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, "00000")
+    with caplog.at_level("WARNING"), pytest.raises(GlsApiError):
+        await async_get_parcel_group(session, HOST, GROUP_LOCALE, AWB, "00000")
     warnings = [m for m in caplog.messages if "unexpected server error" in m]
     assert len(warnings) == 1  # one-shot even though both attempts 5xx'd
 
@@ -941,13 +1011,15 @@ async def test_type_retry_both_fail_e206_returns_none():
 
 # ---------------------------------------------------------------------------
 # The Group-leaf countries added past their research gate
-#. Every fixture below is synthetic: it uses
+# . Every fixture below is synthetic: it uses
 # the country-specific host/locale and a fake AWB, while the response remains
 # the CZ-shaped rstt028 stand-in described below.
 # ---------------------------------------------------------------------------
 
 
-def _group_shaped_fixture(country: str, awb: str, *, status_info: str = "DELIVERED") -> dict:
+def _group_shaped_fixture(
+    country: str, awb: str, *, status_info: str = "DELIVERED"
+) -> dict:
     """A CZ-shaped rstt028 body for ``country``/``awb`` — NOT a real capture.
 
     the code sweep found no shape difference across every country
@@ -1024,8 +1096,12 @@ async def test_italy_group_leaf_end_to_end_needs_type_nat():
         _get_ctx(200, _json.dumps({"tuStatus": [fixture]})),  # type=NAT, first try
     )
     body = await async_get_parcel_group(
-        session, COUNTRIES["IT"]["host"], COUNTRIES["IT"]["group_locale"],
-        awb, "20121", country="IT",
+        session,
+        COUNTRIES["IT"]["host"],
+        COUNTRIES["IT"]["group_locale"],
+        awb,
+        "20121",
+        country="IT",
     )
     assert body["tuNo"] == "M4 663093258"
     urls = [call[0][0] for call in session.get.call_args_list]

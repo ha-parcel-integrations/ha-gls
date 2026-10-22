@@ -30,6 +30,7 @@ The shipped ``E609`` → ``rstt029`` fallback is a different thing and does not
 overlap: that one covers a *postcode* mismatch, not an identifier form the
 group index does not hold.
 """
+
 from __future__ import annotations
 
 import logging

@@ -1,8 +1,9 @@
 """Sensor platform for the GLS parcel tracker integration."""
+
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -39,12 +40,12 @@ def _migrate_summary_unique_ids(registry: er.EntityRegistry, entry_id: str) -> N
     if registry.async_get_entity_id("sensor", DOMAIN, new_unique_id) is not None:
         _LOGGER.warning(
             "Both legacy and canonical pickup summary entities exist; "
-            "reconcile %s and %s manually", old_unique_id, new_unique_id
+            "reconcile %s and %s manually",
+            old_unique_id,
+            new_unique_id,
         )
         return
     registry.async_update_entity(old_entity_id, new_unique_id=new_unique_id)
-
-
 
 
 async def async_setup_entry(
@@ -58,9 +59,7 @@ async def async_setup_entry(
     # than (too late) from this forwarded platform.
     coordinator = entry.runtime_data.coordinator
 
-    current_barcodes: set[str] = {
-        p.get("barcode", "") for p in coordinator.data or []
-    }
+    current_barcodes: set[str] = {p.get("barcode", "") for p in coordinator.data or []}
     entry_id = entry.entry_id
 
     # Remove per-parcel sensors from the registry whose barcode is no longer
@@ -84,17 +83,19 @@ async def async_setup_entry(
             and entity_entry.unique_id.startswith(f"{entry_id}_")
             and entity_entry.unique_id not in non_parcel_unique_ids
         ):
-            barcode = entity_entry.unique_id[len(f"{entry_id}_"):]
+            barcode = entity_entry.unique_id[len(f"{entry_id}_") :]
             if barcode not in current_barcodes:
                 registry.async_remove(entity_entry.entity_id)
 
     entities: list[SensorEntity] = [
-        GlsIncomingParcelsSensor(coordinator, entry, async_add_entities, current_barcodes),
+        GlsIncomingParcelsSensor(
+            coordinator, entry, async_add_entities, current_barcodes
+        ),
     ]
-    for parcel in coordinator.data or []:
-        entities.append(
-            GlsParcelSensor(coordinator, entry, parcel.get("barcode", ""))
-        )
+    entities.extend(
+        GlsParcelSensor(coordinator, entry, parcel.get("barcode", ""))
+        for parcel in coordinator.data or []
+    )
     entities.append(GlsNextDeliverySensor(coordinator, entry))
     entities.append(GlsEnRouteToPickupPointSensor(coordinator, entry))
     entities.append(GlsAwaitingPickupSensor(coordinator, entry))
@@ -228,9 +229,9 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
             if not moment_str:
                 continue
             try:
-                dt = datetime.fromisoformat(moment_str.replace("Z", "+00:00"))
+                dt = datetime.fromisoformat(moment_str)
                 if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
+                    dt = dt.replace(tzinfo=UTC)
                 result.append((dt, parcel))
             except ValueError:
                 _LOGGER.debug("Could not parse delivery moment: %s", moment_str)
@@ -273,7 +274,8 @@ class GlsEnRouteToPickupPointSensor(CoordinatorEntity[GlsCoordinator], SensorEnt
 
     def _parcels(self) -> list[dict]:
         return [
-            p for p in (self.coordinator.data or [])
+            p
+            for p in (self.coordinator.data or [])
             if p.get("pickup") and p.get("status") != ParcelStatus.AT_PICKUP_POINT
         ]
 
@@ -305,7 +307,8 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
 
     def _parcels(self) -> list[dict]:
         return [
-            p for p in (self.coordinator.data or [])
+            p
+            for p in (self.coordinator.data or [])
             if p.get("status") == ParcelStatus.AT_PICKUP_POINT
         ]
 

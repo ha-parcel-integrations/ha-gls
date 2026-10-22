@@ -1,4 +1,5 @@
 """Tests for the GLS Canada / Dicom transport and mapping."""
+
 import logging
 from unittest.mock import AsyncMock, MagicMock
 
@@ -151,7 +152,9 @@ def test_unmapped_status_warns_once(caplog):
     with caplog.at_level(logging.WARNING):
         assert map_parcel_status_ca("Held At Depot") == ParcelStatus.UNKNOWN
         assert map_event_status_ca("Held At Depot") is None
-    assert sum("Unrecognised GLS Canada status" in r.message for r in caplog.records) == 1
+    assert (
+        sum("Unrecognised GLS Canada status" in r.message for r in caplog.records) == 1
+    )
 
 
 @pytest.mark.parametrize("value", [None, "", "   ", 42])
@@ -175,9 +178,12 @@ def test_unparseable_timestamps_are_dropped_and_warned_once(caplog):
                             "not-a-dict",
                             {"activityDate": "28/08/2026", "status": "In Transit"},
                             {"activityDate": None, "status": "In Transit"},
-                            {"activityDate": "2026-08-28 08:12:48", "status": "In Transit"},
+                            {
+                                "activityDate": "2026-08-28 08:12:48",
+                                "status": "In Transit",
+                            },
                         ]
-                    }
+                    },
                 ],
             }
         ]

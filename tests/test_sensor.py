@@ -1,9 +1,10 @@
 """Tests for GLS sensor property logic."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
-import pytest
 from homeassistant.helpers import entity_registry as er
+import pytest
 
 from custom_components.gls.const import DOMAIN, ParcelStatus
 from custom_components.gls.sensor import (
@@ -69,12 +70,14 @@ def test_parcel_sensor_missing_barcode():
 
 
 def test_next_delivery_picks_earliest():
-    coordinator = _coordinator([
-        _parcel("A", planned_from="2026-05-02T10:00:00Z"),
-        _parcel("B", planned_from="2026-05-01T10:00:00Z"),
-    ])
+    coordinator = _coordinator(
+        [
+            _parcel("A", planned_from="2026-05-02T10:00:00Z"),
+            _parcel("B", planned_from="2026-05-01T10:00:00Z"),
+        ]
+    )
     sensor = GlsNextDeliverySensor(coordinator, _entry())
-    assert sensor.native_value == datetime(2026, 5, 1, 10, 0, tzinfo=timezone.utc)
+    assert sensor.native_value == datetime(2026, 5, 1, 10, 0, tzinfo=UTC)
     assert sensor.extra_state_attributes["barcode"] == "B"
 
 
@@ -85,11 +88,13 @@ def test_next_delivery_none_without_moments():
 
 
 def test_en_route_and_awaiting_pickup_split():
-    coordinator = _coordinator([
-        _parcel("A", status=ParcelStatus.IN_TRANSIT, pickup=True),
-        _parcel("B", status=ParcelStatus.AT_PICKUP_POINT, pickup=True),
-        _parcel("C", status=ParcelStatus.IN_TRANSIT, pickup=False),
-    ])
+    coordinator = _coordinator(
+        [
+            _parcel("A", status=ParcelStatus.IN_TRANSIT, pickup=True),
+            _parcel("B", status=ParcelStatus.AT_PICKUP_POINT, pickup=True),
+            _parcel("C", status=ParcelStatus.IN_TRANSIT, pickup=False),
+        ]
+    )
     en_route = GlsEnRouteToPickupPointSensor(coordinator, _entry())
     awaiting = GlsAwaitingPickupSensor(coordinator, _entry())
     assert en_route.native_value == 1
@@ -98,14 +103,16 @@ def test_en_route_and_awaiting_pickup_split():
 
 
 def test_delivered_sensor():
-    coordinator = _coordinator([], delivered=[_parcel("D", status=ParcelStatus.DELIVERED)])
+    coordinator = _coordinator(
+        [], delivered=[_parcel("D", status=ParcelStatus.DELIVERED)]
+    )
     sensor = GlsDeliveredParcelsSensor(coordinator, _entry())
     assert sensor.native_value == 1
 
 
 def test_last_update_sensor():
     coordinator = _coordinator([])
-    moment = datetime(2026, 6, 30, 12, 0, tzinfo=timezone.utc)
+    moment = datetime(2026, 6, 30, 12, 0, tzinfo=UTC)
     coordinator.last_success_time = moment
     sensor = GlsLastUpdateSensor(coordinator, _entry())
     assert sensor.native_value == moment
@@ -125,13 +132,17 @@ _RENAMES = [
 async def test_migration_keeps_custom_entity_id(hass, old_suffix, new_suffix):
     registry = er.async_get(hass)
     old = registry.async_get_or_create("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}")
-    registry.async_update_entity(old.entity_id, new_entity_id="sensor.my_pickup_parcels")
+    registry.async_update_entity(
+        old.entity_id, new_entity_id="sensor.my_pickup_parcels"
+    )
 
     _migrate_summary_unique_ids(registry, _SCOPE)
 
     new_id = registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{new_suffix}")
     assert new_id == "sensor.my_pickup_parcels"
-    assert registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}") is None
+    assert (
+        registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}") is None
+    )
 
 
 @pytest.mark.parametrize(("old_suffix", "new_suffix"), _RENAMES)

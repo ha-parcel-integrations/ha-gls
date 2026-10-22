@@ -1,4 +1,5 @@
 """Constants for the GLS parcel tracker integration."""
+
 from enum import StrEnum
 
 from homeassistant.const import Platform
@@ -16,14 +17,14 @@ class ParcelStatus(StrEnum):
     the order a parcel moves through.
     """
 
-    REGISTERED = "registered"               # Sender announced the parcel; not handed over yet
-    IN_TRANSIT = "in_transit"               # In the carrier's network
-    OUT_FOR_DELIVERY = "out_for_delivery"   # On a delivery vehicle today
-    AT_PICKUP_POINT = "at_pickup_point"     # Arrived at a GLS ParcelShop, ready to collect
-    DELIVERED = "delivered"                 # Handed over
-    RETURNING = "returning"                 # Failed delivery, going back to sender
-    PROBLEM = "problem"                     # Carrier reports an exception/issue
-    UNKNOWN = "unknown"                     # Raw status we have not mapped yet
+    REGISTERED = "registered"  # Sender announced the parcel; not handed over yet
+    IN_TRANSIT = "in_transit"  # In the carrier's network
+    OUT_FOR_DELIVERY = "out_for_delivery"  # On a delivery vehicle today
+    AT_PICKUP_POINT = "at_pickup_point"  # Arrived at a GLS ParcelShop, ready to collect
+    DELIVERED = "delivered"  # Handed over
+    RETURNING = "returning"  # Failed delivery, going back to sender
+    PROBLEM = "problem"  # Carrier reports an exception/issue
+    UNKNOWN = "unknown"  # Raw status we have not mapped yet
 
 
 PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
@@ -333,8 +334,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "postcode_regex": r"^\d{4}[A-Z]{2}$",
         "postcode_example": "1234AB",
         "tracking_url": (
-            "https://www.gls-info.nl/tracking"
-            "?trackid={parcel_no}&zipcode={postal_code}"
+            "https://www.gls-info.nl/tracking?trackid={parcel_no}&zipcode={postal_code}"
         ),
     },
     "DE": {
@@ -567,9 +567,7 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "group_locale": "LU/en",
         "postcode_regex": r"^\d{4}$",
         "postcode_example": "1009",
-        "tracking_url": (
-            "https://gls-group.com/LU/en/track-trace/?match={parcel_no}"
-        ),
+        "tracking_url": ("https://gls-group.com/LU/en/track-trace/?match={parcel_no}"),
     },
     "RS": {
         "host": "gls-group.eu",
@@ -607,8 +605,25 @@ ES_COUNTRIES = frozenset({"ES", "PT"})
 # ``country == "CZ"`` special case, so a later group-leaf country only needs
 # a ``COUNTRIES`` row plus one more entry here.
 GROUP_LEAF_COUNTRIES = frozenset(
-    {"BE", "CH", "CZ", "DK", "FI", "HU", "SK", "AT", "IE", "FR", "LI", "LU", "RS",
-     "SI", "HR", "IT", "RO"}
+    {
+        "BE",
+        "CH",
+        "CZ",
+        "DK",
+        "FI",
+        "HU",
+        "SK",
+        "AT",
+        "IE",
+        "FR",
+        "LI",
+        "LU",
+        "RS",
+        "SI",
+        "HR",
+        "IT",
+        "RO",
+    }
 )
 
 # Group-leaf countries whose ``rstt028`` — the *detail* leaf, the only one
@@ -630,7 +645,9 @@ GROUP_RSTT028_CONFIRMED = frozenset({"CZ"})
 # yet. Country/carrier requests go through the organisation discussion (the
 # suite's standard "how a carrier arrives" channel), never a direct issue —
 # same URL as this repo's own .github/ISSUE_TEMPLATE/config.yml contact link.
-REQUEST_COUNTRY_URL = "https://github.com/ha-parcel-integrations/.github/discussions/new/choose"
+REQUEST_COUNTRY_URL = (
+    "https://github.com/ha-parcel-integrations/.github/discussions/new/choose"
+)
 
 # Generic fallback tracking deep-link, used for countries without a specific
 # ``tracking_url`` in ``COUNTRIES`` (or when the postcode is unknown). Note this

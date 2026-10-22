@@ -11,11 +11,12 @@ attempt, including retries.** The service rejects a timestamp minutes from its
 own clock, so a signature computed once and reused fails. Building the
 signature above a retry loop is the bug this split exists to make obvious.
 """
+
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import hashlib
 import hmac
-from datetime import datetime, timezone
 
 
 def request_timestamp(moment: datetime | None = None) -> str:
@@ -26,7 +27,7 @@ def request_timestamp(moment: datetime | None = None) -> str:
     message, and this is the form it accepts. ``moment`` is injectable so a
     test can freeze it; production passes nothing.
     """
-    moment = (moment or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    moment = (moment or datetime.now(UTC)).astimezone(UTC)
     return f"{moment.strftime('%Y-%m-%dT%H:%M:%S')}.{moment.microsecond // 1000:03d}Z"
 
 

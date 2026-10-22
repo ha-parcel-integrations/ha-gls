@@ -1,4 +1,5 @@
 """Tests for GLS setup and unload."""
+
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.config_entries import ConfigEntryState
@@ -25,7 +26,11 @@ async def test_setup_and_unload(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=DOMAIN,
-        options={CONF_PARCELS: [{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}]},
+        options={
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}
+            ]
+        },
     )
     entry.add_to_hass(hass)
 
@@ -58,7 +63,11 @@ async def test_setup_retries_when_first_refresh_fails(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=DOMAIN,
-        options={CONF_PARCELS: [{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}]},
+        options={
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}
+            ]
+        },
     )
     entry.add_to_hass(hass)
 
@@ -76,7 +85,11 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=DOMAIN,
-        options={CONF_PARCELS: [{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}]},
+        options={
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}
+            ]
+        },
     )
     entry.add_to_hass(hass)
 
@@ -111,10 +124,10 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
 
 async def test_legacy_unique_id_migrates_to_country_scoped_postcode(hass):
     """Pre-multi-hub entries (unique_id == DOMAIN) migrate straight to the
-    country-scoped f"{country}:{postal_code}" unique_id
- in one hop — not to the bare postcode
-    as an intermediate step — so the flow's per-postcode-and-country
-    duplicate guard also covers them.
+       country-scoped f"{country}:{postal_code}" unique_id
+    in one hop — not to the bare postcode
+       as an intermediate step — so the flow's per-postcode-and-country
+       duplicate guard also covers them.
     """
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -226,9 +239,7 @@ async def test_de_setup_wires_country_and_de_session_end_to_end(hass):
         data={CONF_DE_APP_INSTANCE_ID: "existing-app-instance-id"},
         options={
             CONF_COUNTRY: "DE",
-            CONF_PARCELS: [
-                {CONF_PARCEL_NO: "075624238061", CONF_POSTAL_CODE: "00000"}
-            ],
+            CONF_PARCELS: [{CONF_PARCEL_NO: "075624238061", CONF_POSTAL_CODE: "00000"}],
             # Keep-most-recent-100 so the delivered-retention filter's
             # default 7-day window can't trim the fixed-date sample below,
             # independent of when this test actually runs.
@@ -286,9 +297,7 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
         unique_id="CZ:11000",
         options={
             CONF_COUNTRY: "CZ",
-            CONF_PARCELS: [
-                {CONF_PARCEL_NO: "1234567890", CONF_POSTAL_CODE: "11000"}
-            ],
+            CONF_PARCELS: [{CONF_PARCEL_NO: "1234567890", CONF_POSTAL_CODE: "11000"}],
             CONF_DELIVERED_FILTER_TYPE: "parcels",
             CONF_DELIVERED_FILTER_AMOUNT: 100,
         },

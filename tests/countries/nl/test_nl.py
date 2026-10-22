@@ -3,6 +3,7 @@ as part of the ``countries/`` restructure — imports and the renamed
 ``map_parcel_status`` → ``map_parcel_status_nl``/``normalize_parcel`` →
 ``normalize_parcel_nl`` call sites changed; assertions did not.
 """
+
 import pytest
 
 from custom_components.gls.const import ParcelStatus
@@ -12,8 +13,7 @@ from custom_components.gls.countries.nl import (
     map_parcel_status_nl,
     normalize_parcel_nl,
 )
-
-from ...payloads import active_sample, delivered_sample
+from tests.payloads import active_sample, delivered_sample
 
 # ---------------------------------------------------------------------------
 # map_parcel_status_nl / map_event_status
@@ -21,7 +21,7 @@ from ...payloads import active_sample, delivered_sample
 
 
 @pytest.mark.parametrize(
-    "state,expected",
+    ("state", "expected"),
     [
         (0, ParcelStatus.REGISTERED),
         (1, ParcelStatus.IN_TRANSIT),

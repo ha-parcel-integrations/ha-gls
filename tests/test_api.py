@@ -1,4 +1,5 @@
 """Tests for the GLS API client."""
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
@@ -178,7 +179,9 @@ async def test_it_dispatch_delegates_to_the_group_transport_with_its_own_country
 
 
 async def test_es_dispatch_delegates_to_the_signed_spanish_transport():
-    client = GlsApiClient(MagicMock(), "api.consignee.gls-spain.es", "es-ES", country="ES")
+    client = GlsApiClient(
+        MagicMock(), "api.consignee.gls-spain.es", "es-ES", country="ES"
+    )
     with patch(
         "custom_components.gls.api.async_get_parcel_es",
         new=AsyncMock(return_value={"expeditionCode": "990011223"}),
@@ -191,7 +194,9 @@ async def test_es_dispatch_delegates_to_the_signed_spanish_transport():
 async def test_pt_dispatch_uses_the_same_spanish_transport():
     """Portugal answers on the same host and the same request shape; it is a
     COUNTRIES row on one transport, not a transport of its own."""
-    client = GlsApiClient(MagicMock(), "api.consignee.gls-spain.es", "pt-PT", country="PT")
+    client = GlsApiClient(
+        MagicMock(), "api.consignee.gls-spain.es", "pt-PT", country="PT"
+    )
     with patch(
         "custom_components.gls.api.async_get_parcel_es",
         new=AsyncMock(return_value={}),

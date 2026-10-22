@@ -13,14 +13,16 @@ Packaged as ``countries/group/`` (not a flat ``countries/group.py``) for
 structural symmetry with ``countries/de/`` — this transport needs no
 lifecycle submodule of its own (keyless, no session), same as NL.
 """
+
 from __future__ import annotations
 
+from datetime import datetime
 import html
+import itertools
 import json
 import logging
 import re
 import time
-from datetime import datetime
 from typing import Any
 from urllib.parse import quote, urlencode
 
@@ -68,9 +70,7 @@ def _coverage_issue_url(country: str, finding: str) -> str:
     # ``quote_via=quote`` so spaces encode as %20 rather than "+": both are
     # legal in a query string, but only one of them is unambiguous in every
     # parser that might sit between the log line and the issue form.
-    params = urlencode(
-        {"country": country, "finding": finding}, quote_via=quote
-    )
+    params = urlencode({"country": country, "finding": finding}, quote_via=quote)
     return f"{_COVERAGE_ISSUE_URL}&{params}"
 
 
@@ -120,7 +120,7 @@ _rstt028_unconfirmed_warned: set[str] = set()
 
 def _warn_outage_once() -> None:
     """One-shot: the first time a group leaf answers with its maintenance page."""
-    global _outage_warned
+    global _outage_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _outage_warned:
         return
     _outage_warned = True
@@ -163,7 +163,9 @@ def _warn_e800_once(parcel_no: str, country: str) -> None:
     if parcel_no in _e800_warned:
         return
     _e800_warned.add(parcel_no)
-    finding = f"country={country} rstt028=E800 rstt029=200 (status only, no weight/history)"
+    finding = (
+        f"country={country} rstt028=E800 rstt029=200 (status only, no weight/history)"
+    )
     _LOGGER.warning(
         "GLS's detailed lookup does not recognise parcel %s, but its "
         "overview lookup does — status will keep updating, while history "
@@ -237,7 +239,7 @@ def _warn_type_retry_once(parcel_no: str) -> None:
 
 def _warn_unexpected_5xx_once() -> None:
     """One-shot: the first ``5xx`` seen from either group leaf."""
-    global _unexpected_5xx_warned
+    global _unexpected_5xx_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _unexpected_5xx_warned:
         return
     _unexpected_5xx_warned = True
@@ -298,7 +300,7 @@ def _warn_unexpected_top_level_keys(raw: dict) -> None:
 
 def _warn_history_order_once() -> None:
     """One-shot: the first body whose ``history[]`` isn't newest-first on the wire."""
-    global _history_order_warned
+    global _history_order_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _history_order_warned:
         return
     _history_order_warned = True
@@ -312,7 +314,7 @@ def _warn_history_order_once() -> None:
 
 def _warn_unparseable_timestamp_once(date_value: Any, time_value: Any) -> None:
     """One-shot: the first ``date``/``time`` pair that fails to parse."""
-    global _unparseable_timestamp_warned
+    global _unparseable_timestamp_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _unparseable_timestamp_warned:
         return
     _unparseable_timestamp_warned = True
@@ -421,7 +423,7 @@ async def _async_get_parcel_group_fallback(
         body, status = await _async_get_json(session, url)
         if body is None:
             _warn_outage_once()
-            raise GlsGroupMaintenanceError()
+            raise GlsGroupMaintenanceError
 
         last_error = body.get("lastError")
         is_5xx = status >= 500
@@ -487,7 +489,7 @@ async def async_get_parcel_group(
     body, status = await _async_get_json(session, url)
     if body is None:
         _warn_outage_once()
-        raise GlsGroupMaintenanceError()
+        raise GlsGroupMaintenanceError
 
     last_error = body.get("lastError")
     if last_error == "E609":
@@ -636,11 +638,11 @@ def map_parcel_status_group(
 # map does not answer — ``map_parcel_status_group`` (parcel-level, keyed on
 # ``progressBar.statusInfo``) is untouched.
 _EVENT_STATUS_MAP: dict[str, ParcelStatus] = {
-    "0.100": ParcelStatus.REGISTERED,    # parcel data entered, not yet handed over
-    "0.0": ParcelStatus.IN_TRANSIT,      # handed over to GLS
-    "2.0": ParcelStatus.IN_TRANSIT,      # reached a parcel center
+    "0.100": ParcelStatus.REGISTERED,  # parcel data entered, not yet handed over
+    "0.0": ParcelStatus.IN_TRANSIT,  # handed over to GLS
+    "2.0": ParcelStatus.IN_TRANSIT,  # reached a parcel center
     "11.0": ParcelStatus.OUT_FOR_DELIVERY,
-    "17.0": ParcelStatus.IN_TRANSIT,     # picked up from the sender by the courier
+    "17.0": ParcelStatus.IN_TRANSIT,  # picked up from the sender by the courier
     "3.0": ParcelStatus.DELIVERED,
     "3.896": ParcelStatus.AT_PICKUP_POINT,  # deposited into a ParcelLocker
 }
@@ -703,7 +705,9 @@ def _parse_group_datetime(date_value: Any, time_value: Any) -> str | None:
         return None
     for date_fmt in ("%Y-%m-%d", "%y-%m-%d"):
         try:
-            parsed = datetime.strptime(f"{date_value} {time_value}", f"{date_fmt} %H:%M:%S")
+            parsed = datetime.strptime(
+                f"{date_value} {time_value}", f"{date_fmt} %H:%M:%S"
+            )
         except ValueError:
             continue
         return parsed.isoformat()
@@ -713,7 +717,7 @@ def _parse_group_datetime(date_value: Any, time_value: Any) -> str | None:
 
 def _check_history_order(parsed_timestamps: list[str]) -> None:
     """Warn once if consecutive parsed timestamps aren't newest-first on the wire."""
-    for earlier, later in zip(parsed_timestamps, parsed_timestamps[1:]):
+    for earlier, later in itertools.pairwise(parsed_timestamps):
         if later > earlier:
             _warn_history_order_once()
             return

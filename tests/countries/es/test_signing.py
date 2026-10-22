@@ -5,9 +5,10 @@ the reason ``signing.py`` is pure: a signature bug and a rejected key are hard
 to tell apart on the wire, so the signature itself is pinned here against a
 frozen timestamp and a known key.
 """
+
+from datetime import UTC, datetime, timedelta, timezone
 import hashlib
 import hmac
-from datetime import datetime, timedelta, timezone
 
 from custom_components.gls.countries.es.signing import request_timestamp, sign_request
 
@@ -42,30 +43,31 @@ def test_every_input_changes_the_signature():
     assert sign_request("other-key", "POST", "/expeditions/find", TS) != base
     assert sign_request(KEY, "GET", "/expeditions/find", TS) != base
     assert sign_request(KEY, "POST", "/parcelShops/find", TS) != base
-    assert sign_request(KEY, "POST", "/expeditions/find", "2026-01-01T00:00:01.000Z") != base
+    assert (
+        sign_request(KEY, "POST", "/expeditions/find", "2026-01-01T00:00:01.000Z")
+        != base
+    )
 
 
 def test_timestamp_has_exactly_three_fractional_digits_and_a_literal_z():
-    moment = datetime(2026, 1, 2, 3, 4, 5, 678901, tzinfo=timezone.utc)
+    moment = datetime(2026, 1, 2, 3, 4, 5, 678901, tzinfo=UTC)
     assert request_timestamp(moment) == "2026-01-02T03:04:05.678Z"
 
 
 def test_timestamp_truncates_rather_than_rounds_microseconds():
-    moment = datetime(2026, 1, 2, 3, 4, 5, 999999, tzinfo=timezone.utc)
+    moment = datetime(2026, 1, 2, 3, 4, 5, 999999, tzinfo=UTC)
     assert request_timestamp(moment) == "2026-01-02T03:04:05.999Z"
 
 
 def test_timestamp_pads_sub_millisecond_values():
-    moment = datetime(2026, 1, 2, 3, 4, 5, 7000, tzinfo=timezone.utc)
+    moment = datetime(2026, 1, 2, 3, 4, 5, 7000, tzinfo=UTC)
     assert request_timestamp(moment) == "2026-01-02T03:04:05.007Z"
 
 
 def test_timestamp_converts_a_non_utc_moment_to_utc():
     """The service compares against its own clock, so the value must be UTC
     regardless of the zone the caller's datetime carries."""
-    moment = datetime(
-        2026, 1, 2, 5, 4, 5, 0, tzinfo=timezone(timedelta(hours=2))
-    )
+    moment = datetime(2026, 1, 2, 5, 4, 5, 0, tzinfo=timezone(timedelta(hours=2)))
     assert request_timestamp(moment) == "2026-01-02T03:04:05.000Z"
 
 

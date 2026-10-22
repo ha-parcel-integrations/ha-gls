@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 import hashlib
 import logging
-from datetime import datetime, timedelta, timezone
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
@@ -36,11 +36,7 @@ from .const import (
 )
 from .countries.de import _known_parcel_numbers as _de_known_parcel_numbers
 from .countries.de.session import GlsDeSession, GlsDeSessionError
-from .parcels import (
-    _apply_delivered_filter,
-    normalize_parcel,
-    sort_parcels_by_ts,
-)
+from .parcels import _apply_delivered_filter, normalize_parcel, sort_parcels_by_ts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,10 +59,9 @@ def _next_anchor(now: datetime) -> datetime:
     )
     if now < six_today:
         return six_today
-    midnight_tomorrow = (now + timedelta(days=1)).replace(
+    return (now + timedelta(days=1)).replace(
         hour=QUIET_WINDOW_START_HOUR, minute=0, second=0, microsecond=0
     )
-    return midnight_tomorrow
 
 
 def _hottest_tier_minutes(active_parcels: list[dict], now: datetime) -> int | None:
@@ -304,8 +299,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
             # migration; all newly stored parcel items contain just the code.
             (item[CONF_PARCEL_NO], postal_code or item.get(CONF_POSTAL_CODE))
             for item in tracked
-            if item.get(CONF_PARCEL_NO)
-            and (postal_code or item.get(CONF_POSTAL_CODE))
+            if item.get(CONF_PARCEL_NO) and (postal_code or item.get(CONF_POSTAL_CODE))
         ]
 
         # Drop cache entries for parcels that were untracked, so the cache
@@ -344,7 +338,9 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         # normalize_parcel per parcel.
         raws_by_number: dict[str, tuple[dict, str, str]] = {}
         errors = 0
-        for (parcel_no, postal_code), result in zip(pairs_to_fetch, results):
+        for (parcel_no, postal_code), result in zip(
+            pairs_to_fetch, results, strict=True
+        ):
             if isinstance(result, BaseException):
                 if isinstance(result, GlsDeSessionError):
                     # A token-refresh/identity failure is not one parcel's
@@ -439,7 +435,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         # succeeded (or nothing needed fetching) — a poll that was served
         # entirely from cache must not present itself as a successful update.
         if not pairs_to_fetch or errors < len(pairs_to_fetch):
-            self.last_success_time = datetime.now(timezone.utc)
+            self.last_success_time = datetime.now(UTC)
 
         now = dt_util.now()
         self._current_tier_minutes = _hottest_tier_minutes(normalized_active, now)

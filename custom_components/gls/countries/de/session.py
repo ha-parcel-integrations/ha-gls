@@ -32,11 +32,12 @@ Never send the token this module hands out to any host other than
 ``*.ooh.glsnxt.com`` / ``api-backend.glsnxt.com`` — that is the caller's
 (the DE transport module's) responsibility, not enforced here.
 """
+
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import json
 import logging
-from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -104,16 +105,16 @@ def _parse_identity_timestamp(value: Any) -> datetime | None:
         return None
     if isinstance(value, (int, float)):
         try:
-            return datetime.fromtimestamp(value, tz=timezone.utc)
+            return datetime.fromtimestamp(value, tz=UTC)
         except (OverflowError, OSError, ValueError):
             return None
     if isinstance(value, str):
         try:
-            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(value)
         except ValueError:
             return None
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return dt
     return None
 
@@ -136,7 +137,7 @@ def _warn_token_lifetime_anomaly(lifetime: timedelta) -> None:
 
 def _warn_recaptcha_once() -> None:
     """One-shot, loud warning: any mention of reCAPTCHA means the surface may close."""
-    global _recaptcha_warned
+    global _recaptcha_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _recaptcha_warned:
         return
     _recaptcha_warned = True
@@ -189,7 +190,7 @@ class GlsDeSession:
         """Whether the cached token is missing, or inside the refresh margin."""
         if self._token is None or self._expires_at is None:
             return True
-        return datetime.now(timezone.utc) >= self._expires_at - TOKEN_REFRESH_MARGIN
+        return datetime.now(UTC) >= self._expires_at - TOKEN_REFRESH_MARGIN
 
     def pop_reregistered(self) -> bool:
         """Return whether a recovery re-register happened, and clear the flag.
@@ -302,8 +303,7 @@ class GlsDeSession:
                 raise _InstanceGoneError
             if response.status != expected_status:
                 raise GlsDeSessionError(
-                    f"GLS DE identity service returned {response.status} "
-                    f"for {url}",
+                    f"GLS DE identity service returned {response.status} for {url}",
                     status_code=response.status,
                 )
             return json.loads(text) if text else {}
@@ -318,9 +318,7 @@ class GlsDeSession:
         self._token = token
         issued_at = _parse_identity_timestamp(payload.get("issuedAt"))
         expires_at = _parse_identity_timestamp(payload.get("expiresAt"))
-        self._expires_at = expires_at or (
-            datetime.now(timezone.utc) + _EXPECTED_TOKEN_LIFETIME
-        )
+        self._expires_at = expires_at or (datetime.now(UTC) + _EXPECTED_TOKEN_LIFETIME)
         if issued_at is not None and expires_at is not None:
             lifetime = expires_at - issued_at
             if abs(lifetime - _EXPECTED_TOKEN_LIFETIME) > _TOKEN_LIFETIME_TOLERANCE:

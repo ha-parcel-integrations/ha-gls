@@ -4,6 +4,7 @@ Italy keeps its status from the group leaf; this leaf only supplies history.
 The tests pin both halves of that: the leaf's own behaviour, and the rule that
 it never replaces a history the group leaf already produced.
 """
+
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -62,7 +63,9 @@ def _national_reply() -> dict:
     }
 
 
-def _session(status: int, body: object, *, raises: Exception | None = None) -> MagicMock:
+def _session(
+    status: int, body: object, *, raises: Exception | None = None
+) -> MagicMock:
     session = MagicMock()
     response = AsyncMock()
     response.status = status
@@ -70,8 +73,8 @@ def _session(status: int, body: object, *, raises: Exception | None = None) -> M
     context = MagicMock()
     context.__aenter__ = AsyncMock(return_value=response)
     context.__aexit__ = AsyncMock(return_value=False)
-    session.get = MagicMock(side_effect=raises) if raises else MagicMock(
-        return_value=context
+    session.get = (
+        MagicMock(side_effect=raises) if raises else MagicMock(return_value=context)
     )
     return session
 
@@ -158,7 +161,9 @@ async def test_a_failure_is_logged_once_at_debug(caplog):
     with caplog.at_level(logging.DEBUG):
         await async_get_history_it(_session(500, {}), HOST, AWB)
         await async_get_history_it(_session(500, {}), HOST, AWB)
-    assert sum("national history is unavailable" in r.message for r in caplog.records) == 1
+    assert (
+        sum("national history is unavailable" in r.message for r in caplog.records) == 1
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +213,14 @@ async def test_an_italian_body_with_no_history_is_filled_from_the_national_leaf(
 async def test_a_history_the_group_leaf_already_returned_is_never_replaced():
     """An rstt028 history carries per-event evtNo codes the national rows do
     not, so the group's own answer is strictly richer and is kept."""
-    own = [{"date": "2026-10-09", "time": "09:12:00", "evtDscr": "Delivered", "evtNo": "3.0"}]
+    own = [
+        {
+            "date": "2026-10-09",
+            "time": "09:12:00",
+            "evtDscr": "Delivered",
+            "evtNo": "3.0",
+        }
+    ]
     session = _group_session(_group_body(own))
     with patch(
         "custom_components.gls.countries.group.async_get_history_it",
@@ -228,9 +240,7 @@ async def test_no_other_group_country_consults_the_italian_leaf():
         "custom_components.gls.countries.group.async_get_history_it",
         new=AsyncMock(return_value=[]),
     ) as mock_leaf:
-        await async_get_parcel_group(
-            session, HOST, "CZ/en", AWB, "11000", country="CZ"
-        )
+        await async_get_parcel_group(session, HOST, "CZ/en", AWB, "11000", country="CZ")
     mock_leaf.assert_not_awaited()
 
 

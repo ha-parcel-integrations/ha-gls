@@ -14,11 +14,12 @@ Germany needs its own nested package (rather than a flat ``countries/de.py``)
 because it also needs a session/token lifecycle module with no NL
 equivalent — see :mod:`.session`.
 """
+
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 import aiohttp
@@ -78,7 +79,7 @@ _recaptcha_warned = False
 
 def _warn_recaptcha_once() -> None:
     """One-shot, loud warning: any mention of reCAPTCHA means the surface may close."""
-    global _recaptcha_warned
+    global _recaptcha_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _recaptcha_warned:
         return
     _recaptcha_warned = True
@@ -374,7 +375,7 @@ def _warn_time_frame_type(value: Any) -> None:
     Decides whether DE has an ETA at all. Inventing a window from a prose
     string is forbidden, so this is observational only, never parsed into ``planned_from``/``planned_to``.
     """
-    global _time_frame_type_logged
+    global _time_frame_type_logged  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _time_frame_type_logged:
         return
     _time_frame_type_logged = True
@@ -471,9 +472,7 @@ def _parse_de_timestamp(value: str | None) -> str | None:
     if not value:
         return None
     try:
-        dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(
-            tzinfo=timezone.utc
-        )
+        dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
     except ValueError:
         return None
     return dt.isoformat()

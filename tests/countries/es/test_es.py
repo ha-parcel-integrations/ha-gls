@@ -5,6 +5,7 @@ so these tests pin the *decisions* — the error branching, the pickup-point
 gate, the incidence sentence map, de-duplication and the UTC handling —
 rather than claiming to reproduce a real payload.
 """
+
 import logging
 from unittest.mock import AsyncMock, MagicMock
 
@@ -28,9 +29,7 @@ def _session(status: int, body: object, *, raises: bool = False) -> MagicMock:
     response = AsyncMock()
     response.status = status
     if raises:
-        response.json = AsyncMock(
-            side_effect=aiohttp.ContentTypeError(MagicMock(), ())
-        )
+        response.json = AsyncMock(side_effect=aiohttp.ContentTypeError(MagicMock(), ()))
     else:
         response.json = AsyncMock(return_value=body)
     context = MagicMock()
@@ -142,20 +141,22 @@ async def test_clock_skew_401_raises_and_names_the_clock(caplog):
             "message": "Invalid timestamp 2026-10-12T09:46:21.367Z",
         }
     }
-    with caplog.at_level(logging.WARNING):
-        with pytest.raises(GlsApiError):
-            await async_get_parcel_es(_session(401, body), NUMBER, POSTCODE)
+    with caplog.at_level(logging.WARNING), pytest.raises(GlsApiError):
+        await async_get_parcel_es(_session(401, body), NUMBER, POSTCODE)
     assert any("clock" in record.message for record in caplog.records)
 
 
 async def test_rejected_signature_403_raises_without_echoing_the_credential(caplog):
     body = {
-        "error": {"status": 403, "name": "ForbiddenError", "message": "Invalid signature"}
+        "error": {
+            "status": 403,
+            "name": "ForbiddenError",
+            "message": "Invalid signature",
+        }
     }
     session = _session(403, body)
-    with caplog.at_level(logging.WARNING):
-        with pytest.raises(GlsApiError):
-            await async_get_parcel_es(session, NUMBER, POSTCODE)
+    with caplog.at_level(logging.WARNING), pytest.raises(GlsApiError):
+        await async_get_parcel_es(session, NUMBER, POSTCODE)
     logged = " ".join(record.message for record in caplog.records)
     assert "signature" in logged
     # Report the failure, never the values that produced it.
@@ -229,7 +230,13 @@ def test_an_unknown_code_warns_once(caplog):
     with caplog.at_level(logging.WARNING):
         assert map_parcel_status_es("teleported") == ParcelStatus.UNKNOWN
         assert map_parcel_status_es("teleported") == ParcelStatus.UNKNOWN
-    assert sum("Unrecognised GLS Spain/Portugal status" in r.message for r in caplog.records) == 1
+    assert (
+        sum(
+            "Unrecognised GLS Spain/Portugal status" in r.message
+            for r in caplog.records
+        )
+        == 1
+    )
 
 
 @pytest.mark.parametrize("code", [None, "", "   ", 7, True])
@@ -708,7 +715,12 @@ def diverted_to_gls_point_sample() -> dict:
             "active": True,
             "type": "shop",
             "name": SHOP_NAME,
-            "address": {"street": "", "locality": "", "postalCode": "", "country": "ES"},
+            "address": {
+                "street": "",
+                "locality": "",
+                "postalCode": "",
+                "country": "ES",
+            },
             "notes": "",
             "schedules": ["Mon a Sat, 10:00 to 15:00"],
             "phones": [],
@@ -814,9 +826,10 @@ def test_the_redirect_sentence_also_arrives_under_picked_not_only_incidence():
     """The research expected the redirect wording under ``incidence``; a real
     parcel sent it as a ``picked`` scan. Both land on in_transit, which is why
     this was never visible as a defect — pinned so it stays that way."""
-    assert map_event_status_es(
-        "picked", f"Shipment redirected to GLS Point {SHOP_NAME}"
-    ) == ParcelStatus.IN_TRANSIT
+    assert (
+        map_event_status_es("picked", f"Shipment redirected to GLS Point {SHOP_NAME}")
+        == ParcelStatus.IN_TRANSIT
+    )
 
 
 def test_a_door_delivery_has_no_pickup_point_and_does_not_warn(caplog):
@@ -924,7 +937,9 @@ def portuguese_sample() -> dict:
         },
         "tracking": [
             _scan("delivered", "Delivered", "2026-07-14T13:58:00Z"),
-            _scan("deliveredOnParcel", f"Deposited in {PT_SHOP}", "2026-07-14T11:02:00Z"),
+            _scan(
+                "deliveredOnParcel", f"Deposited in {PT_SHOP}", "2026-07-14T11:02:00Z"
+            ),
             _scan("receivedOnParcel", f"Received in {PT_SHOP}", "2026-07-14T11:01:00Z"),
             _scan("onTransit", "At delivery agency", "2026-07-14T10:03:00Z"),
             _scan("onDelivery", "Out for delivery", "2026-07-14T10:03:00Z"),
@@ -934,7 +949,9 @@ def portuguese_sample() -> dict:
                 "2026-07-13T13:49:00Z",
             ),
             _scan("incidence", "Delivery point non available", "2026-07-13T12:49:00Z"),
-            _scan("deliveredOnParcel", f"Deposited in {PT_SHOP}", "2026-06-29T15:28:00Z"),
+            _scan(
+                "deliveredOnParcel", f"Deposited in {PT_SHOP}", "2026-06-29T15:28:00Z"
+            ),
             _scan(
                 "incidence",
                 f"Shipment redirected to GLS Point {PT_SHOP}",
@@ -964,7 +981,12 @@ def portuguese_sample() -> dict:
             "active": True,
             "type": "shop",
             "name": PT_SHOP,
-            "address": {"street": "", "locality": "", "postalCode": "", "country": "PT"},
+            "address": {
+                "street": "",
+                "locality": "",
+                "postalCode": "",
+                "country": "PT",
+            },
             "notes": "",
             "schedules": ["Mon to Fri, 08:30 to 12:30"],
             "phones": [],
@@ -1000,7 +1022,9 @@ def test_the_portuguese_link_uses_the_portuguese_host():
         parcel_no="1000000003",
         country="PT",
     )
-    assert parcel["url"] == f"https://mygls.gls-portugal.pt/e/1000000003/{PT_POSTCODE}/pt"
+    assert (
+        parcel["url"] == f"https://mygls.gls-portugal.pt/e/1000000003/{PT_POSTCODE}/pt"
+    )
 
 
 def test_a_spanish_link_stays_on_the_spanish_host():
@@ -1040,9 +1064,10 @@ def test_every_captured_incidence_sentence_is_mapped(sentence, expected, caplog)
 def test_a_redirect_under_incidence_is_still_in_transit():
     """The same sentence has been observed under both `incidence` and
     `picked`, so the sentence decides and the code does not."""
-    assert map_event_status_es(
-        "incidence", f"Shipment redirected to GLS Point {PT_SHOP}"
-    ) == ParcelStatus.IN_TRANSIT
+    assert (
+        map_event_status_es("incidence", f"Shipment redirected to GLS Point {PT_SHOP}")
+        == ParcelStatus.IN_TRANSIT
+    )
 
 
 def test_the_three_tied_pairs_all_read_agency_then_out_for_delivery():

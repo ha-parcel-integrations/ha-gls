@@ -22,12 +22,13 @@ The endpoint takes the parcel number alone. The hub's postcode is still
 required at setup (it is every GLS hub's key and the default for parcels added
 later) and is simply never sent, exactly as ``countries/us/`` does it.
 """
+
 from __future__ import annotations
 
-import logging
-import unicodedata
 from datetime import datetime
+import logging
 from typing import Any
+import unicodedata
 
 import aiohttp
 
@@ -214,7 +215,11 @@ async def async_get_parcel_pl(
             # speaks JSON — never parse it as a parcel.
             _LOGGER.warning("GLS Poland returned a non-JSON body (HTTP %s)", status)
             return None
-    if status == 400 and isinstance(body, dict) and body.get("code") == _UNKNOWN_PARCEL_CODE:
+    if (
+        status == 400
+        and isinstance(body, dict)
+        and body.get("code") == _UNKNOWN_PARCEL_CODE
+    ):
         # Semantic "unknown number", the carrier's own not-found answer.
         return None
     if status != 200:
@@ -235,7 +240,7 @@ def _history(events: list[dict]) -> list[dict]:
     entries are sorted on their own timestamps and a body that was not already
     descending is reported once.
     """
-    global _history_order_warned
+    global _history_order_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     parsed: list[tuple[datetime, dict]] = []
     for event in events:
         timestamp = _parse_datetime(event.get("packageStatusDate"))
@@ -273,7 +278,7 @@ def _warn_shop_delivery_once() -> None:
     ``DELIVERED`` while the newest event is the drop-off, that is the answer
     arriving, and it must be reported rather than silently corrected here.
     """
-    global _shop_delivery_warned
+    global _shop_delivery_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
     if _shop_delivery_warned:
         return
     _shop_delivery_warned = True
@@ -300,7 +305,9 @@ def normalize_parcel_pl(
     status = map_parcel_status_pl(ident)
     events = _events(raw)
     newest = events[0] if events else None
-    newest_status = map_event_status_pl(newest.get("packageStatusName")) if newest else None
+    newest_status = (
+        map_event_status_pl(newest.get("packageStatusName")) if newest else None
+    )
     if status == ParcelStatus.UNKNOWN and newest_status is not None:
         # The shipment code is unverified beyond DELIVERED; the event texts
         # are captured. Derive rather than report a known parcel as unknown.

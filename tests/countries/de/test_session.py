@@ -1,18 +1,16 @@
 """Tests for the GLS Germany anonymous identity session (register/validate)."""
+
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import json
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import aiohttp
 import pytest
 
 from custom_components.gls.countries.de import session as session_module
-from custom_components.gls.countries.de.session import (
-    GlsDeSession,
-    GlsDeSessionError,
-)
+from custom_components.gls.countries.de.session import GlsDeSession, GlsDeSessionError
 
 
 @pytest.fixture(autouse=True)
@@ -30,13 +28,13 @@ def _reset_one_shot_state():
     session_module._recaptcha_warned = False
 
 
-def _ctx(status: int, body: dict | None = None, headers: dict | None = None) -> MagicMock:
+def _ctx(
+    status: int, body: dict | None = None, headers: dict | None = None
+) -> MagicMock:
     """Build an async-context-manager mock standing in for ``session.post(...)``."""
     response = AsyncMock()
     response.status = status
-    response.text = AsyncMock(
-        return_value=json.dumps(body) if body is not None else ""
-    )
+    response.text = AsyncMock(return_value=json.dumps(body) if body is not None else "")
     response.headers = headers or {}
     ctx = MagicMock()
     ctx.__aenter__ = AsyncMock(return_value=response)
@@ -51,9 +49,13 @@ def _session_with(*responses: MagicMock) -> MagicMock:
     return session
 
 
-def _token_body(token: str = "tok", *, hours: float = 60) -> dict:
+def _token_body(
+    token: str = "tok",  # noqa: S107 - fake test value
+    *,
+    hours: float = 60,
+) -> dict:
     """A register/validate success body with a lifetime of ``hours``."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return {
         "accessToken": token,
         "issuedAt": int(now.timestamp()),
@@ -261,7 +263,7 @@ async def test_token_lifetime_anomaly_same_value_warns_once(caplog):
     with caplog.at_level("WARNING"):
         await de.async_register()
         # Force a second store_token() call with the same anomalous lifetime.
-        de._expires_at = datetime.now(timezone.utc)
+        de._expires_at = datetime.now(UTC)
         await de.async_get_token()
     lifetime_warnings = [m for m in caplog.messages if "lifetime" in m.lower()]
     assert len(lifetime_warnings) == 1
@@ -315,7 +317,7 @@ async def test_out_of_range_timestamp_falls_back_without_crashing():
 
 
 async def test_iso_timestamps_with_and_without_timezone_are_parsed():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     issued = now - timedelta(hours=2)
     expires = now + timedelta(hours=60)
     session = _session_with(
@@ -340,9 +342,8 @@ async def test_recaptcha_in_body_is_warned(caplog):
         _ctx(403, {"displayableMessage": "please solve the recaptcha"})
     )
     de = GlsDeSession(session)
-    with caplog.at_level("WARNING"):
-        with pytest.raises(GlsDeSessionError):
-            await de.async_register()
+    with caplog.at_level("WARNING"), pytest.raises(GlsDeSessionError):
+        await de.async_register()
     assert any("recaptcha" in m.lower() for m in caplog.messages)
 
 

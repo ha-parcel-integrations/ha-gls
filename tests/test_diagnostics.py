@@ -1,4 +1,5 @@
 """Tests for GLS diagnostics."""
+
 import json
 from unittest.mock import MagicMock
 

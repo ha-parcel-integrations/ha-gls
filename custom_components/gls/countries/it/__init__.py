@@ -25,6 +25,7 @@ that builder, and the honest one here.
 The ``en`` locale in the path is load-bearing, exactly as ``Accept-Language``
 is on the Spanish surface: it is what makes the sentences stable.
 """
+
 from __future__ import annotations
 
 import logging

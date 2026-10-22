@@ -1,4 +1,5 @@
 """Tests for the GLS refresh button."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.gls.button import GlsRefreshButton

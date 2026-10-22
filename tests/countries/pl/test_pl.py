@@ -1,4 +1,5 @@
 """Tests for the GLS Poland national myGLS transport and mapping."""
+
 import logging
 from unittest.mock import AsyncMock, MagicMock
 
@@ -51,7 +52,9 @@ def delivered_sample() -> dict:
         # Newest first, as the carrier sends them.
         "eventReasons": [
             _event("Doręczona", "Paczka doręczona ", "2026-08-06T08:24:05.3434+02:00"),
-            _event("W doręczeniu", "Paczka w doręczeniu ", "2026-08-06T06:33:12.8738+02:00"),
+            _event(
+                "W doręczeniu", "Paczka w doręczeniu ", "2026-08-06T06:33:12.8738+02:00"
+            ),
             _event(
                 "W drodze",
                 "Paczka zarejestrowana w filii GLS ",
@@ -158,7 +161,9 @@ def test_an_unknown_shipment_code_is_derived_from_the_newest_event(caplog):
     with caplog.at_level(logging.WARNING):
         parcel = normalize_parcel_pl(raw, parcel_no=SHORT_NO)
     assert parcel["status"] == ParcelStatus.OUT_FOR_DELIVERY
-    assert sum("Unrecognised GLS Poland status" in r.message for r in caplog.records) == 1
+    assert (
+        sum("Unrecognised GLS Poland status" in r.message for r in caplog.records) == 1
+    )
 
 
 def test_an_unknown_event_text_stays_neutral_and_warns_once(caplog):
@@ -173,7 +178,9 @@ def test_an_unknown_event_text_stays_neutral_and_warns_once(caplog):
         parcel = normalize_parcel_pl(raw, parcel_no=SHORT_NO, include_history=True)
     assert parcel["status"] == ParcelStatus.IN_TRANSIT
     assert [event["status"] for event in parcel["history"]] == [None, None]
-    assert sum("Unrecognised GLS Poland event" in r.message for r in caplog.records) == 1
+    assert (
+        sum("Unrecognised GLS Poland event" in r.message for r in caplog.records) == 1
+    )
 
 
 def test_a_shop_dropoff_reported_as_delivered_warns_once(caplog):

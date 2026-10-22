@@ -4,6 +4,7 @@ The resolver's whole value is that it cannot regress anything: a plain numeric
 AWB must never reach it, and every failure path must fall back to the code the
 user typed. Most of this file pins exactly that.
 """
+
 import logging
 from unittest.mock import AsyncMock, MagicMock
 
@@ -31,7 +32,9 @@ def _clear_resolver_cache():
     fr._failures_logged.clear()
 
 
-def _session(status: int, body: object, *, raises: Exception | None = None) -> MagicMock:
+def _session(
+    status: int, body: object, *, raises: Exception | None = None
+) -> MagicMock:
     session = MagicMock()
     response = AsyncMock()
     response.status = status
@@ -39,8 +42,8 @@ def _session(status: int, body: object, *, raises: Exception | None = None) -> M
     context = MagicMock()
     context.__aenter__ = AsyncMock(return_value=response)
     context.__aexit__ = AsyncMock(return_value=False)
-    session.get = MagicMock(side_effect=raises) if raises else MagicMock(
-        return_value=context
+    session.get = (
+        MagicMock(side_effect=raises) if raises else MagicMock(return_value=context)
     )
     return session
 

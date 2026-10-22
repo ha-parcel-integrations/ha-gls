@@ -1,7 +1,11 @@
 """Tests for the GLS coordinator logic."""
-from datetime import datetime, timedelta, timezone
+
+import asyncio
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -29,10 +33,7 @@ from custom_components.gls.coordinator import (
     _next_update_interval,
     _stagger_minutes,
 )
-from custom_components.gls.parcels import (
-    normalize_parcel,
-    sort_parcels_by_ts,
-)
+from custom_components.gls.parcels import normalize_parcel, sort_parcels_by_ts
 
 from .payloads import ACTIVE_NO, DELIVERED_NO, active_sample, delivered_sample
 
@@ -80,8 +81,6 @@ def _entry_with(parcels: list[dict]) -> MockConfigEntry:
 # ---------------------------------------------------------------------------
 # Dynamic polling (Section 2.1, barcode-based) — pure helpers
 # ---------------------------------------------------------------------------
-
-UTC = timezone.utc
 
 
 async def test_coordinator_starts_on_the_hot_cadence(hass):
@@ -156,7 +155,10 @@ def test_tier_is_mid_before_lookahead_of_planned_from():
 
 
 def test_next_update_interval_is_none_for_none_tier():
-    assert _next_update_interval(datetime(2026, 1, 1, 12, tzinfo=UTC), None, "entry-1") is None
+    assert (
+        _next_update_interval(datetime(2026, 1, 1, 12, tzinfo=UTC), None, "entry-1")
+        is None
+    )
 
 
 def test_daytime_candidate_outside_window_is_tier_plus_stagger():
@@ -222,10 +224,12 @@ async def test_polling_pauses_once_everything_is_delivered(hass):
 
 
 async def test_update_merges_multiple_parcels(hass):
-    entry = _entry_with([
-        {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
-        {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
-    ])
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
+            {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
     entry.add_to_hass(hass)
     client = AsyncMock()
     client.async_get_parcel.side_effect = lambda no, pc: (
@@ -268,8 +272,6 @@ async def test_update_keeps_cached_on_error(hass):
 
 
 async def test_update_all_fail_raises(hass):
-    from homeassistant.helpers.update_coordinator import UpdateFailed
-
     entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
     entry.add_to_hass(hass)
     client = AsyncMock()
@@ -281,10 +283,12 @@ async def test_update_all_fail_raises(hass):
 
 
 async def test_update_skips_items_missing_fields(hass):
-    entry = _entry_with([
-        {CONF_PARCEL_NO: "", CONF_POSTAL_CODE: "1234AB"},  # skipped
-        {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
-    ])
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: "", CONF_POSTAL_CODE: "1234AB"},  # skipped
+            {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
     entry.add_to_hass(hass)
     client = AsyncMock()
     client.async_get_parcel.return_value = delivered_sample()
@@ -295,8 +299,6 @@ async def test_update_skips_items_missing_fields(hass):
 
 
 async def test_update_event_carries_device_id(hass):
-    from homeassistant.helpers import device_registry as dr
-
     entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
     entry.add_to_hass(hass)
     device = dr.async_get(hass).async_get_or_create(
@@ -355,7 +357,9 @@ async def test_update_fires_delivered_event_not_status_changed(hass):
     delivered = []
     changed = []
     hass.bus.async_listen(f"{DOMAIN}_parcel_delivered", lambda e: delivered.append(e))
-    hass.bus.async_listen(f"{DOMAIN}_parcel_status_changed", lambda e: changed.append(e))
+    hass.bus.async_listen(
+        f"{DOMAIN}_parcel_status_changed", lambda e: changed.append(e)
+    )
 
     client.async_get_parcel.return_value = active_sample("1111111111111")
     await coordinator._async_update_data()
@@ -468,14 +472,7 @@ async def test_delivered_code_forgotten_when_untracked(hass):
 
 
 async def test_delivered_filter_days_and_count(hass):
-    from datetime import timedelta
-
-    from custom_components.gls.const import (
-        CONF_DELIVERED_FILTER_AMOUNT,
-        CONF_DELIVERED_FILTER_TYPE,
-    )
-
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     recent = (now - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S")
     old = (now - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
     delivered = [
@@ -489,7 +486,8 @@ async def test_delivered_filter_days_and_count(hass):
 
     # days: 7-day window drops the 30-day-old one.
     hass.config_entries.async_update_entry(
-        entry, options={CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7}
+        entry,
+        options={CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7},
     )
     kept = coordinator._apply_delivered_filter(delivered)
     assert {p["barcode"] for p in kept} == {"RECENT"}
@@ -497,7 +495,10 @@ async def test_delivered_filter_days_and_count(hass):
     # parcels: keep only the most recent 1.
     hass.config_entries.async_update_entry(
         entry,
-        options={CONF_DELIVERED_FILTER_TYPE: "parcels", CONF_DELIVERED_FILTER_AMOUNT: 1},
+        options={
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 1,
+        },
     )
     kept = coordinator._apply_delivered_filter(delivered)
     assert kept == delivered[:1]
@@ -519,12 +520,12 @@ async def test_update_prunes_cache_for_untracked_parcels(hass):
 
 async def test_update_fetches_parcels_concurrently(hass):
     """All tracked parcels are fetched via one gather, not one-by-one."""
-    import asyncio
-
-    entry = _entry_with([
-        {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
-        {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
-    ])
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
+            {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
     entry.add_to_hass(hass)
     in_flight = 0
     peak = 0

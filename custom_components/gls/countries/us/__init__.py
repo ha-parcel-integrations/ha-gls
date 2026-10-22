@@ -17,10 +17,11 @@ and transit events prove happened. Every unrecognised status text still logs
 once with the unrecognised-status issue link, which is how the table gets
 filled in without a second build session.
 """
+
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 import aiohttp
@@ -65,7 +66,7 @@ _ACCEPT_LANGUAGE = "en-US"
 
 # Older than any real event, so a shipment with no usable timestamp at all
 # never outranks one that has them.
-_NO_TIMESTAMP = datetime.min.replace(tzinfo=timezone.utc)
+_NO_TIMESTAMP = datetime.min.replace(tzinfo=UTC)
 
 
 def _normalise_status(value: object) -> str | None:
@@ -155,7 +156,7 @@ def _parse_datetime(value: object) -> datetime | None:
     if not isinstance(value, str) or not value.strip():
         return None
     try:
-        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.strip())
     except ValueError:
         if value not in _unparseable_timestamps_logged:
             _unparseable_timestamps_logged.add(value)
@@ -163,7 +164,7 @@ def _parse_datetime(value: object) -> datetime | None:
         return None
     if parsed.year in _SENTINEL_YEARS:
         return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 def _parse_timestamp(value: object) -> str | None:

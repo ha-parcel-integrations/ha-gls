@@ -1,4 +1,5 @@
 """Tests for the GLS config and options flow."""
+
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -228,7 +229,23 @@ async def test_same_postcode_different_country_hub_allowed(hass):
 
 @pytest.mark.parametrize(
     "country",
-    ["BE", "CH", "DK", "FI", "HU", "LI", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"],
+    [
+        "BE",
+        "CH",
+        "DK",
+        "FI",
+        "HU",
+        "LI",
+        "LU",
+        "RS",
+        "SK",
+        "AT",
+        "IE",
+        "FR",
+        "SI",
+        "HR",
+        "IT",
+    ],
 )
 async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
     hass, country
@@ -248,7 +265,23 @@ async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
 
 @pytest.mark.parametrize(
     "country",
-    ["BE", "CH", "DK", "FI", "HU", "LI", "LU", "RS", "SK", "AT", "IE", "FR", "SI", "HR", "IT"],
+    [
+        "BE",
+        "CH",
+        "DK",
+        "FI",
+        "HU",
+        "LI",
+        "LU",
+        "RS",
+        "SK",
+        "AT",
+        "IE",
+        "FR",
+        "SI",
+        "HR",
+        "IT",
+    ],
 )
 async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
     result = await hass.config_entries.flow.async_init(
@@ -387,7 +420,13 @@ async def _open_options_step(hass, entry, step_id: str):
 
 async def test_options_parcel_list_can_be_cleared(hass):
     """A submitted empty list removes the final manually tracked parcel."""
-    entry = MockConfigEntry(domain=DOMAIN, options={CONF_PARCELS: [{CONF_PARCEL_NO: "EXAMPLE111111"}], CONF_POSTAL_CODE: "1234AB"})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        options={
+            CONF_PARCELS: [{CONF_PARCEL_NO: "EXAMPLE111111"}],
+            CONF_POSTAL_CODE: "1234AB",
+        },
+    )
     entry.add_to_hass(hass)
     result = await _open_options_step(hass, entry, "parcels")
     result = await hass.config_entries.options.async_configure(
@@ -400,11 +439,18 @@ async def test_options_parcel_list_can_be_cleared(hass):
 async def test_options_settings_preserve_parcel_list(hass):
     """Saving settings must never replace the manually tracked parcel list."""
     parcels = [{CONF_PARCEL_NO: "EXAMPLE111111"}]
-    entry = MockConfigEntry(domain=DOMAIN, options={CONF_PARCELS: parcels, CONF_POSTAL_CODE: "1234AB"})
+    entry = MockConfigEntry(
+        domain=DOMAIN, options={CONF_PARCELS: parcels, CONF_POSTAL_CODE: "1234AB"}
+    )
     entry.add_to_hass(hass)
     result = await _open_options_step(hass, entry, "settings")
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7, CONF_INCLUDE_HISTORY: False}
+        result["flow_id"],
+        {
+            CONF_DELIVERED_FILTER_TYPE: "days",
+            CONF_DELIVERED_FILTER_AMOUNT: 7,
+            CONF_INCLUDE_HISTORY: False,
+        },
     )
     assert result["type"] == "create_entry"
     assert result["data"][CONF_PARCELS] == parcels

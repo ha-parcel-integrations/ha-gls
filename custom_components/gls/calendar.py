@@ -1,4 +1,5 @@
 """Calendar platform for the GLS parcel tracker integration."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -17,8 +18,6 @@ from .device import ATTRIBUTION, build_device_info
 PARALLEL_UPDATES = 0
 
 _DEFAULT_EVENT_DURATION = timedelta(hours=1)
-
-
 
 
 def _parse(value: str | None) -> datetime | None:

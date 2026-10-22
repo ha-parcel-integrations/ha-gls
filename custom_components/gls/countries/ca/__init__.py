@@ -1,8 +1,9 @@
 """GLS Canada / Dicom: postcode-enhanced public tracking transport and mapping."""
+
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 import aiohttp
@@ -44,7 +45,9 @@ _NEW_ISSUE_URL = (
 
 
 def _normalise_status(value: object) -> str | None:
-    return value.strip().casefold() if isinstance(value, str) and value.strip() else None
+    return (
+        value.strip().casefold() if isinstance(value, str) and value.strip() else None
+    )
 
 
 def _warn_unmapped_status(value: object) -> None:
@@ -103,9 +106,11 @@ def _parse_timestamp(value: object) -> str | None:
     if not isinstance(value, str) or not value:
         return None
     try:
-        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(
-            tzinfo=timezone.utc
-        ).isoformat()
+        return (
+            datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+            .replace(tzinfo=UTC)
+            .isoformat()
+        )
     except ValueError:
         if value not in _unparseable_timestamps_logged:
             _unparseable_timestamps_logged.add(value)
@@ -277,8 +282,10 @@ def normalize_parcel_ca(
     delivered_at = _parse_timestamp(current_status.get("date"))
     barcode = shipment.get("trackingNumber") or parcel_no
     template = COUNTRIES.get(country, {}).get("tracking_url")
-    url = template.format(parcel_no=barcode) if template and barcode else (
-        TRACKING_URL.format(parcel_no=barcode) if barcode else None
+    url = (
+        template.format(parcel_no=barcode)
+        if template and barcode
+        else (TRACKING_URL.format(parcel_no=barcode) if barcode else None)
     )
 
     return {

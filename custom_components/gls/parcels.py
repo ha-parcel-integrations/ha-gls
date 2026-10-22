@@ -7,9 +7,10 @@ one dispatch. ``sort_parcels_by_ts`` and the delivered-retention filter stay
 here: they operate on already-normalized canonical dicts and are identical
 regardless of which country produced them.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 
@@ -104,14 +105,12 @@ def _apply_delivered_filter(parcels: list[dict], entry: ConfigEntry) -> list[dic
     either way — this only controls what the delivered sensor shows.
     """
     options = entry.options
-    filter_type = options.get(
-        CONF_DELIVERED_FILTER_TYPE, DEFAULT_DELIVERED_FILTER_TYPE
-    )
+    filter_type = options.get(CONF_DELIVERED_FILTER_TYPE, DEFAULT_DELIVERED_FILTER_TYPE)
     amount = int(
         options.get(CONF_DELIVERED_FILTER_AMOUNT, DEFAULT_DELIVERED_FILTER_AMOUNT)
     )
     if filter_type == "days":
-        cutoff = datetime.now(timezone.utc) - timedelta(days=amount)
+        cutoff = datetime.now(UTC) - timedelta(days=amount)
         return [
             p
             for p in parcels

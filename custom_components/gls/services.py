@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import logging
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 
 from .config_flow import (
     normalize_parcel_no,
