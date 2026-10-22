@@ -124,6 +124,8 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
     the active (not-yet-delivered) parcels, ``self.delivered`` the rest.
     """
 
+    config_entry: ConfigEntry
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -294,13 +296,13 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         tracked = self._tracked()
         country = self.config_entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
         postal_code = self.config_entry.options.get(CONF_POSTAL_CODE)
-        pairs = [
+        pairs: list[tuple[str, str]] = []
+        for item in tracked:
             # The item fallback only supports a legacy entry before its setup
             # migration; all newly stored parcel items contain just the code.
-            (item[CONF_PARCEL_NO], postal_code or item.get(CONF_POSTAL_CODE))
-            for item in tracked
-            if item.get(CONF_PARCEL_NO) and (postal_code or item.get(CONF_POSTAL_CODE))
-        ]
+            item_postal_code = postal_code or item.get(CONF_POSTAL_CODE)
+            if item.get(CONF_PARCEL_NO) and item_postal_code:
+                pairs.append((item[CONF_PARCEL_NO], item_postal_code))
 
         # Drop cache entries for parcels that were untracked, so the cache
         # stays bounded to what the user still follows.
@@ -336,7 +338,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         # normalizer needs it as the authoritative barcode source — see
         # countries/group's docstring) so both can be threaded into
         # normalize_parcel per parcel.
-        raws_by_number: dict[str, tuple[dict, str, str]] = {}
+        raws_by_number: dict[str, tuple[dict, str | None, str]] = {}
         errors = 0
         for (parcel_no, postal_code), result in zip(
             pairs_to_fetch, results, strict=True

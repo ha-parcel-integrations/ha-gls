@@ -85,6 +85,11 @@ class GlsApiClient:
         if self._country in ES_COUNTRIES:
             return await async_get_parcel_es(self._session, parcel_no, postal_code)
         if self._country in GROUP_LEAF_COUNTRIES:
+            if self._group_locale is None:
+                raise RuntimeError(
+                    f"GlsApiClient built with country={self._country!r} "
+                    "but no group_locale"
+                )
             awb = parcel_no
             if self._country == "FR" and needs_resolving(parcel_no):
                 # France only: translate the alphanumeric reference a GLS
