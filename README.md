@@ -176,6 +176,7 @@ friendly-name pattern (with multiple hubs each carries its own postcode):
 | `GLS (postcode) En route to ParcelShop` | Active parcels still in transit to a GLS ParcelShop |
 | `GLS (postcode) Awaiting pickup` | Parcels that have arrived at a ParcelShop and are ready to collect |
 | `GLS (postcode) Delivered parcels` | Recently delivered tracked parcels (retention configurable) |
+| `GLS (postcode) Deliveries` | Read-only calendar of expected deliveries, no extra API calls |
 | `GLS (postcode) Last successful update` | Diagnostic timestamp of the last successful poll |
 
 A **`GLS (postcode) Deliveries`** calendar entity is also created, showing
