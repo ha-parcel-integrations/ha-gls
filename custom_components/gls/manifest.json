@@ -1,6 +1,7 @@
 {
   "domain": "gls",
   "name": "GLS",
+  "categories": ["productivity_information"],
   "codeowners": ["@peter-mdf"],
   "config_flow": true,
   "documentation": "https://github.com/ha-parcel-integrations/ha-gls",
