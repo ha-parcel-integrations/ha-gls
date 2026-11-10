@@ -7,22 +7,29 @@ from dataclasses import dataclass, field
 import logging
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .account_coordinator import GlsAccountCoordinator
 from .api import GlsApiClient
 from .const import (
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
+    CONF_DK_EMAIL,
+    CONF_DK_REFRESH_TOKEN,
+    CONF_DK_UID,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
+    CONF_SOURCE,
     COUNTRIES,
     DEFAULT_COUNTRY,
     DOMAIN,
     PLATFORMS,
+    SOURCE_DK_ACCOUNT,
 )
 from .coordinator import GlsCoordinator
 from .countries.de.session import GlsDeSession
+from .countries.dk.session import GlsDkSession
 from .services import async_setup_services, async_unload_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -32,7 +39,7 @@ _LOGGER = logging.getLogger(__name__)
 class GlsData:
     """Runtime data attached to a GLS config entry."""
 
-    client: GlsApiClient
+    client: GlsApiClient | GlsDkSession
     coordinator: GlsCoordinator
     de_session: GlsDeSession | None = None
     # The options as last applied, so an entry write that only rotated DE
@@ -45,6 +52,8 @@ type GlsConfigEntry = ConfigEntry[GlsData]
 
 async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Set up GLS from a config entry."""
+    if entry.data.get(CONF_SOURCE) == SOURCE_DK_ACCOUNT:
+        return await _async_setup_dk_account(hass, entry)
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     postal_code = entry.options.get(CONF_POSTAL_CODE)
 
@@ -142,6 +151,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
 
     async_setup_services(hass)
 
+    return True
+
+
+async def _async_setup_dk_account(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
+    """Restore an account session before loading the shared entity platforms."""
+
+    @callback
+    def token_updated(state: dict) -> None:
+        updates = {
+            CONF_DK_UID: state["uid"],
+            CONF_DK_REFRESH_TOKEN: state["refresh_token"],
+        }
+        if state.get("email"):
+            updates[CONF_DK_EMAIL] = state["email"]
+        data = {**entry.data, **updates}
+        if data != entry.data:
+            hass.config_entries.async_update_entry(entry, data=data)
+
+    session = GlsDkSession(
+        async_get_clientsession(hass),
+        uid=entry.data.get(CONF_DK_UID),
+        refresh_token=entry.data.get(CONF_DK_REFRESH_TOKEN),
+        token_updated=token_updated,
+    )
+    coordinator = GlsAccountCoordinator(hass, session, entry)
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = GlsData(client=session, coordinator=coordinator)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # No update listener: the account options flow is an OptionsFlowWithReload,
+    # which may not be combined with one.
+    async_setup_services(hass)
     return True
 
 

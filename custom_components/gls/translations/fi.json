@@ -7,10 +7,28 @@
         "description": "Valitse maa, johon pakettisi toimitetaan, ja postinumero, johon ne yleensä menevät. Paketit lisätään määrityksen jälkeen.\n\nEikö maatasi ole luettelossa? [Pyydä uutta maata]({issue_url}).",
         "data": {
           "country": "Maa",
-          "postal_code": "Postinumero"
+          "postal_code": "Postinumero",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "esim. {postcode_example}. Käytetään lisäämiesi pakettien oletustoimitusosoitteena; Kanadassa se ottaa käyttöön laajemmat seurantatiedot. Yhdysvaltain seuranta ei käytä sitä."
+          "postal_code": "esim. {postcode_example}. Käytetään lisäämiesi pakettien oletustoimitusosoitteena; Kanadassa se ottaa käyttöön laajemmat seurantatiedot. Yhdysvaltain seuranta ei käytä sitä.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "GLS:ään ei saada yhteyttä. Tarkista verkkoyhteytesi.",
       "invalid_parcel_no": "Tämä ei näytä GLS:n pakettinumerolta tai seurantatunnukselta.",
       "invalid_postcode": "Anna valitulle maalle kelvollinen postinumero, esim. {postcode_example}.",
-      "de_registration_failed": "Anonyymin GLS Saksa -istunnon rekisteröinti ei onnistunut. Tarkista verkkoyhteytesi ja yritä uudelleen."
+      "de_registration_failed": "Anonyymin GLS Saksa -istunnon rekisteröinti ei onnistunut. Tarkista verkkoyhteytesi ja yritä uudelleen.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Tälle postinumerolle on jo määritetty GLS-hub."
+      "already_configured": "Tälle postinumerolle on jo määritetty GLS-hub.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

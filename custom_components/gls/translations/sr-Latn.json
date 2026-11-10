@@ -7,10 +7,28 @@
         "description": "Izaberi zemlju u koju se dostavljaju tvoji paketi i poštanski broj na koji obično idu. Pakete dodaješ nakon podešavanja.\n\nTvoja zemlja nije na listi? [Zatraži drugu zemlju]({issue_url}).",
         "data": {
           "country": "Zemlja",
-          "postal_code": "Poštanski broj"
+          "postal_code": "Poštanski broj",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "npr. {postcode_example}. Koristi se kao podrazumevana adresa dostave za pakete koje dodaš; u Kanadi omogućava detaljnije praćenje. Praćenje u SAD ga ne koristi."
+          "postal_code": "npr. {postcode_example}. Koristi se kao podrazumevana adresa dostave za pakete koje dodaš; u Kanadi omogućava detaljnije praćenje. Praćenje u SAD ga ne koristi.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "GLS nije dostupan. Proveri mrežnu vezu.",
       "invalid_parcel_no": "Ovo ne izgleda kao GLS broj paketa ili identifikator praćenja.",
       "invalid_postcode": "Unesi važeći poštanski broj za izabranu zemlju, npr. {postcode_example}.",
-      "de_registration_failed": "Nije moguće registrovati anonimnu sesiju GLS Nemačka. Proveri mrežnu vezu i probaj ponovo."
+      "de_registration_failed": "Nije moguće registrovati anonimnu sesiju GLS Nemačka. Proveri mrežnu vezu i probaj ponovo.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "GLS hab za ovaj poštanski broj je već podešen."
+      "already_configured": "GLS hab za ovaj poštanski broj je već podešen.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

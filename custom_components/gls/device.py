@@ -12,7 +12,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import CONF_COUNTRY, CONF_POSTAL_CODE, DEFAULT_COUNTRY, DOMAIN
+from .const import (
+    CONF_COUNTRY,
+    CONF_POSTAL_CODE,
+    CONF_SOURCE,
+    DEFAULT_COUNTRY,
+    DOMAIN,
+    SOURCE_DK_ACCOUNT,
+)
 
 ATTRIBUTION = "Data provided by GLS"
 
@@ -25,12 +32,19 @@ def build_device_info(entry: ConfigEntry) -> DeviceInfo:
     of the other carriers. The country joined it once a bare postcode
     stopped uniquely identifying a hub: French and German postcodes can both
     read "39100".
+
+    A Danish account device has a fixed name: entity IDs derive from it, and
+    the account's email address must not end up in them.
     """
     postal_code = entry.options.get(CONF_POSTAL_CODE, "")
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
+    if entry.data.get(CONF_SOURCE) == SOURCE_DK_ACCOUNT:
+        name = "GLS Denmark"
+    else:
+        name = f"GLS ({country} {postal_code})" if postal_code else "GLS"
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
-        name=f"GLS ({country} {postal_code})" if postal_code else "GLS",
+        name=name,
         manufacturer="GLS",
         entry_type=DeviceEntryType.SERVICE,
         configuration_url="https://gls-group.com",

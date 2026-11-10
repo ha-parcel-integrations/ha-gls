@@ -7,10 +7,28 @@
         "description": "Válaszd ki az országot, ahová a csomagjaidat szállítják, és a postai irányítószámot, ahová általában mennek. A csomagokat a beállítás után adhatod hozzá.\n\nNem szerepel az országod a listán? [Kérj másik országot]({issue_url}).",
         "data": {
           "country": "Ország",
-          "postal_code": "Postai irányítószám"
+          "postal_code": "Postai irányítószám",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "pl. {postcode_example}. A hozzáadott csomagok alapértelmezett szállítási címeként szolgál; Kanadában részletesebb nyomkövetést tesz lehetővé. Az Egyesült Államok nyomkövetése nem használja."
+          "postal_code": "pl. {postcode_example}. A hozzáadott csomagok alapértelmezett szállítási címeként szolgál; Kanadában részletesebb nyomkövetést tesz lehetővé. Az Egyesült Államok nyomkövetése nem használja.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "A GLS nem érhető el. Ellenőrizd a hálózati kapcsolatot.",
       "invalid_parcel_no": "Ez nem tűnik GLS csomagszámnak vagy nyomkövetési azonosítónak.",
       "invalid_postcode": "Adj meg egy érvényes postai irányítószámot a kiválasztott országhoz, pl. {postcode_example}.",
-      "de_registration_failed": "Nem sikerült anonim GLS Németország munkamenetet regisztrálni. Ellenőrizd a hálózati kapcsolatot, és próbáld újra."
+      "de_registration_failed": "Nem sikerült anonim GLS Németország munkamenetet regisztrálni. Ellenőrizd a hálózati kapcsolatot, és próbáld újra.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Ehhez a postai irányítószámhoz már be van állítva egy GLS hub."
+      "already_configured": "Ehhez a postai irányítószámhoz már be van állítva egy GLS hub.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

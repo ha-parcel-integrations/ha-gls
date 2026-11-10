@@ -7,10 +7,28 @@
         "description": "Izberite državo dostave vaših pošiljk in poštno številko, kamor običajno prihajajo. Pošiljke dodate po nastavitvi.\n\nVaše države ni na seznamu? [Zahtevajte drugo državo]({issue_url}).",
         "data": {
           "country": "Država",
-          "postal_code": "Poštna številka"
+          "postal_code": "Poštna številka",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "npr. {postcode_example}. Uporablja se kot privzeti naslov dostave za pošiljke, ki jih dodate."
+          "postal_code": "npr. {postcode_example}. Uporablja se kot privzeti naslov dostave za pošiljke, ki jih dodate.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "GLS ni dosegljiv. Preverite omrežno povezavo.",
       "invalid_parcel_no": "To ni videti kot številka pošiljke ali sledilna koda GLS.",
       "invalid_postcode": "Vnesite veljavno poštno številko za izbrano državo, npr. {postcode_example}.",
-      "de_registration_failed": "Anonimne seje GLS Nemčija ni bilo mogoče registrirati. Preverite omrežno povezavo in poskusite znova."
+      "de_registration_failed": "Anonimne seje GLS Nemčija ni bilo mogoče registrirati. Preverite omrežno povezavo in poskusite znova.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Vozlišče GLS za to poštno številko je že nastavljeno."
+      "already_configured": "Vozlišče GLS za to poštno številko je že nastavljeno.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

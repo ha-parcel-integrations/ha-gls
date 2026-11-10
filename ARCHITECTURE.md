@@ -5,13 +5,18 @@ list of things not to get wrong; this file is the reasoning behind it. API
 mechanics — endpoints, parameters, status vocabularies — live in the private
 `carrier-research/gls/api/` and are never copied here.
 
-Two things drive everything else. GLS has **no consumer account or parcel
-feed**, so the user enters tracking codes and a hub is keyed by postcode rather
-than by login. And GLS is not one backend but six: a keyless national GET for
-the Netherlands, a postcode-enhanced keyless GET for Canada, a keyless JSON
+Two things drive everything else. Manual tracking has **no consumer account or
+parcel feed**, so the user enters tracking codes and a hub is keyed by postcode
+rather than by login. And GLS is not one backend but six: a keyless national GET
+for the Netherlands, a postcode-enhanced keyless GET for Canada, a keyless JSON
 POST for the United States, a keyless national GET for Poland, a stateful
 bearer-token POST for Germany, and a keyless pan-EU group index serving
 fourteen more countries.
+
+On top of that, the optional Danish account mode shares the same GLS entities
+and canonical parcel contract but discovers incoming packages from the user's
+account instead; it has its own authenticated session and account coordinator,
+without changing manual Danish tracking.
 
 This is the suite's first multi-country carrier, so the country-package pattern
 originated here. DPD followed it later with a different dispatch point — check
@@ -24,10 +29,11 @@ custom_components/gls/
 ├── __init__.py          setup, transport construction, first refresh
 ├── api.py               GlsApiClient — the per-country dispatcher (thin)
 ├── const.py             COUNTRIES, GROUP_LEAF_COUNTRIES, ParcelStatus, CAPABILITIES_BY_VARIANT, GlsApiError
-├── coordinator.py       poll loop, _raw_cache, DE state persistence, event firing
+├── coordinator.py       manual poll loop and shared result/event finalization
+├── account_coordinator.py Danish account discovery and continuous scheduling
 ├── parcels.py           shared pure helpers (filters, sort) — no I/O, no HA objects
 ├── timeutils.py         timestamp parsing shared across countries
-├── config_flow.py       postcode + country setup, two-page options menu
+├── config_flow.py       manual/account setup, reauth and source-specific options
 ├── sensor.py            summary, per-parcel, pickup and diagnostic sensors
 ├── button.py            refresh button
 ├── calendar.py          read-only deliveries calendar
@@ -58,7 +64,8 @@ patch targets keep working.
 coordinator. The coordinator polls a flat list of `(parcel_no, postal_code)`
 pairs and never learns which country it is talking to. (DPD puts its dispatch
 in the coordinator instead; do not "align" the two — GLS's per-parcel fetch has
-no account-level list call to branch on.)
+no account-level list call to branch on. The separate account coordinator
+handles Danish account discovery.)
 
 | Country | Transport | Auth | Entry point |
 |---|---|---|---|
@@ -89,6 +96,46 @@ Each row carries a host, a postcode regex, and either a `culture` or a
 not a runtime API failure.
 
 ## Key design decisions
+
+### Optional Danish account mode
+
+`entry.data["source"] == "dk_account"` selects automatic incoming-package
+discovery. A missing source remains manual tracking. Account unique IDs are
+prefixed with `dk_account:` and keyed on the authenticated identity, so existing
+country/postcode unique IDs and their migrations are unchanged. The country
+option remains `DK`, while source selection keeps the account client separate
+from the manual Danish group transport.
+
+The async account session keeps its access token in memory and persists only
+refresh credentials and the account identity through data-only entry updates.
+An account entry registers no update listener, so those writes cannot poll
+again, and its options flow is an `OptionsFlowWithReload` (the account-based
+half of the suite's two options models): saving changed options reloads the
+entry. Reauth validates the same account identity before replacing credentials
+and reloading that entry. First refresh still completes before platforms load.
+
+Only Firebase refusing the credentials asks the user to sign in again. A
+backend 401 or 403 does not prove that: the session refreshes the token once
+and retries, and a rejection that survives it is an ordinary failed update that
+is retried on the next poll.
+
+The account coordinator validates a complete, owned list before publishing it.
+A failed or incomplete response leaves the previous coordinator snapshot intact;
+it cannot become an empty account. Both modes share sorting, delivered retention
+and canonical events. Account discovery retains the normal mid-tier schedule
+when no active parcels remain, rather than stopping as manual tracking does.
+A parcel disappearing from a successful complete list is removed without
+inventing a delivery event.
+
+Account options exclude manual parcel editing. Shared manual services reject an
+account target and continue working for coexisting manual hubs. Credentials and
+pickup codes are stripped before raw attributes or events can expose them;
+diagnostics additionally redacts exact account and recipient field names. The
+account's device is named `GLS Denmark`, never after the email address, because
+entity IDs derive from the device name.
+
+The account feed carries no delivery estimate, so `planned_from`/`planned_to`
+stay empty and the next-delivery sensor and the calendar have nothing to show.
 
 ### Account-less, postcode-keyed hubs
 
@@ -122,6 +169,9 @@ service field, and never part of the alias. Do not conflate the two.
 
 ### Options apply live, never by reload
 
+This is how manual hubs work; a Danish account entry reloads instead (see
+*Optional Danish account mode*).
+
 The options flow is a two-page menu (`parcels` / `settings`), not one sectioned
 form. `parcels` edits the whole tracked-code list as a single multi-value text
 field; `settings` holds delivered-parcel retention and history. Polling cadence
@@ -140,9 +190,9 @@ returns early when they match. HA notifies the listener on every
 and `async_request_refresh` bypasses HA's "Enable polling for updates" system
 option — that option only gates the coordinator's *scheduled* refresh.
 
-There is no auth, no reauth, and no sent-shipments coordinator. The HA-managed
-session is used directly, with no per-entry cookie jar because there are no
-cookies. Entities are entry-scoped.
+A manual hub has no auth, no reauth, and no sent-shipments coordinator. The
+HA-managed session is used directly, with no per-entry cookie jar because there
+are no cookies. Entities are entry-scoped.
 
 ### Dynamic polling
 

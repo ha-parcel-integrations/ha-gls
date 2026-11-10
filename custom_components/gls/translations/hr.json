@@ -7,10 +7,28 @@
         "description": "Odaberite državu isporuke vaših paketa i poštanski broj u koji obično stižu. Pakete dodajete nakon postavljanja.\n\nVaše države nema na popisu? [Zatražite drugu državu]({issue_url}).",
         "data": {
           "country": "Država",
-          "postal_code": "Poštanski broj"
+          "postal_code": "Poštanski broj",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "npr. {postcode_example}. Koristi se kao zadana adresa dostave za pakete koje dodate."
+          "postal_code": "npr. {postcode_example}. Koristi se kao zadana adresa dostave za pakete koje dodate.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "GLS nije dostupan. Provjerite mrežnu vezu.",
       "invalid_parcel_no": "Ovo ne izgleda kao broj paketa ili GLS pratni broj.",
       "invalid_postcode": "Unesite valjani poštanski broj za odabranu državu, npr. {postcode_example}.",
-      "de_registration_failed": "Nije moguće registrirati anonimnu GLS Njemačka sesiju. Provjerite mrežnu vezu i pokušajte ponovno."
+      "de_registration_failed": "Nije moguće registrirati anonimnu GLS Njemačka sesiju. Provjerite mrežnu vezu i pokušajte ponovno.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Čvor GLS za ovaj poštanski broj već je postavljen."
+      "already_configured": "Čvor GLS za ovaj poštanski broj već je postavljen.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {
