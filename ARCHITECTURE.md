@@ -134,6 +134,12 @@ makes an add or remove reflect immediately, and avoids the config-entry-listener
 deprecation. **Do not switch this to `async_schedule_reload`.** This is the
 account-less half of the suite's two options models.
 
+It first **compares `entry.options` with the snapshot on `runtime_data`** and
+returns early when they match. HA notifies the listener on every
+`async_update_entry`, including a DE write that only rotated `appInstanceId`,
+and `async_request_refresh` bypasses HA's "Enable polling for updates" system
+option — that option only gates the coordinator's *scheduled* refresh.
+
 There is no auth, no reauth, and no sent-shipments coordinator. The HA-managed
 session is used directly, with no per-entry cookie jar because there are no
 cookies. Entities are entry-scoped.
@@ -212,7 +218,8 @@ config entry's `appInstanceId` and bearer token.
 - **`_persist_de_state` runs after the poll** and writes back any newly-learned
   `parcelNumber`. It goes through `async_update_entry`, which — once the update
   listener is registered, i.e. after the first refresh — triggers one extra
-  refresh like any other option edit.
+  refresh like any other option edit. An `appInstanceId`-only write changes no
+  option and so stays silent.
 - **A recovery re-register resets the carrier side.** `pop_reregistered()` is
   called once per poll; `True` means the server-side list was wiped under a new
   `appInstanceId`, so every learned `parcelNumber` is stale. Both the in-process

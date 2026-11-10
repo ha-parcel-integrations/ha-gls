@@ -333,3 +333,57 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
 
     incoming = hass.states.get("sensor.gls_cz_11000_incoming_parcels")
     assert incoming is not None
+
+
+async def test_data_only_entry_write_does_not_count_as_an_options_edit(hass):
+    """Persisting DE session state alone must not poll.
+
+    Every ``async_update_entry`` notifies the update listener, and
+    ``async_request_refresh`` ignores Home Assistant's "Enable polling for
+    updates" system option — so a write that changed no option must stay
+    silent. A newly learned ``parcelNumber`` does change the options and
+    still refreshes.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=DOMAIN,
+        options={
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}
+            ]
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        new=AsyncMock(return_value=minimal_sample()),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        refresh = AsyncMock()
+        with patch.object(
+            entry.runtime_data.coordinator, "async_request_refresh", new=refresh
+        ):
+            hass.config_entries.async_update_entry(
+                entry, data={**entry.data, CONF_DE_APP_INSTANCE_ID: "fresh"}
+            )
+            await hass.async_block_till_done()
+            assert refresh.call_count == 0
+
+            hass.config_entries.async_update_entry(
+                entry,
+                options={
+                    **entry.options,
+                    CONF_PARCELS: [
+                        {
+                            CONF_PARCEL_NO: "0085105093278",
+                            CONF_POSTAL_CODE: "1234AB",
+                            CONF_DE_PARCEL_NUMBER: "12345678",
+                        }
+                    ],
+                },
+            )
+            await hass.async_block_till_done()
+            assert refresh.call_count == 1

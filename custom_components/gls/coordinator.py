@@ -245,7 +245,8 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         ``async_update_entry``, which — once the entry's update listener is
         registered (i.e. after the very first refresh) — triggers one extra
         refresh, same as any other option edit; not during first setup,
-        where the listener isn't registered yet.
+        where the listener isn't registered yet. An ``appInstanceId``-only
+        write changes no option, so that one stays silent.
         """
         assert self._de_session is not None
         new_tracked = list(tracked)

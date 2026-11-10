@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 import logging
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
@@ -34,6 +35,9 @@ class GlsData:
     client: GlsApiClient
     coordinator: GlsCoordinator
     de_session: GlsDeSession | None = None
+    # The options as last applied, so an entry write that only rotated DE
+    # session state is not mistaken for an options edit.
+    options: Mapping[str, object] = field(default_factory=dict)
 
 
 type GlsConfigEntry = ConfigEntry[GlsData]
@@ -122,7 +126,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = GlsData(
-        client=client, coordinator=coordinator, de_session=de_session
+        client=client,
+        coordinator=coordinator,
+        de_session=de_session,
+        options=dict(entry.options),
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -139,8 +146,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: GlsConfigEntry) -> None:
-    """Apply changed options by refreshing the coordinator."""
-    await entry.runtime_data.coordinator.async_request_refresh()
+    """Apply changed options by refreshing the coordinator.
+
+    Every entry write notifies this listener, not just an options edit, so a
+    write that only persisted a new DE ``appInstanceId`` used to poll as well
+    — through ``async_request_refresh``, which bypasses HA's "Enable polling
+    for updates" system option (that only gates the *scheduled* refresh).
+    A newly learned ``parcelNumber`` does change the options and still
+    refreshes, which is the behaviour ``_persist_de_state`` relies on.
+    """
+    data = entry.runtime_data
+    if entry.options == data.options:
+        return
+    data.options = dict(entry.options)
+    await data.coordinator.async_request_refresh()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:

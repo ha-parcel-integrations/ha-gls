@@ -47,7 +47,14 @@ still loaded.
 **Options apply live, never by reload.** An update listener
 (`_async_options_updated`) calls `async_request_refresh()`; the coordinator
 re-reads options each update. **Do not** switch to `async_schedule_reload` —
-this is the account-less half of the suite's two options models.
+this is the account-less half of the suite's two options models. The listener
+**compares `entry.options` against the snapshot on `runtime_data` first**: HA
+notifies it on *every* `async_update_entry`, so a DE write that only rotated
+`appInstanceId` otherwise polls as well — and `async_request_refresh` goes
+straight past HA's "Enable polling for updates" system option, which only
+gates the *scheduled* refresh (see ha-usps#14). A newly learned
+`parcelNumber` does change the options, so `_persist_de_state` still gets its
+refresh.
 
 **Polling cadence is not configurable — don't add the option back.** The
 Section 2.1 dynamic-polling algorithm always runs: `update_interval` is
