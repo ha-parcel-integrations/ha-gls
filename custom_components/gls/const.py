@@ -6,6 +6,13 @@ from homeassistant.const import Platform
 
 DOMAIN = "gls"
 
+CONF_SOURCE = "source"
+SOURCE_DK_ACCOUNT = "dk_account"
+CONF_DK_UID = "uid"
+CONF_DK_EMAIL = "email"
+CONF_DK_REFRESH_TOKEN = "refresh_token"
+CONF_USE_DANISH_ACCOUNT = "use_danish_account"
+
 
 class ParcelStatus(StrEnum):
     """Carrier-agnostic parcel status.
@@ -77,6 +84,8 @@ CAPABILITIES_BY_VARIANT = {
         {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
     ),
     "Germany": frozenset({"pickup_point", "url", "history"}),
+    # Automatic Danish account source; manual DK tracking stays on "Other".
+    "Denmark (account)": frozenset({"weight", "pickup_point", "url", "history"}),
     "Other": frozenset({"weight", "url", "history"}),
     "Canada": frozenset({"weight", "dimensions", "url", "history"}),
     "United States": frozenset({"url", "history"}),

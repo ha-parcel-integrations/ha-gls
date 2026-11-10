@@ -7,10 +7,28 @@
         "description": "Vælg det land, dine pakker leveres til, og det postnummer de normalt sendes til. Du tilføjer pakker efter opsætningen.\n\nEr dit land ikke på listen? [Anmod om et andet land]({issue_url}).",
         "data": {
           "country": "Land",
-          "postal_code": "Postnummer"
+          "postal_code": "Postnummer",
+          "use_danish_account": "Brug min danske GLS-konto"
         },
         "data_description": {
-          "postal_code": "f.eks. {postcode_example}. Bruges som standardleveringsadresse for de pakker, du tilføjer; i Canada aktiverer det udvidede sporingsdetaljer. Sporing i USA bruger det ikke."
+          "postal_code": "f.eks. {postcode_example}. Bruges som standardleveringsadresse for de pakker, du tilføjer; i Canada aktiverer det udvidede sporingsdetaljer. Sporing i USA bruger det ikke.",
+          "use_danish_account": "Hent pakker automatisk fra GLS-appen. Land og postnummer bruges kun til manuel sporing."
+        }
+      },
+      "dk_account": {
+        "title": "Log ind på GLS Danmark",
+        "description": "Brug samme mailadresse og adgangskode som i GLS-appen. Nye pakker bliver tilføjet automatisk. Adgangskoden gemmes ikke.",
+        "data": {
+          "email": "Mailadresse",
+          "password": "Adgangskode"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Log ind på GLS igen",
+        "description": "Log ind med samme GLS-konto for at genoptage automatisk sporing.",
+        "data": {
+          "email": "Mailadresse",
+          "password": "Adgangskode"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "Kan ikke få forbindelse til GLS. Kontrollér din netværksforbindelse.",
       "invalid_parcel_no": "Det ser ikke ud som et GLS-pakkenummer eller et sporings-id.",
       "invalid_postcode": "Indtast et gyldigt postnummer for det valgte land, f.eks. {postcode_example}.",
-      "de_registration_failed": "Kunne ikke registrere en anonym GLS Tyskland-session. Kontrollér din netværksforbindelse og prøv igen."
+      "de_registration_failed": "Kunne ikke registrere en anonym GLS Tyskland-session. Kontrollér din netværksforbindelse og prøv igen.",
+      "invalid_auth": "Forkert mailadresse eller adgangskode."
     },
     "abort": {
-      "already_configured": "Der er allerede opsat et GLS-hub for dette postnummer."
+      "already_configured": "Der er allerede opsat et GLS-hub for dette postnummer.",
+      "reauth_account_mismatch": "Log ind med den GLS-konto, der allerede er konfigureret.",
+      "reauth_successful": "Du er logget ind igen.",
+      "reauth_not_supported": "Denne GLS-forbindelse bruger ikke kontologin."
     }
   },
   "options": {

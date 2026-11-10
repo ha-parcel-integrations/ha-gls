@@ -7,10 +7,28 @@
         "description": "Wähle das Land, in das deine Pakete geliefert werden, und die Postleitzahl, an die sie normalerweise gehen. Pakete fügst du nach der Einrichtung hinzu.\n\nDein Land ist nicht dabei? [Ein weiteres Land anfragen]({issue_url}).",
         "data": {
           "country": "Land",
-          "postal_code": "Postleitzahl"
+          "postal_code": "Postleitzahl",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "z. B. {postcode_example}. Wird als Standard-Lieferadresse für Pakete verwendet, die du hinzufügst."
+          "postal_code": "z. B. {postcode_example}. Wird als Standard-Lieferadresse für Pakete verwendet, die du hinzufügst.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "GLS ist nicht erreichbar. Überprüfe deine Netzwerkverbindung.",
       "invalid_parcel_no": "Das sieht nicht wie eine GLS-Paketnummer oder Sendungsverfolgungsnummer aus.",
       "invalid_postcode": "Gib eine gültige Postleitzahl für das gewählte Land ein, z. B. {postcode_example}.",
-      "de_registration_failed": "Es konnte keine anonyme GLS-Deutschland-Sitzung registriert werden. Überprüfe deine Netzwerkverbindung und versuche es erneut."
+      "de_registration_failed": "Es konnte keine anonyme GLS-Deutschland-Sitzung registriert werden. Überprüfe deine Netzwerkverbindung und versuche es erneut.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Für diese Postleitzahl ist bereits ein GLS-Hub eingerichtet."
+      "already_configured": "Für diese Postleitzahl ist bereits ein GLS-Hub eingerichtet.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+from homeassistant.config_entries import ConfigEntryState
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -20,6 +21,9 @@ from custom_components.gls.const import (
     DOMAIN,
 )
 from custom_components.gls.countries.de.session import GlsDeSessionError
+from custom_components.gls.countries.dk.session import GlsDkApiError, GlsDkAuthError
+
+from .payloads import minimal_sample
 
 
 async def test_user_flow_creates_hub_with_postcode_only(hass):
@@ -546,3 +550,256 @@ def test_every_country_has_a_dropdown_label(path):
     labels = _country_label_block(json.loads(path.read_text(encoding="utf-8")))
     assert labels is not None, f"{path.name} has no country options block"
     assert set(labels) == {code.lower() for code in COUNTRIES}
+
+
+_ACCOUNT_STATE = {
+    "uid": "example-user",
+    "email": "parcel@example.test",
+    "refresh_token": "private-refresh",
+}
+
+
+async def _open_account_flow(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"use_danish_account": True}
+    )
+
+
+async def test_danish_account_route_needs_no_postcode_and_discards_password(hass):
+    result = await _open_account_flow(hass)
+    assert result["step_id"] == "dk_account"
+    with (
+        patch(
+            "custom_components.gls.config_flow.GlsDkSession.async_login",
+            new=AsyncMock(return_value=_ACCOUNT_STATE),
+        ),
+        patch("custom_components.gls.async_setup_entry", return_value=True),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"email": "parcel@example.test", "password": "private-password"},
+        )
+        await hass.async_block_till_done()
+    assert result["type"] == "create_entry"
+    assert result["title"] == "GLS Denmark account"
+    assert result["data"] == {"source": "dk_account", **_ACCOUNT_STATE}
+    assert result["result"].unique_id == "dk_account:example-user"
+    assert result["options"][CONF_COUNTRY] == "DK"
+    assert CONF_POSTAL_CODE not in result["options"]
+    assert "password" not in result["data"]
+
+
+@pytest.mark.parametrize(
+    ("failure", "error"), [("auth", "invalid_auth"), ("transport", "cannot_connect")]
+)
+async def test_danish_account_login_errors_are_sanitized(hass, failure, error):
+    result = await _open_account_flow(hass)
+    exc = GlsDkAuthError("private") if failure == "auth" else GlsDkApiError("private")
+    with patch(
+        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        new=AsyncMock(side_effect=exc),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"email": "parcel@example.test", "password": "private-password"},
+        )
+    assert result["errors"] == {"base": error}
+
+
+async def test_danish_account_duplicate_is_rejected(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="dk_account:example-user",
+        data={"source": "dk_account", **_ACCOUNT_STATE},
+    )
+    entry.add_to_hass(hass)
+    result = await _open_account_flow(hass)
+    with patch(
+        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        new=AsyncMock(return_value=_ACCOUNT_STATE),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"email": "parcel@example.test", "password": "private-password"},
+        )
+    assert result["type"] == "abort"
+    assert result["reason"] == "already_configured"
+
+
+async def test_danish_account_reauth_updates_same_account_only(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="dk_account:example-user",
+        data={"source": "dk_account", **_ACCOUNT_STATE},
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "reauth", "entry_id": entry.entry_id},
+        data=entry.data,
+    )
+    assert result["step_id"] == "reauth_confirm"
+    renewed = {**_ACCOUNT_STATE, "refresh_token": "rotated-refresh"}
+    with (
+        patch(
+            "custom_components.gls.config_flow.GlsDkSession.async_login",
+            new=AsyncMock(return_value=renewed),
+        ),
+        patch.object(
+            hass.config_entries, "async_reload", return_value=True
+        ) as reload_entry,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"email": "parcel@example.test", "password": "new-private-password"},
+        )
+        await hass.async_block_till_done()
+    assert result["reason"] == "reauth_successful"
+    assert entry.data["refresh_token"] == "rotated-refresh"
+    assert "password" not in entry.data
+    reload_entry.assert_awaited_once_with(entry.entry_id)
+
+
+async def test_danish_account_reauth_cannot_switch_user(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="dk_account:example-user",
+        data={"source": "dk_account", **_ACCOUNT_STATE},
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "reauth", "entry_id": entry.entry_id},
+        data=entry.data,
+    )
+    with patch(
+        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        new=AsyncMock(return_value={**_ACCOUNT_STATE, "uid": "other-user"}),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"email": "other@example.test", "password": "private-password"},
+        )
+    assert result["reason"] == "reauth_account_mismatch"
+    assert entry.data["uid"] == "example-user"
+
+
+async def test_manual_hub_does_not_offer_account_reauth(hass):
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="NL:1234AB", data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "reauth", "entry_id": entry.entry_id},
+        data=entry.data,
+    )
+    assert result["reason"] == "reauth_not_supported"
+
+
+_ACCOUNT_FEED = {"totalCount": 0, "items": []}
+_SESSION_FEED = (
+    "custom_components.gls.countries.dk.session.GlsDkSession.async_get_parcels"
+)
+
+
+def _account_entry() -> MockConfigEntry:
+    return MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="dk_account:example-user",
+        data={"source": "dk_account", **_ACCOUNT_STATE},
+        options={CONF_COUNTRY: "DK"},
+    )
+
+
+async def test_danish_account_reauth_of_a_running_entry_leaves_no_update_listener_report(
+    hass, caplog
+):
+    entry = _account_entry()
+    entry.add_to_hass(hass)
+    feed = AsyncMock(return_value=_ACCOUNT_FEED)
+    renewed = {**_ACCOUNT_STATE, "refresh_token": "rotated-refresh"}
+    with (
+        patch(_SESSION_FEED, new=feed),
+        patch(
+            "custom_components.gls.config_flow.GlsDkSession.async_login",
+            new=AsyncMock(return_value=renewed),
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert entry.update_listeners == []
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": "reauth", "entry_id": entry.entry_id},
+            data=entry.data,
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"email": "parcel@example.test", "password": "new-private-password"},
+        )
+        await hass.async_block_till_done()
+    assert result["reason"] == "reauth_successful"
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.data["refresh_token"] == "rotated-refresh"
+    assert feed.await_count == 2
+    assert "update listener" not in caplog.text
+
+
+async def test_account_options_offer_settings_without_manual_parcels_and_reload(hass):
+    entry = _account_entry()
+    entry.add_to_hass(hass)
+    feed = AsyncMock(return_value=_ACCOUNT_FEED)
+    with patch(_SESSION_FEED, new=feed):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result["type"] == "form"
+        assert result["step_id"] == "settings"
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_DELIVERED_FILTER_TYPE: "parcels",
+                CONF_DELIVERED_FILTER_AMOUNT: 3,
+                CONF_INCLUDE_HISTORY: True,
+            },
+        )
+        await hass.async_block_till_done()
+    assert result["data"][CONF_INCLUDE_HISTORY] is True
+    assert CONF_PARCELS not in result["data"]
+    assert entry.options[CONF_INCLUDE_HISTORY] is True
+    assert entry.state is ConfigEntryState.LOADED
+    assert feed.await_count == 2
+
+
+async def test_manual_hub_options_refresh_in_place_without_a_reload(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="NL:1234AB",
+        options={CONF_COUNTRY: "NL", CONF_POSTAL_CODE: "1234AB", CONF_PARCELS: []},
+    )
+    entry.add_to_hass(hass)
+    with patch(
+        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        new=AsyncMock(return_value=minimal_sample()),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert len(entry.update_listeners) == 1
+        with (
+            patch.object(hass.config_entries, "async_schedule_reload") as reload_entry,
+            patch.object(
+                entry.runtime_data.coordinator, "async_request_refresh", new=AsyncMock()
+            ) as refresh,
+        ):
+            result = await _open_options_step(hass, entry, "parcels")
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], {"tracking_codes": ["EXAMPLE111111"]}
+            )
+            await hass.async_block_till_done()
+        assert result["type"] == "create_entry"
+        reload_entry.assert_not_called()
+        refresh.assert_awaited_once()
+        assert entry.options[CONF_PARCELS] == [{CONF_PARCEL_NO: "EXAMPLE111111"}]
+        assert await hass.config_entries.async_unload(entry.entry_id)

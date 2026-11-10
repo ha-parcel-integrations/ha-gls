@@ -118,7 +118,7 @@ def _next_update_interval(
 class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
     """Coordinator that polls each tracked GLS parcel on a status-driven schedule.
 
-    GLS has no account/feed, so the tracked parcels are the ``parcel_no`` +
+    For the manual source, tracked parcels are the ``parcel_no`` +
     ``postal_code`` pairs the user entered (stored in the entry options). Each
     is fetched individually and merged into one list; ``coordinator.data`` is
     the active (not-yet-delivered) parcels, ``self.delivered`` the rest.
@@ -129,7 +129,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
     def __init__(
         self,
         hass: HomeAssistant,
-        client: GlsApiClient,
+        client: GlsApiClient | None,
         entry: ConfigEntry,
         *,
         de_session: GlsDeSession | None = None,
@@ -187,7 +187,10 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
 
     @property
     def delivered_codes(self) -> set[str]:
-        """Parcel numbers currently skipped from the fetch (diagnostics only)."""
+        """Parcel numbers currently skipped from the fetch (diagnostics only).
+
+        Always empty for an account entry, whose feed is read whole every poll.
+        """
         return self._delivered_codes
 
     def _device_id(self) -> str | None:
@@ -309,6 +312,7 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
             raise
 
     async def _async_poll(self) -> list[dict]:
+        assert self._client is not None
         tracked = self._tracked()
         country = self.config_entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
         postal_code = self.config_entry.options.get(CONF_POSTAL_CODE)
@@ -421,8 +425,6 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
             )
             for raw, postal_code, parcel_no in raws_by_number.values()
         ]
-        active = [p for _, p in entries if not p["delivered"]]
-        delivered = [p for _, p in entries if p["delivered"]]
         # Rebuilt fresh from this cycle's data — a parcel number whose
         # payload just flipped to delivered is skipped starting next cycle;
         # one that somehow un-delivers (should not happen, but the fetch
@@ -430,6 +432,20 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         self._delivered_codes = {
             parcel_no for parcel_no, p in entries if p["delivered"]
         }
+        return self._finish_update(
+            entries, successful=not pairs_to_fetch or errors < len(pairs_to_fetch)
+        )
+
+    def _finish_update(
+        self,
+        entries: list[tuple[str, dict]],
+        *,
+        successful: bool,
+        discovery_minutes: int | None = None,
+    ) -> list[dict]:
+        """Publish a complete normalized snapshot using the shared parcel lifecycle."""
+        active = [p for _, p in entries if not p["delivered"]]
+        delivered = [p for _, p in entries if p["delivered"]]
 
         delivered_sorted = sort_parcels_by_ts(
             delivered, "delivered_at", descending=True
@@ -453,11 +469,13 @@ class GlsCoordinator(DataUpdateCoordinator[list[dict]]):
         # Only stamp the diagnostic timestamp when at least one fetch actually
         # succeeded (or nothing needed fetching) — a poll that was served
         # entirely from cache must not present itself as a successful update.
-        if not pairs_to_fetch or errors < len(pairs_to_fetch):
+        if successful:
             self.last_success_time = datetime.now(UTC)
 
         now = dt_util.now()
-        self._current_tier_minutes = _hottest_tier_minutes(normalized_active, now)
+        self._current_tier_minutes = (
+            _hottest_tier_minutes(normalized_active, now) or discovery_minutes
+        )
         self.update_interval = _next_update_interval(
             now, self._current_tier_minutes, self.config_entry.entry_id
         )

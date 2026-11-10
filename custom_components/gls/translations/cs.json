@@ -7,10 +7,28 @@
         "description": "Vyberte zemi, do které vám zásilky chodí, a PSČ, na které obvykle chodí. Zásilky přidáte až po nastavení.\n\nVaše země není v seznamu? [Vyžádejte si další zemi]({issue_url}).",
         "data": {
           "country": "Země",
-          "postal_code": "PSČ"
+          "postal_code": "PSČ",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "např. {postcode_example}. Použije se jako výchozí doručovací adresa pro zásilky, které přidáte."
+          "postal_code": "např. {postcode_example}. Použije se jako výchozí doručovací adresa pro zásilky, které přidáte.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "GLS není dostupné. Zkontrolujte své připojení k síti.",
       "invalid_parcel_no": "To nevypadá jako číslo zásilky ani sledovací kód GLS.",
       "invalid_postcode": "Zadejte platné PSČ pro vybranou zemi, např. {postcode_example}.",
-      "de_registration_failed": "Nepodařilo se zaregistrovat anonymní relaci GLS Německo. Zkontrolujte své připojení k síti a zkuste to znovu."
+      "de_registration_failed": "Nepodařilo se zaregistrovat anonymní relaci GLS Německo. Zkontrolujte své připojení k síti a zkuste to znovu.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Pro toto PSČ je již nastaven hub GLS."
+      "already_configured": "Pro toto PSČ je již nastaven hub GLS.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {
