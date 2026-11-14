@@ -689,7 +689,23 @@ _KNOWN_TOP_LEVEL_KEYS = {
     # rstt029's tuStatus[] entry shape (the E609 fallback body) — a subset,
     # plus arrivalTime in place of the fields rstt028-only carries:
     "arrivalTime",
+    # Seen on a real Swedish parcel (2026-11-14) and deliberately unused. The
+    # first two are Delivery-Manager affordances this integration does not
+    # offer; ``parcelNo`` duplicates the number the body is keyed on (``tuNo``
+    # stays the identifier — see the barcode rule in CLAUDE.md) and ``state``
+    # arrived as null with the mapped ``status``/``progressBar`` populated, so
+    # nothing is lost by ignoring it. Listed here rather than mapped: the
+    # warning exists to ask what a field is, and these three are answered.
+    "changeDeliveryPossible",
+    "parcelNo",
+    "state",
 }
+
+# ``infos[]`` types that are not ``WEIGHT`` and carry nothing the contract
+# wants — the service and product descriptors a real Swedish parcel revealed
+# (2026-11-14). They are skipped silently; any *other* type still warns,
+# because that is how dimensions would first show up.
+_IGNORED_INFO_TYPES = frozenset({"PRODUCT", "SERVICES"})
 
 _WEIGHT_RE = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s*([A-Za-z]+)\s*$")
 
@@ -766,7 +782,8 @@ def _extract_weight_kg(infos: list[dict] | None) -> float | None:
     for info in infos or []:
         info_type = info.get("type")
         if info_type != "WEIGHT":
-            _warn_unexpected_info_type_once(info_type)
+            if info_type not in _IGNORED_INFO_TYPES:
+                _warn_unexpected_info_type_once(info_type)
             continue
         value = info.get("value")
         match = _WEIGHT_RE.match(value) if isinstance(value, str) else None

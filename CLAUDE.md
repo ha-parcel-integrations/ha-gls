@@ -216,7 +216,7 @@ delivery postcode, and `rstt028` rejects a malformed one with a `400` on
 inference; it needs one real RO parcel with its postcode.
 
 **The group leaf reports its own coverage gaps, and that is deliberate.**
-`rstt028` is captured for CZ alone (`GROUP_RSTT028_CONFIRMED`), so a `200`
+`rstt028` is confirmed for CZ and SE only (`GROUP_RSTT028_CONFIRMED`), so a `200`
 from any other group country warns **once per country** with a pre-filled
 `country_coverage.yml` link. It is a WARNING although nothing is wrong: an
 INFO is invisible in a default HA log, and only someone receiving a parcel in
@@ -226,15 +226,16 @@ that is the off switch, not a log-level change. Neither this warning nor the
 `E800` one prefills the tracking number — the template asks for it in its own
 optional field, where the user can decline.
 
-**Sweden is a label, not a backend — and it is unconfirmed.** GLS has no
-Swedish operation of its own; it reaches Sweden through a logistics partner, so
-there is no SE consumer site (every `/SE/{en,sv}/` tracking path 302s into the
-group 404 handler) and the row reuses the EU entry point CH and LI use. The row
-buys postcode validation and labelling for a Swedish hub, nothing more. **No
-real Swedish code has ever been probed**: whether a Swedish recipient's code is
-in the pan-EU index at all, or is the partner's own, is open — a `404 E000` on a
-real Swedish code would mean the row should go, not that the leaf broke. Don't
-record it as confirmed before a user's own parcel resolves.
+**Sweden has no GLS backend of its own and is fully in the index anyway.**
+GLS reaches Sweden through a logistics partner (DB Schenker/DSV), so there is no
+SE consumer site — every `/SE/{en,sv}/` tracking path 302s into the group 404
+handler — and the row reuses the EU entry point CH and LI use. The partner does
+*not* mean a partner-numbered parcel, though: a real Swedish parcel resolved on
+**both** leaves (2026-11-14), `rstt028` included, with history, weight and
+references, which is why `SE` is the second entry in `GROUP_RSTT028_CONFIRMED`.
+That same parcel is the only source for `changeDeliveryPossible`, `parcelNo`,
+`state` and the `PRODUCT`/`SERVICES` `infos[]` types — all deliberately unused,
+and listed as known so they stop asking to be reported.
 
 **Both `rstt029` fallbacks go through `_async_fallback_with_italian_history`,
 never `_async_get_parcel_group_fallback` directly.** `rstt030` needs no

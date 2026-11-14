@@ -56,7 +56,7 @@ KNOWN_CAPABILITIES = frozenset(
 #                  name is only unstructured text inside history[]'s
 #                  address, not a structured pickup_point. Weight itself
 #                  comes from rstt028, which is confirmed on the wire for
-#                  CZ only as of the AT/IE/FR/SI/HR/IT rollout — see each
+#                  CZ and SE only (SE on a real parcel, 2026-11-14) — see each
 #                  row's release notes for which countries' rstt028 is
 #                  still unverified. Romania is the one row where it is
 #                  confirmed *unreachable* with the code off the label: that
@@ -599,7 +599,10 @@ COUNTRIES: dict[str, dict[str, str]] = {
         "postcode_regex": r"^\d{3}\s?\d{2}$",
         "postcode_example": "111 22",
         # GLS has no Swedish operation of its own -- it reaches Sweden through
-        # a logistics partner -- so there is no SE consumer site: every
+        # a logistics partner (DB Schenker/DSV), and a Swedish parcel is
+        # nonetheless GLS-numbered and fully in the pan-EU index: confirmed on
+        # a real parcel 2026-11-14, detail leaf included. There is no SE
+        # consumer site, though: every
         # gls-group.{com,eu}/SE/{en,sv}/ tracking path 302s into the group 404
         # handler (checked 2026-11-14). Reuses the EU entry point CH and LI
         # already point at, which is also the page the requester tracks on.
@@ -657,7 +660,7 @@ GROUP_LEAF_COUNTRIES = frozenset(
 # the warning off. Romania is the counter-example worth remembering: its
 # ``rstt028`` is confirmed *unreachable* with the code off the label, so it
 # will never arrive here by that route.
-GROUP_RSTT028_CONFIRMED = frozenset({"CZ"})
+GROUP_RSTT028_CONFIRMED = frozenset({"CZ", "SE"})
 
 # Linked from the setup form so users can ask for a country we don't cover
 # yet. Country/carrier requests go through the organisation discussion (the

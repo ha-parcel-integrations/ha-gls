@@ -438,6 +438,36 @@ def test_known_keys_do_not_warn(caplog):
     assert not any("unrecognised top-level" in m.lower() for m in caplog.messages)
 
 
+def test_fields_a_swedish_parcel_revealed_do_not_warn(caplog):
+    """``changeDeliveryPossible``/``parcelNo``/``state`` came back on a real
+    Swedish parcel and are deliberately unused, so they are answered questions
+    rather than open ones — they must not keep asking the user to report them."""
+    raw = captured_sample_cz()
+    raw["changeDeliveryPossible"] = True
+    raw["parcelNo"] = "12345678901"
+    raw["state"] = None
+    with caplog.at_level("WARNING"):
+        normalize_parcel_group(raw, parcel_no=AWB, include_history=True)
+    assert not any("unrecognised top-level" in m.lower() for m in caplog.messages)
+
+
+def test_product_and_services_infos_do_not_warn(caplog):
+    """Both types showed up on the Swedish parcel and carry nothing the
+    contract wants; an unknown type still warns, since that is how dimensions
+    would first appear."""
+    raw = captured_sample_cz()
+    raw["infos"] = [
+        {"type": "PRODUCT", "value": "Parcel"},
+        {"type": "SERVICES", "value": "FlexDeliveryService"},
+        {"type": "SOMETHINGNEW", "value": "20x30x40"},
+    ]
+    with caplog.at_level("WARNING"):
+        normalize_parcel_group(raw, parcel_no=AWB)
+    info_warnings = [m for m in caplog.messages if "infos[] entry" in m]
+    assert len(info_warnings) == 1
+    assert "SOMETHINGNEW" in info_warnings[0]
+
+
 def test_history_order_violation_warns_once(caplog):
     raw = captured_sample_cz()
     # Swap two entries so the list is no longer strictly newest-first.
@@ -660,6 +690,15 @@ async def test_rstt028_does_not_warn_for_an_already_confirmed_country(caplog):
         await async_get_parcel_group(
             session, HOST, GROUP_LOCALE, AWB, POSTAL_CODE, country="CZ"
         )
+    assert not any("detailed lookup answered for" in m for m in caplog.messages)
+
+
+async def test_rstt028_does_not_warn_for_sweden(caplog):
+    """A real Swedish parcel confirmed the detail leaf (2026-11-14), so SE is
+    the second entry in the confirmed set and must no longer ask its user."""
+    session = _session_with(_get_ctx(200, _json.dumps(captured_sample_cz())))
+    with caplog.at_level("WARNING"):
+        await async_get_parcel_group(session, HOST, "SE/sv", AWB, "11122", country="SE")
     assert not any("detailed lookup answered for" in m for m in caplog.messages)
 
 
