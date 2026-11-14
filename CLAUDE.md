@@ -3,7 +3,8 @@
 Home Assistant custom integration for **GLS** parcel tracking (24 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
-doubt**. Account-less (user-entered tracking codes). No DTO layer.
+doubt**. Manual tracking (user-entered codes), plus optional Danish account
+discovery. No DTO layer.
 
 Three places hold the knowledge, and they do not overlap:
 
@@ -37,17 +38,36 @@ of these areas:
 
 ## Load-bearing GLS decisions — do not refactor away
 
-**Account-less, postcode-keyed hubs** — GLS has no consumer account or feed.
+**Manual postcode-keyed hubs** — the manual source has no account feed.
 Setup asks only the postcode + country and does **not** hit the API (the
-endpoint needs a parcel number). `unique_id` is the bare postcode;
+endpoint needs a parcel number). `unique_id` is country plus postcode;
 `single_config_entry` is deliberately **absent** — multiple hubs (home, work)
 were the point. The shared `gls.*` services unload only when no other hub is
 still loaded.
 
-**Options apply live, never by reload.** An update listener
+**Danish account mode is source-scoped, not country-scoped.**
+`entry.data["source"] == "dk_account"` selects its account coordinator and
+session; manual DK remains on its current group transport. Account unique IDs
+are `dk_account:<identity>`; passwords are never persisted. Refreshed credentials
+are saved in entry data; the entry has no update listener, so those writes never
+poll. Reauth must verify the same identity. **Only Firebase refusing the
+credentials means reauth** (`GlsDkAuthError` → `ConfigEntryAuthFailed`): a
+backend 401/403 gets one forced token refresh, and a rejection that survives it
+is an ordinary retryable `UpdateFailed`. Account polling never stops just because
+the incoming list is empty or all parcels are delivered. Complete-list and
+ownership validation happen before publishing; a failed fetch is not zero
+parcels. Manual add/remove services never mutate account-source options. The
+device is named `GLS Denmark`, never after the email: entity IDs derive from it.
+Pickup codes and tokens must never reach raw attributes or bus events.
+
+**Manual hubs apply options live, never by reload.** An update listener
 (`_async_options_updated`) calls `async_request_refresh()`; the coordinator
-re-reads options each update. **Do not** switch to `async_schedule_reload` —
-this is the account-less half of the suite's two options models. The listener
+re-reads options each update. **Do not** switch a manual hub to
+`async_schedule_reload` — this is the account-less half of the suite's two
+options models. **A Danish account entry is the other half:** its options flow
+(`GlsAccountOptionsFlowHandler`) is an `OptionsFlowWithReload` and the entry
+registers **no** update listener — HA raises if the two are combined and logs a
+deprecation when reauth reloads an entry that has one. The manual listener
 **compares `entry.options` against the snapshot on `runtime_data` first**: HA
 notifies it on *every* `async_update_entry`, so a DE write that only rotated
 `appInstanceId` otherwise polls as well — and `async_request_refresh` goes

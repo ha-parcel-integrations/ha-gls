@@ -7,10 +7,28 @@
         "description": "Wybierz kraj, do którego dostarczane są Twoje przesyłki, oraz kod pocztowy, pod który zwykle trafiają. Przesyłki dodasz po konfiguracji.\n\nNie ma Twojego kraju na liście? [Poproś o kolejny kraj]({issue_url}).",
         "data": {
           "country": "Kraj",
-          "postal_code": "Kod pocztowy"
+          "postal_code": "Kod pocztowy",
+          "use_danish_account": "Use my Danish GLS account"
         },
         "data_description": {
-          "postal_code": "np. {postcode_example}. Używany jako domyślny adres dostawy dla dodawanych przesyłek; w Kanadzie włącza rozszerzone szczegóły śledzenia. Śledzenie w USA go nie używa."
+          "postal_code": "np. {postcode_example}. Używany jako domyślny adres dostawy dla dodawanych przesyłek; w Kanadzie włącza rozszerzone szczegóły śledzenia. Śledzenie w USA go nie używa.",
+          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        }
+      },
+      "dk_account": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
       }
     },
@@ -18,10 +36,14 @@
       "cannot_connect": "Nie można połączyć się z GLS. Sprawdź połączenie sieciowe.",
       "invalid_parcel_no": "To nie wygląda na numer przesyłki GLS ani identyfikator śledzenia.",
       "invalid_postcode": "Podaj prawidłowy kod pocztowy dla wybranego kraju, np. {postcode_example}.",
-      "de_registration_failed": "Nie udało się zarejestrować anonimowej sesji GLS Niemcy. Sprawdź połączenie sieciowe i spróbuj ponownie."
+      "de_registration_failed": "Nie udało się zarejestrować anonimowej sesji GLS Niemcy. Sprawdź połączenie sieciowe i spróbuj ponownie.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Hub GLS dla tego kodu pocztowego jest już skonfigurowany."
+      "already_configured": "Hub GLS dla tego kodu pocztowego jest już skonfigurowany.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

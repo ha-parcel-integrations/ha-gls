@@ -10,6 +10,28 @@ from homeassistant.core import HomeAssistant
 from . import GlsConfigEntry
 
 TO_REDACT = {
+    # Account credentials and every Danish identity/contact spelling.
+    "uid",
+    "identityId",
+    "userId",
+    "refresh_token",
+    "id_token",
+    "api_key",
+    "refreshToken",
+    "idToken",
+    "password",
+    "pickUpCode",
+    "pickupCode",
+    "senderName",
+    "senderZipCode",
+    "receiverContact",
+    "receiverAddress",
+    "receiverZipCode",
+    "receiverCity",
+    "receiverEmail",
+    "shareParcelLink",
+    "trustPilotLink",
+    "podImageUrl",
     "parcel_no",
     "postal_code",
     "parcelNo",
