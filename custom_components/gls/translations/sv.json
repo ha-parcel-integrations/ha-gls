@@ -1,0 +1,198 @@
+{
+  "title": "GLS",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurera GLS",
+        "description": "Välj landet dina paket levereras till och postnummret de vanligtvis går till. Du lägger till paket efter konfigurationen.\n\nSaknas ditt land i listan? [Begär ett annat land]({issue_url}).",
+        "data": {
+          "country": "Land",
+          "postal_code": "Postnummer"
+        },
+        "data_description": {
+          "postal_code": "t.ex. {postcode_example}. Används som standardleveransadress för paket du lägger till; för Kanada ger det utökad spårningsinformation. Spårning i USA använder det inte."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan inte nå GLS. Kontrollera din nätverksanslutning.",
+      "invalid_parcel_no": "Det ser inte ut som ett GLS-paketnummer eller spårnings-ID.",
+      "invalid_postcode": "Ange ett giltigt postnummer för det valda landet, t.ex. {postcode_example}.",
+      "de_registration_failed": "Kunde inte registrera en anonym session hos GLS Tyskland. Kontrollera din nätverksanslutning och försök igen."
+    },
+    "abort": {
+      "already_configured": "En GLS-hubb för det här postnummret är redan konfigurerad."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "GLS-alternativ",
+        "sections": {
+          "parcels": {
+            "name": "Paket",
+            "data": {
+              "add": "Lägg till ett paket",
+              "remove": "Ta bort paket"
+            },
+            "data_description": {
+              "add": "Ange ett GLS-paketnummer eller spårnings-ID för att börja spåra det. Hubbens postnummer används."
+            }
+          },
+          "delivered": {
+            "name": "Levererade paket",
+            "data": {
+              "delivered_filter_type": "Filtrera på",
+              "delivered_filter_amount": "Antal"
+            },
+            "data_description": {
+              "delivered_filter_type": "Visa levererade paket från de senaste X dagarna, eller begränsa till de X senaste.",
+              "delivered_filter_amount": "Antal dagar eller paket som ska visas."
+            }
+          },
+          "history": {
+            "name": "Pakethistorik",
+            "data": {
+              "include_history": "Inkludera statushistorik"
+            },
+            "data_description": {
+              "include_history": "Lägg till ett history-attribut per paket med varje statusuppdatering (tidsstämpel, status, originaltext). Av som standard."
+            }
+          }
+        },
+        "menu_options": {
+          "parcels": "Paket",
+          "settings": "Inställningar"
+        }
+      },
+      "parcels": {
+        "title": "Hantera paket",
+        "data": {
+          "tracking_codes": "Spårningskoder"
+        }
+      },
+      "settings": {
+        "title": "Inställningar",
+        "data": {
+          "delivered_filter_type": "Levererade paket: filtrera på",
+          "delivered_filter_amount": "Levererade paket: antal",
+          "include_history": "Inkludera statushistorik"
+        }
+      }
+    },
+    "error": {
+      "invalid_parcel_no": "Det ser inte ut som ett GLS-paketnummer eller spårnings-ID.",
+      "already_tracked": "Det paketet spåras redan."
+    }
+  },
+  "selector": {
+    "country": {
+      "options": {
+        "ca": "Kanada",
+        "ch": "Schweiz",
+        "li": "Liechtenstein",
+        "nl": "Nederländerna",
+        "de": "Tyskland",
+        "cz": "Tjeckien",
+        "sk": "Slovakien",
+        "at": "Österrike",
+        "ie": "Irland",
+        "fr": "Frankrike",
+        "si": "Slovenien",
+        "hr": "Kroatien",
+        "it": "Italien",
+        "be": "Belgien",
+        "dk": "Danmark",
+        "fi": "Finland",
+        "hu": "Ungern",
+        "lu": "Luxemburg",
+        "rs": "Serbien",
+        "ro": "Rumänien",
+        "se": "Sverige",
+        "us": "USA",
+        "pl": "Polen",
+        "es": "Spanien",
+        "pt": "Portugal"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dagar",
+        "parcels": "Antal paket"
+      }
+    }
+  },
+  "services": {
+    "track_parcel": {
+      "name": "Spåra paket",
+      "description": "Börja spåra ett GLS-paket med dess nummer.",
+      "fields": {
+        "tracking_code": {
+          "name": "Spårningskod",
+          "description": "GLS-paketnummret eller spårnings-ID:t."
+        },
+        "postal_code": {
+          "name": "Postnummer",
+          "description": "Postnummer för leverans. Väljer hubben när flera är konfigurerade; annars används den enda hubben."
+        }
+      }
+    },
+    "untrack_parcel": {
+      "name": "Sluta spåra paket",
+      "description": "Sluta spåra ett GLS-paket med dess nummer.",
+      "fields": {
+        "tracking_code": {
+          "name": "Spårningskod",
+          "description": "GLS-spårningsnummret som ska slutas spåras."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Ett paket registrerades",
+      "parcel_status_changed": "Ett pakets status ändrades",
+      "parcel_delivered": "Ett paket levererades",
+      "parcel_delivery_time_changed": "Ett pakets förväntade leveranstid ändrades"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Uppdatera"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Leveranser"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Inkommande paket",
+        "unit_of_measurement": "paket"
+      },
+      "next_delivery": {
+        "name": "Nästa leverans"
+      },
+      "en_route_to_pickup_point": {
+        "name": "På väg till ParcelShop",
+        "unit_of_measurement": "paket"
+      },
+      "awaiting_pickup": {
+        "name": "Väntar på upphämtning",
+        "unit_of_measurement": "paket"
+      },
+      "delivered_parcels": {
+        "name": "Levererade paket",
+        "unit_of_measurement": "paket"
+      },
+      "last_update": {
+        "name": "Senaste lyckade uppdatering"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      }
+    }
+  }
+}

@@ -238,6 +238,7 @@ async def test_same_postcode_different_country_hub_allowed(hass):
         "LI",
         "LU",
         "RS",
+        "SE",
         "SK",
         "AT",
         "IE",
@@ -274,6 +275,7 @@ async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
         "LI",
         "LU",
         "RS",
+        "SE",
         "SK",
         "AT",
         "IE",
@@ -310,6 +312,21 @@ async def test_ie_eircode_accepts_spaced_form(hass):
     )
     assert result["type"] == "create_entry"
     assert result["options"][CONF_POSTAL_CODE] == "D02AF30"
+
+
+@pytest.mark.parametrize("postcode", ["111 22", "11122"])
+async def test_se_accepts_both_written_forms_of_a_postcode(hass, postcode):
+    """Swedish postcodes are written "NNN NN" and the space is normalised away
+    before matching, so the hub stores the same value either way."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_COUNTRY: "se", CONF_POSTAL_CODE: postcode},
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_POSTAL_CODE] == "11122"
 
 
 @pytest.mark.parametrize("postcode", ["9485", "9490", "9498"])

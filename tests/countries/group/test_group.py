@@ -1055,6 +1055,7 @@ def _group_shaped_fixture(
         ("SI", "SITEST00001", "1000"),
         ("HR", "HRTEST00001", "10000"),
         ("RO", "ROTEST00001", "010011"),
+        ("SE", "SETEST00001", "11122"),
     ],
 )
 async def test_group_leaf_country_end_to_end(country, awb, postal_code):

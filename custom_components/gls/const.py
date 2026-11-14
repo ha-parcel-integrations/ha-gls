@@ -47,7 +47,8 @@ KNOWN_CAPABILITIES = frozenset(
 #                  capture) and there is no delivery-window field either;
 #                  pickup_point, url and history still populate.
 #   Other        — the pan-EU group-leaf backend (BE, CH, CZ, DK, FI, HU, SK,
-#                  AT, IE, FR, LU, RS, SI, HR, IT and RO all route through it —
+#                  AT, IE, FR, LU, RS, SI, HR, IT, RO and SE all route through
+#                  it —
 #                  countries/group/). Populates
 #                  weight (infos[] WEIGHT) and url/history, but not
 #                  dimensions, delivery_window or pickup_point — the leaf
@@ -590,6 +591,22 @@ COUNTRIES: dict[str, dict[str, str]] = {
             "https://gls-group.com/RO/ro/urmarire-colet/?match={parcel_no}"
         ),
     },
+    "SE": {
+        "host": "gls-group.com",
+        "group_locale": "SE/sv",
+        # Five digits written "NNN NN"; normalisation strips the space before
+        # matching, so both forms are accepted. Same rule as CZ and SK.
+        "postcode_regex": r"^\d{3}\s?\d{2}$",
+        "postcode_example": "111 22",
+        # GLS has no Swedish operation of its own -- it reaches Sweden through
+        # a logistics partner -- so there is no SE consumer site: every
+        # gls-group.{com,eu}/SE/{en,sv}/ tracking path 302s into the group 404
+        # handler (checked 2026-11-14). Reuses the EU entry point CH and LI
+        # already point at, which is also the page the requester tracks on.
+        "tracking_url": (
+            "https://gls-group.eu/EU/en/parcel-tracking?match={parcel_no}"
+        ),
+    },
 }
 
 # Every ``COUNTRIES`` row served by the signed Spanish consignee transport
@@ -623,6 +640,7 @@ GROUP_LEAF_COUNTRIES = frozenset(
         "HR",
         "IT",
         "RO",
+        "SE",
     }
 )
 

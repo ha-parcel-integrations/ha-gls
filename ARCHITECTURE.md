@@ -68,7 +68,7 @@ no account-level list call to branch on.)
 | **PL** | national GET, no postcode | keyless | `async_get_parcel_pl` |
 | **DE** | bearer POST | anonymous app instance + token | `async_get_parcel_de` |
 | **ES / PT** | national signed JSON POST, postcode in the key | signed request | `async_get_parcel_es` |
-| **17 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
+| **18 group leaves** | pan-EU `rstt028`/`rstt029` | keyless | `async_get_parcel_group` |
 
 Two countries additionally consult a **second** endpoint, and neither of them
 is tracked there — both still take their status and mapping from the leaf
@@ -80,9 +80,9 @@ they already shipped on:
 | **IT** | national `rstt030` | history, when the group body carries none | `async_get_history_it` |
 
 Each hub stores its choice in `entry.options[CONF_COUNTRY]`, and `COUNTRIES`
-in `const.py` holds 23 rows: `NL`, `CA`, `US`, `PL`, `DE`, `ES`, `PT`, and the group
+in `const.py` holds 25 rows: `NL`, `CA`, `US`, `PL`, `DE`, `ES`, `PT`, and the group
 leaves `BE`, `CH`, `CZ`, `DK`, `FI`, `HU`, `SK`, `AT`, `IE`, `FR`, `LI`, `LU`, `RS`,
-`SI`, `HR`, `IT`.
+`SI`, `HR`, `IT`, `RO`, `SE`.
 Each row carries a host, a postcode regex, and either a `culture` or a
 `group_locale` (below). Constructing a `country="DE"` client without a
 `GlsDeSession` raises `RuntimeError`, not `GlsApiError` — that is a wiring bug,

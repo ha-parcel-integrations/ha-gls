@@ -1,6 +1,6 @@
 # Working in this repository
 
-Home Assistant custom integration for **GLS** parcel tracking (24 countries).
+Home Assistant custom integration for **GLS** parcel tracking (25 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
 doubt**. Account-less (user-entered tracking codes). No DTO layer.
@@ -225,6 +225,16 @@ postcode. **Add the country to `GROUP_RSTT028_CONFIRMED` when a report lands**;
 that is the off switch, not a log-level change. Neither this warning nor the
 `E800` one prefills the tracking number — the template asks for it in its own
 optional field, where the user can decline.
+
+**Sweden is a label, not a backend — and it is unconfirmed.** GLS has no
+Swedish operation of its own; it reaches Sweden through a logistics partner, so
+there is no SE consumer site (every `/SE/{en,sv}/` tracking path 302s into the
+group 404 handler) and the row reuses the EU entry point CH and LI use. The row
+buys postcode validation and labelling for a Swedish hub, nothing more. **No
+real Swedish code has ever been probed**: whether a Swedish recipient's code is
+in the pan-EU index at all, or is the partner's own, is open — a `404 E000` on a
+real Swedish code would mean the row should go, not that the leaf broke. Don't
+record it as confirmed before a user's own parcel resolves.
 
 **Both `rstt029` fallbacks go through `_async_fallback_with_italian_history`,
 never `_async_get_parcel_group_fallback` directly.** `rstt030` needs no
