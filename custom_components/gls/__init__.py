@@ -10,8 +10,8 @@ from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .account_coordinator import GlsAccountCoordinator
-from .api import GlsApiClient
+from .account.coordinator import GlsAccountCoordinator
+from .account.countries.dk.session import GlsDkSession
 from .const import (
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
@@ -25,14 +25,18 @@ from .const import (
     DEFAULT_COUNTRY,
     DOMAIN,
     PLATFORMS,
-    SOURCE_DK_ACCOUNT,
+    SOURCE_ACCOUNT,
+    SOURCE_TRACKING,
 )
-from .coordinator import GlsCoordinator
-from .countries.de.session import GlsDeSession
-from .countries.dk.session import GlsDkSession
+from .coordinator import GlsBaseCoordinator
 from .services import async_setup_services, async_unload_services
+from .tracking.api import GlsApiClient
+from .tracking.coordinator import GlsCoordinator
+from .tracking.countries.de.session import GlsDeSession
 
 _LOGGER = logging.getLogger(__name__)
+
+_LEGACY_ACCOUNT_SOURCE = "dk_account"
 
 
 @dataclass
@@ -40,7 +44,7 @@ class GlsData:
     """Runtime data attached to a GLS config entry."""
 
     client: GlsApiClient | GlsDkSession
-    coordinator: GlsCoordinator
+    coordinator: GlsBaseCoordinator
     de_session: GlsDeSession | None = None
     # The options as last applied, so an entry write that only rotated DE
     # session state is not mistaken for an options edit.
@@ -50,9 +54,27 @@ class GlsData:
 type GlsConfigEntry = ConfigEntry[GlsData]
 
 
+def is_account_entry(entry: ConfigEntry) -> bool:
+    """Whether ``entry`` is an account entry; a missing source means tracking."""
+    return entry.data.get(CONF_SOURCE, SOURCE_TRACKING) == SOURCE_ACCOUNT
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
+    """Upgrade a version 1 entry; the Danish account source becomes ``account``."""
+    data = dict(entry.data)
+    unique_id = entry.unique_id
+    if data.get(CONF_SOURCE) == _LEGACY_ACCOUNT_SOURCE:
+        data[CONF_SOURCE] = SOURCE_ACCOUNT
+        unique_id = f"{SOURCE_ACCOUNT}:{data[CONF_DK_UID]}"
+    hass.config_entries.async_update_entry(
+        entry, data=data, unique_id=unique_id, version=2
+    )
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Set up GLS from a config entry."""
-    if entry.data.get(CONF_SOURCE) == SOURCE_DK_ACCOUNT:
+    if is_account_entry(entry):
         return await _async_setup_dk_account(hass, entry)
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     postal_code = entry.options.get(CONF_POSTAL_CODE)

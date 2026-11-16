@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Configurar GLS",
-        "description": "Escolhe o país onde as tuas encomendas são entregues e o código postal habitual. As encomendas são adicionadas depois da configuração.\n\nO teu país não está na lista? [Pede outro país]({issue_url}).",
-        "data": {
-          "country": "País",
-          "postal_code": "Código postal",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "p. ex. {postcode_example}. Usado como endereço de entrega predefinido para as encomendas que adicionares; no Canadá ativa detalhes de seguimento mais completos. O seguimento nos Estados Unidos não o usa.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Conta",
+          "tracking": "Códigos de rastreio"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Iniciar sessão numa conta GLS",
+        "description": "Que conta GLS pretende adicionar?\n\nO teu país não está na lista? [Pede outro país]({issue_url}).",
+        "data": {
+          "country": "País"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Configurar GLS",
+        "description": "Escolhe o país onde as tuas encomendas são entregues e o código postal habitual. As encomendas são adicionadas depois da configuração.\n\nO teu país não está na lista? [Pede outro país]({issue_url}).",
+        "data": {
+          "country": "País",
+          "postal_code": "Código postal"
+        },
+        "data_description": {
+          "postal_code": "p. ex. {postcode_example}. Usado como endereço de entrega predefinido para as encomendas que adicionares; no Canadá ativa detalhes de seguimento mais completos. O seguimento nos Estados Unidos não o usa."
         }
       },
       "reauth_confirm": {

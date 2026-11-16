@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Podešavanje GLS-a",
-        "description": "Izaberi zemlju u koju se dostavljaju tvoji paketi i poštanski broj na koji obično idu. Pakete dodaješ nakon podešavanja.\n\nTvoja zemlja nije na listi? [Zatraži drugu zemlju]({issue_url}).",
-        "data": {
-          "country": "Zemlja",
-          "postal_code": "Poštanski broj",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "npr. {postcode_example}. Koristi se kao podrazumevana adresa dostave za pakete koje dodaš; u Kanadi omogućava detaljnije praćenje. Praćenje u SAD ga ne koristi.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Nalog",
+          "tracking": "Kodovi za praćenje"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Prijava na GLS nalog",
+        "description": "Koji GLS nalog želiš da dodaš?\n\nTvoja zemlja nije na listi? [Zatraži drugu zemlju]({issue_url}).",
+        "data": {
+          "country": "Zemlja"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Podešavanje GLS-a",
+        "description": "Izaberi zemlju u koju se dostavljaju tvoji paketi i poštanski broj na koji obično idu. Pakete dodaješ nakon podešavanja.\n\nTvoja zemlja nije na listi? [Zatraži drugu zemlju]({issue_url}).",
+        "data": {
+          "country": "Zemlja",
+          "postal_code": "Poštanski broj"
+        },
+        "data_description": {
+          "postal_code": "npr. {postcode_example}. Koristi se kao podrazumevana adresa dostave za pakete koje dodaš; u Kanadi omogućava detaljnije praćenje. Praćenje u SAD ga ne koristi."
         }
       },
       "reauth_confirm": {

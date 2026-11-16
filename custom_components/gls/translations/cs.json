@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Nastavit GLS",
-        "description": "Vyberte zemi, do které vám zásilky chodí, a PSČ, na které obvykle chodí. Zásilky přidáte až po nastavení.\n\nVaše země není v seznamu? [Vyžádejte si další zemi]({issue_url}).",
-        "data": {
-          "country": "Země",
-          "postal_code": "PSČ",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "např. {postcode_example}. Použije se jako výchozí doručovací adresa pro zásilky, které přidáte.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Účet",
+          "tracking": "Sledovací kódy"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Přihlášení k účtu GLS",
+        "description": "Který účet GLS chcete přidat?\n\nVaše země není v seznamu? [Vyžádejte si další zemi]({issue_url}).",
+        "data": {
+          "country": "Země"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Nastavit GLS",
+        "description": "Vyberte zemi, do které vám zásilky chodí, a PSČ, na které obvykle chodí. Zásilky přidáte až po nastavení.\n\nVaše země není v seznamu? [Vyžádejte si další zemi]({issue_url}).",
+        "data": {
+          "country": "Země",
+          "postal_code": "PSČ"
+        },
+        "data_description": {
+          "postal_code": "např. {postcode_example}. Použije se jako výchozí doručovací adresa pro zásilky, které přidáte."
         }
       },
       "reauth_confirm": {

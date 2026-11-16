@@ -7,11 +7,12 @@ from homeassistant.const import Platform
 DOMAIN = "gls"
 
 CONF_SOURCE = "source"
-SOURCE_DK_ACCOUNT = "dk_account"
+SOURCE_ACCOUNT = "account"
+SOURCE_TRACKING = "tracking"
+ACCOUNT_COUNTRIES = ("DK",)
 CONF_DK_UID = "uid"
 CONF_DK_EMAIL = "email"
 CONF_DK_REFRESH_TOKEN = "refresh_token"
-CONF_USE_DANISH_ACCOUNT = "use_danish_account"
 
 
 class ParcelStatus(StrEnum):
@@ -47,7 +48,7 @@ KNOWN_CAPABILITIES = frozenset(
 # populates — feeds the comparison table on the docs site, one row per
 # country. Keyed by the same label the country selector shows the user;
 # order here is display order. Keep each value in lockstep with its
-# normalize_parcel_<cc>() in countries/<cc>/__init__.py:
+# normalize_parcel_<cc>() in tracking/countries/<cc>/__init__.py:
 #   Netherlands  — full support: weight, dimensions and the ETA delivery
 #                  window (deliveryStatus.etaTimestampMin/Max) all populate.
 #   Germany      — weight/dimensions are not in the DTO (confirmed absent by
@@ -55,8 +56,7 @@ KNOWN_CAPABILITIES = frozenset(
 #                  pickup_point, url and history still populate.
 #   Other        — the pan-EU group-leaf backend (BE, CH, CZ, DK, FI, HU, SK,
 #                  AT, IE, FR, LU, RS, SI, HR, IT, RO and SE all route through
-#                  it —
-#                  countries/group/). Populates
+#                  it — tracking/countries/group/). Populates
 #                  weight (infos[] WEIGHT) and url/history, but not
 #                  dimensions, delivery_window or pickup_point — the leaf
 #                  response has no dimensions/ETA field, and a locker/shop
@@ -112,13 +112,13 @@ PENDING_CAPABILITIES_BY_VARIANT = {
 class GlsApiError(Exception):
     """Raised when a GLS parcel-backend call returns an unexpected status.
 
-    Shared across every country's transport (``countries/nl/``,
-    ``countries/de/``) so ``coordinator.py``'s single
+    Shared across every country's transport (``tracking/countries/nl/``,
+    ``tracking/countries/de/``) so ``tracking/coordinator.py``'s single
     ``except (GlsApiError, aiohttp.ClientError)`` branch keeps working
     regardless of which country produced the failure. Lives here rather than
-    in ``api.py`` so a country module can raise it without importing
-    ``api.py`` (which itself imports the country modules — see
-    ``countries/__init__.py``).
+    in ``tracking/api.py`` so a country module can raise it without importing
+    ``tracking/api.py`` (which itself imports the country modules — see
+    ``tracking/countries/__init__.py``).
     """
 
     def __init__(self, status_code: int) -> None:
@@ -140,7 +140,7 @@ PARCEL_DETAILS_URL = (
 # GLS Canada / Dicom exposes an anonymous consumer endpoint of its own. The
 # postcode-bearing route is the primary route: it returns the fuller shipment
 # response used by the carrier's web tracker. The code-only route is a
-# postcode-mismatch fallback implemented in ``countries/ca/``.
+# postcode-mismatch fallback implemented in ``tracking/countries/ca/``.
 GLS_CA_TRACKING_URL = "https://web.gls-canada.com/api/tracking/{parcel_no}"
 GLS_CA_TRACKING_DETAILS_URL = (
     "https://web.gls-canada.com/api/tracking/{postal_code}/{parcel_no}"
@@ -150,7 +150,7 @@ GLS_CA_TRACKING_DETAILS_URL = (
 # carries the tracking number, not a templated path. It is the only GLS
 # backend that is **not** keyed on the delivery postcode at all: the hub still
 # asks for one (every GLS hub does, and it stays the default for parcels added
-# later), but ``countries/us/`` never sends it. ``isFreight`` pins the consumer
+# later), but ``tracking/countries/us/`` never sends it. ``isFreight`` pins the consumer
 # parcel surface; the freight half of the same route is out of scope.
 GLS_US_TRACKING_URL = (
     "https://connect.gls-us.com/api/public/tracking/"
@@ -161,7 +161,7 @@ GLS_US_TRACKING_URL = (
 # keyless (its protected sibling 401s, which is what proves the distinction),
 # and the route takes the parcel number **alone** — no postcode, like the US.
 # An unknown number answers ``400`` with ``code: mygls-tracking-400(111)``,
-# the carrier's semantic not-found; see ``countries/pl/``.
+# the carrier's semantic not-found; see ``tracking/countries/pl/``.
 GLS_PL_TRACKING_URL = (
     "https://mygls.gls-poland.com.pl/api/v1/mygls-tracking/public/tracking/"
     "shipment/track/{parcel_no}"
@@ -177,18 +177,18 @@ GLS_ES_HOST = "api.consignee.gls-spain.es"
 GLS_ES_BASE_URL = f"https://{GLS_ES_HOST}/api/v5"
 # The path as sent, and also the path that gets signed -- the version prefix
 # above is deliberately *not* part of the signed string. See
-# ``countries/es/signing.py``.
+# ``tracking/countries/es/signing.py``.
 GLS_ES_FIND_PATH = "/expeditions/find"
 # Fixed value the consumer tracking page carries for every visitor; it is not
 # issued or revoked per user, and nothing about a hub changes it. Used only to
-# compute ``X-Signature`` -- see ``countries/es/signing.py`` for the scheme and
+# compute ``X-Signature`` -- see ``tracking/countries/es/signing.py`` for the scheme and
 # for why it must be recomputed on every attempt.
 GLS_ES_SIGNING_KEY = "gls"
 # The page identifies itself with this on every call.
 GLS_ES_AGENT = "pwa"
 # Pinned, never the user's HA locale: the status *sentences* are localized and
 # the ``incidence`` mapping reads one of them, so following the user's language
-# would silently stop the map matching. See ``countries/es/``.
+# would silently stop the map matching. See ``tracking/countries/es/``.
 GLS_ES_ACCEPT_LANGUAGE = "en_US"
 
 # GLS Italy's *national* search, a third leaf on the same tracking host as the
@@ -230,7 +230,7 @@ GLS_FR_RESOLVE_URL = (
 )
 
 # GLS Germany has no keyless endpoint: every route on the national parcel
-# backend needs the anonymous bearer token ``countries/de/session.py`` mints
+# backend needs the anonymous bearer token ``tracking/countries/de/session.py`` mints
 # (``guest-account``, not ``auth: none``). Two hosts: the parcel backend, and a
 # group-wide identity service with no country in its path.
 GLS_DE_TRACKINGS_HOST = "gls-pakete-de-backend-app.ooh.glsnxt.com"
@@ -256,7 +256,7 @@ GLS_DE_VALIDATE_URL = (
 # The pan-EU GLS group leaves behind the web tracker — keyless,
 # host-agnostic, and partitioned by the *consignment record*, not by the
 # ``{ISO2}/{lang}`` path segment (a locale switch only). CZ was the first
-# ``COUNTRIES`` row routed here (the transport is ``countries/group/``,
+# ``COUNTRIES`` row routed here (the transport is ``tracking/countries/group/``,
 # named for the surface rather than for CZ once AT/IE/FR/SI/HR/IT joined
 # it), but nothing below names any one
 # country: a later group-leaf country is meant to be one more ``COUNTRIES``
@@ -274,7 +274,7 @@ GLS_GROUP_RSTT028_URL = (
 # ``type=`` is empty for every plain-numeric AWB seen, but not universal: a
 # non-plain-numeric code can need ``type=NAT`` instead, sometimes after an
 # outright ``HTTP 500`` on the empty value. The
-# ``{type}`` placeholder lets ``countries/group/``'s fallback retry once with
+# ``{type}`` placeholder lets ``tracking/countries/group/``'s fallback retry once with
 # the other value on a ``5xx``/``404 E206`` — see its
 # ``_async_get_parcel_group_fallback`` and ``COUNTRIES[cc]["group_type"]``.
 GLS_GROUP_RSTT029_URL = (
@@ -302,7 +302,7 @@ DEFAULT_COUNTRY = "NL"
 # Countries without a specific entry fall back to ``TRACKING_URL`` below.
 #
 # DE's ``host``/``culture`` are carried here for schema consistency with NL,
-# but its transport (``countries/de.py``) does not build a URL from them the
+# but its transport (``tracking/countries/de.py``) does not build a URL from them the
 # way NL's ``{host}``/``{culture}`` PARCEL_DETAILS_URL does — DE is a bearer
 # POST against GLS_DE_TRACKINGS_ADD_URL, and ``culture`` only pins the
 # ``Accept-Language`` header — the event text is localized by it, and logic
@@ -316,7 +316,7 @@ DEFAULT_COUNTRY = "NL"
 # the *same* pan-EU index, not a data partition, and status mapping keys off
 # the locale-independent ``progressBar.statusInfo``. Overloading ``culture``
 # for that would blur two different concepts, so group-leaf countries get
-# their own ``group_locale`` key instead — consumed by ``countries/group/``'s
+# their own ``group_locale`` key instead — consumed by ``tracking/countries/group/``'s
 # transport, which every group-leaf country below shares by adding one more
 # row here rather than copying the package. Every row uses ``/en`` (not its
 # native language) for ``group_locale``: the segment is a display switch
@@ -326,7 +326,7 @@ DEFAULT_COUNTRY = "NL"
 # is free to use the native language — see AT/FR/IT below.
 #
 # ``group_type`` is optional (default ``""``) and names the ``type=`` value
-# ``countries/group/``'s ``rstt029`` fallback should try *first*, before the
+# ``tracking/countries/group/``'s ``rstt029`` fallback should try *first*, before the
 # other one — the code sweep found two non-plain-numeric codes that
 # only resolved with ``type=NAT`` (one after an outright ``HTTP 500`` on the
 # empty value). Only Italy sets it; every other row is unaffected by its
@@ -622,15 +622,15 @@ COUNTRIES: dict[str, dict[str, str]] = {
 }
 
 # Every ``COUNTRIES`` row served by the signed Spanish consignee transport
-# (``countries/es/``). Portugal answers the same host with the same request
+# (``tracking/countries/es/``). Portugal answers the same host with the same request
 # shape *and* the same response contract — confirmed on a real Portuguese
 # parcel (2026-10-12), which is what a shared host alone never proves. Its
 # consumer *link* host is its own, though; see the PT row above.
 ES_COUNTRIES = frozenset({"ES", "PT"})
 
 # Every ``COUNTRIES`` row served by the pan-EU group-leaf transport
-# (``countries/group/``) rather than a national backend — the dispatchers in
-# ``parcels.py`` and ``api.py`` route on membership here instead of a bare
+# (``tracking/countries/group/``) rather than a national backend — the dispatchers in
+# ``tracking/parcels.py`` and ``tracking/api.py`` route on membership here instead of a bare
 # ``country == "CZ"`` special case, so a later group-leaf country only needs
 # a ``COUNTRIES`` row plus one more entry here.
 GROUP_LEAF_COUNTRIES = frozenset(
@@ -662,7 +662,7 @@ GROUP_LEAF_COUNTRIES = frozenset(
 # with its detail half unproven: the call needs the recipient's own postcode,
 # which research cannot supply and only a real user has.
 #
-# So ``countries/group/`` warns once per country when a detail leaf answers for
+# So ``tracking/countries/group/`` warns once per country when a detail leaf answers for
 # a country that is *not* in here, asking the user to report it. Add the
 # country here when that report lands (and move its fields out of
 # PENDING_CAPABILITIES_BY_VARIANT if they graduated) — that is what switches
@@ -694,10 +694,10 @@ CONF_POSTAL_CODE = "postal_code"
 
 # DE only. The group ``parcelNumber`` (``tuNo``) a tracked parcel resolved to
 # on its first successful ``POST`` add — persisted here (not just in
-# ``countries/de/__init__.py``'s in-process cache) so a later HA restart can
+# ``tracking/countries/de/__init__.py``'s in-process cache) so a later HA restart can
 # poll it by ``GET`` straight away instead of re-hitting the "already
 # tracked, no way to recover its id" 409 gap once more. Set by
-# ``coordinator.py``, read by ``coordinator.py`` to seed the transport's own
+# ``tracking/coordinator.py``, read by ``tracking/coordinator.py`` to seed the transport's own
 # cache before polling.
 CONF_DE_PARCEL_NUMBER = "de_parcel_number"
 

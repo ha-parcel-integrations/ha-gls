@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Set up GLS",
-        "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nIs your country not listed? [Request another country]({issue_url}).",
-        "data": {
-          "country": "Country",
-          "postal_code": "Postal code",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add; for Canada it enables enhanced tracking details. US tracking does not use it.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Account",
+          "tracking": "Tracking codes"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Log in to a GLS account",
+        "description": "Which GLS account do you want to add?\n\nIs your country not listed? [Request another country]({issue_url}).",
+        "data": {
+          "country": "Country"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Set up GLS",
+        "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nIs your country not listed? [Request another country]({issue_url}).",
+        "data": {
+          "country": "Country",
+          "postal_code": "Postal code"
+        },
+        "data_description": {
+          "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add; for Canada it enables enhanced tracking details. US tracking does not use it."
         }
       },
       "reauth_confirm": {

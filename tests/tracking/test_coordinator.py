@@ -1,0 +1,563 @@
+"""Tests for the GLS coordinator logic."""
+
+import asyncio
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, patch
+
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.update_coordinator import UpdateFailed
+import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.gls.const import (
+    CAPABILITIES_BY_VARIANT,
+    CONF_COUNTRY,
+    CONF_DELIVERED_FILTER_AMOUNT,
+    CONF_DELIVERED_FILTER_TYPE,
+    CONF_PARCEL_NO,
+    CONF_PARCELS,
+    CONF_POSTAL_CODE,
+    DOMAIN,
+    HOT_INTERVAL_MINUTES,
+    KNOWN_CAPABILITIES,
+    MID_INTERVAL_MINUTES,
+    STAGGER_MINUTES,
+    ParcelStatus,
+)
+from custom_components.gls.parcels import sort_parcels_by_ts
+from custom_components.gls.tracking.api import GlsApiError
+from custom_components.gls.tracking.coordinator import GlsCoordinator
+from custom_components.gls.tracking.parcels import normalize_parcel
+from tests.payloads import ACTIVE_NO, DELIVERED_NO, active_sample, delivered_sample
+
+# NL's own map_parcel_status_nl/map_event_status/build_history/
+# normalize_parcel_nl unit tests moved to tests/countries/test_nl.py as part
+# of the countries/ restructure.
+# What's left here is GlsCoordinator integration behaviour, plus the two
+# generic (country-agnostic) helpers `normalize_parcel` (the dispatcher) and
+# `sort_parcels_by_ts` that the coordinators import from `tracking/parcels.py`
+# and `parcels.py`.
+
+# ---------------------------------------------------------------------------
+# sort_parcels_by_ts
+# ---------------------------------------------------------------------------
+
+
+def test_sort_parcels_puts_unparseable_last():
+    parcels = [
+        {"barcode": "a", "planned_from": "2026-05-02T10:00:00Z"},
+        {"barcode": "b", "planned_from": None},
+        {"barcode": "c", "planned_from": "2026-05-01T10:00:00Z"},
+    ]
+    ordered = [p["barcode"] for p in sort_parcels_by_ts(parcels, "planned_from")]
+    assert ordered == ["c", "a", "b"]
+
+
+# ---------------------------------------------------------------------------
+# GlsCoordinator._async_update_data
+# ---------------------------------------------------------------------------
+
+
+def _entry_with(parcels: list[dict]) -> MockConfigEntry:
+    return MockConfigEntry(
+        domain=DOMAIN,
+        # Keep-most-recent-100 so the delivered-retention filter never trims
+        # the (old, fixed-date) sample parcels these tests assert on.
+        options={
+            CONF_PARCELS: parcels,
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+        },
+        unique_id=DOMAIN,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Dynamic polling — wired into _async_update_data
+# ---------------------------------------------------------------------------
+
+
+async def test_coordinator_starts_on_the_hot_cadence(hass):
+    """The initial interval is the hot tier — every refresh recomputes it."""
+    entry = _entry_with([])
+    entry.add_to_hass(hass)
+    coordinator = GlsCoordinator(hass, AsyncMock(), entry)
+    assert coordinator.update_interval == timedelta(minutes=HOT_INTERVAL_MINUTES)
+
+
+async def test_polling_stops_entirely_with_nothing_tracked(hass):
+    entry = _entry_with([])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes is None
+    assert coordinator.update_interval is None
+
+
+async def test_polling_is_hot_for_an_out_for_delivery_parcel(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = active_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes == HOT_INTERVAL_MINUTES
+    assert coordinator.update_interval is not None
+
+
+async def test_polling_pauses_once_everything_is_delivered(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = delivered_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes is None
+    assert coordinator.update_interval is None
+
+
+async def test_update_merges_multiple_parcels(hass):
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
+            {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.side_effect = lambda no, pc: (
+        active_sample() if no == "1111111111111" else delivered_sample()
+    )
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    data = await coordinator._async_update_data()
+
+    assert len(data) == 1  # one active
+    assert data[0]["barcode"] == "1111111111111"
+    assert len(coordinator.delivered) == 1
+    assert coordinator.last_success_time is not None
+
+
+async def test_update_204_shows_pending_placeholder(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "9999999999999", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = None  # 204
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    data = await coordinator._async_update_data()
+
+    assert len(data) == 1
+    assert data[0]["status"] == ParcelStatus.UNKNOWN
+
+
+async def test_update_keeps_cached_on_error(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = delivered_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+    await coordinator._async_update_data()  # populates cache
+
+    client.async_get_parcel.side_effect = GlsApiError(500)
+    await coordinator._async_update_data()  # error -> cached raw reused
+    assert len(coordinator.delivered) == 1
+
+
+async def test_update_all_fail_raises(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.side_effect = GlsApiError(500)
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+
+
+async def test_update_skips_items_missing_fields(hass):
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: "", CONF_POSTAL_CODE: "1234AB"},  # skipped
+            {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = delivered_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    assert client.async_get_parcel.await_count == 1  # empty item never fetched
+
+
+async def test_update_event_carries_device_id(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+    )
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_status_changed", lambda e: events.append(e))
+
+    in_transit = active_sample("1111111111111")
+    in_transit["state"] = 2
+    client.async_get_parcel.return_value = in_transit
+    await coordinator._async_update_data()
+    client.async_get_parcel.return_value = active_sample("1111111111111")
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert events[0].data["device_id"] == device.id
+
+
+async def test_update_fires_status_changed_event(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = active_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_status_changed", lambda e: events.append(e))
+
+    # First refresh: in_transit (state 2), events suppressed.
+    in_transit = active_sample()
+    in_transit["state"] = 2
+    client.async_get_parcel.return_value = in_transit
+    await coordinator._async_update_data()
+
+    # Second refresh: out_for_delivery (state 3) — still active, status changed.
+    client.async_get_parcel.return_value = active_sample()
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+    assert events[0].data["new_status"] == ParcelStatus.OUT_FOR_DELIVERY
+
+
+async def test_update_fires_delivered_event_not_status_changed(hass):
+    """The hop to delivered fires parcel_delivered — never status_changed."""
+    entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    delivered = []
+    changed = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_delivered", lambda e: delivered.append(e))
+    hass.bus.async_listen(
+        f"{DOMAIN}_parcel_status_changed", lambda e: changed.append(e)
+    )
+
+    client.async_get_parcel.return_value = active_sample("1111111111111")
+    await coordinator._async_update_data()
+    client.async_get_parcel.return_value = delivered_sample("1111111111111")
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert changed == []
+    assert len(delivered) == 1
+    assert delivered[0].data["barcode"] == "1111111111111"
+    assert delivered[0].data["status"] == ParcelStatus.DELIVERED
+
+
+async def test_no_events_for_parcel_first_seen_delivered(hass):
+    """A parcel already delivered when first tracked fires neither registered nor delivered."""
+    entry = _entry_with([{CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.side_effect = lambda no, pc: (
+        active_sample(no) if no == "1111111111111" else delivered_sample(no)
+    )
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    fired = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_registered", lambda e: fired.append(e))
+    hass.bus.async_listen(f"{DOMAIN}_parcel_delivered", lambda e: fired.append(e))
+
+    await coordinator._async_update_data()  # first refresh: seeds state
+
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_PARCELS: [
+                {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
+                {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+            ],
+        },
+    )
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert fired == []
+
+
+async def test_update_cached_only_poll_does_not_stamp_last_success(hass):
+    """A poll served entirely from cache must not look like a success."""
+    # Must still be active (not delivered) — a delivered parcel_no is skipped
+    # from the fetch entirely from the next cycle on, which is covered
+    # separately by test_delivered_code_skipped_from_fetch.
+    entry = _entry_with([{CONF_PARCEL_NO: ACTIVE_NO, CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = active_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+    await coordinator._async_update_data()
+    stamp = coordinator.last_success_time
+    assert stamp is not None
+
+    client.async_get_parcel.side_effect = GlsApiError(500)
+    await coordinator._async_update_data()  # served from cache
+    assert coordinator.last_success_time == stamp
+
+
+async def test_delivered_code_skipped_from_fetch(hass):
+    """A delivered parcel_no stops being fetched from the next cycle on."""
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: ACTIVE_NO, CONF_POSTAL_CODE: "1234AB"},
+            {CONF_PARCEL_NO: DELIVERED_NO, CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.side_effect = lambda parcel_no, postal_code: (
+        active_sample() if parcel_no == ACTIVE_NO else delivered_sample()
+    )
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    assert client.async_get_parcel.call_count == 2
+    assert coordinator.delivered_codes == {DELIVERED_NO}
+
+    client.async_get_parcel.reset_mock()
+    data = await coordinator._async_update_data()
+
+    # Only the still-active parcel_no is fetched — the delivered one is
+    # skipped.
+    client.async_get_parcel.assert_called_once_with(ACTIVE_NO, "1234AB")
+    assert any(p["barcode"] == DELIVERED_NO for p in coordinator.delivered)
+    assert data[0]["barcode"] == ACTIVE_NO
+
+
+async def test_delivered_code_forgotten_when_untracked(hass):
+    """Untracking a delivered parcel_no drops it from the skip set too."""
+    entry = _entry_with([{CONF_PARCEL_NO: DELIVERED_NO, CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = delivered_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    assert coordinator.delivered_codes == {DELIVERED_NO}
+
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_PARCELS: []}
+    )
+    await coordinator._async_update_data()
+    assert coordinator.delivered_codes == set()
+
+
+async def test_delivered_filter_days_and_count(hass):
+    now = datetime.now(UTC)
+    recent = (now - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S")
+    old = (now - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S")
+    delivered = [
+        {"barcode": "RECENT", "delivered_at": recent},
+        {"barcode": "OLD", "delivered_at": old},
+    ]
+
+    entry = _entry_with([])
+    entry.add_to_hass(hass)
+    coordinator = GlsCoordinator(hass, AsyncMock(), entry)
+
+    # days: 7-day window drops the 30-day-old one.
+    hass.config_entries.async_update_entry(
+        entry,
+        options={CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7},
+    )
+    kept = coordinator._apply_delivered_filter(delivered)
+    assert {p["barcode"] for p in kept} == {"RECENT"}
+
+    # parcels: keep only the most recent 1.
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 1,
+        },
+    )
+    kept = coordinator._apply_delivered_filter(delivered)
+    assert kept == delivered[:1]
+
+
+async def test_update_prunes_cache_for_untracked_parcels(hass):
+    entry = _entry_with([{CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"}])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = delivered_sample()
+    coordinator = GlsCoordinator(hass, client, entry)
+    coordinator._raw_cache["gone"] = {"parcelNo": "gone", "state": 4}
+
+    await coordinator._async_update_data()
+
+    assert "gone" not in coordinator._raw_cache
+    assert "0085105093278" in coordinator._raw_cache
+
+
+async def test_update_fetches_parcels_concurrently(hass):
+    """All tracked parcels are fetched via one gather, not one-by-one."""
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: "1111111111111", CONF_POSTAL_CODE: "1234AB"},
+            {CONF_PARCEL_NO: "0085105093278", CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
+    entry.add_to_hass(hass)
+    in_flight = 0
+    peak = 0
+
+    async def _slow_fetch(no, pc):
+        nonlocal in_flight, peak
+        in_flight += 1
+        peak = max(peak, in_flight)
+        await asyncio.sleep(0)
+        in_flight -= 1
+        return active_sample(no)
+
+    client = AsyncMock()
+    client.async_get_parcel.side_effect = _slow_fetch
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    assert peak == 2
+
+
+def test_normalize_parcel_partial_dimensions_have_no_text():
+    """A partial dimensions payload must not render 'None' into the text."""
+    sample = active_sample()
+    sample["width"] = None
+    sample["height"] = None
+    parcel = normalize_parcel(sample)
+    assert parcel["dimensions"]["length"] == 34
+    assert parcel["dimensions"]["text"] is None
+
+
+def test_normalize_parcel_no_dimensions_at_all():
+    sample = active_sample()
+    sample["length"] = sample["width"] = sample["height"] = None
+    parcel = normalize_parcel(sample)
+    assert parcel["dimensions"] is None
+
+
+def test_capabilities_are_known_values():
+    """A typo here would silently misreport this carrier on the docs site."""
+    for variant, fields in CAPABILITIES_BY_VARIANT.items():
+        assert fields <= KNOWN_CAPABILITIES, variant
+
+
+# ---------------------------------------------------------------------------
+# CZ dispatch — the coordinator threads the looked-up parcel_no into
+# normalize_parcel_group, since a group-leaf barcode must never come from a
+# raw response field (countries/group's docstring). NL/DE ignore parcel_no
+# entirely, so this is CZ-only coverage; it does not touch either of them.
+# ---------------------------------------------------------------------------
+
+
+async def test_update_threads_parcel_no_into_normalize_parcel_cz(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        options={
+            CONF_COUNTRY: "CZ",
+            CONF_PARCELS: [{CONF_PARCEL_NO: "1234567890", CONF_POSTAL_CODE: "11000"}],
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+        },
+        unique_id="11000",
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    # tuNo/referenceNo deliberately do NOT match the tracked parcel_no, the
+    # way a non-Czech consignment behaves on the same leaves.
+    client.async_get_parcel.return_value = {
+        "tuNo": "UNRELATED-ID",
+        "referenceNo": "UNRELATED-ID",
+        "progressBar": {
+            "statusInfo": "INTRANSIT",
+            "statusText": "On the way",
+            "retourFlag": False,
+        },
+    }
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    data = await coordinator._async_update_data()
+
+    assert data[0]["barcode"] == "1234567890"
+    assert data[0]["status"] == ParcelStatus.IN_TRANSIT
+
+
+async def test_failed_poll_drops_the_overnight_interval(hass):
+    entry = _entry_with([])
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+    coordinator.update_interval = timedelta(hours=5, minutes=40)
+
+    noon = datetime(2026, 1, 15, 12, tzinfo=UTC)
+    with (
+        patch.object(coordinator, "_async_poll", side_effect=TimeoutError),
+        patch("custom_components.gls.coordinator.dt_util.now", return_value=noon),
+        pytest.raises(TimeoutError),
+    ):
+        await coordinator._async_update_data()
+
+    assert coordinator.update_interval is not None
+    assert coordinator.update_interval <= timedelta(
+        minutes=MID_INTERVAL_MINUTES + STAGGER_MINUTES
+    )
+
+
+async def test_a_parcel_the_delivered_list_leaves_out_still_fires_delivered(hass):
+    """The retention option limits the delivered sensor, never the events."""
+    first, second = "1111111111111", "2222222222222"
+    entry = _entry_with(
+        [
+            {CONF_PARCEL_NO: first, CONF_POSTAL_CODE: "1234AB"},
+            {CONF_PARCEL_NO: second, CONF_POSTAL_CODE: "1234AB"},
+        ]
+    )
+    entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_DELIVERED_FILTER_AMOUNT: 1}
+    )
+    client = AsyncMock()
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    delivered = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_delivered", lambda e: delivered.append(e))
+
+    client.async_get_parcel.side_effect = lambda parcel_no, postal_code: active_sample(
+        parcel_no
+    )
+    await coordinator._async_update_data()
+    client.async_get_parcel.side_effect = lambda parcel_no, postal_code: (
+        delivered_sample(parcel_no)
+    )
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert sorted(e.data["barcode"] for e in delivered) == sorted([first, second])
+    assert len(coordinator.delivered) == 1

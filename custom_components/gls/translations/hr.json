@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Postavljanje GLS-a",
-        "description": "Odaberite državu isporuke vaših paketa i poštanski broj u koji obično stižu. Pakete dodajete nakon postavljanja.\n\nVaše države nema na popisu? [Zatražite drugu državu]({issue_url}).",
-        "data": {
-          "country": "Država",
-          "postal_code": "Poštanski broj",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "npr. {postcode_example}. Koristi se kao zadana adresa dostave za pakete koje dodate.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Račun",
+          "tracking": "Pratni brojevi"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Prijava na GLS račun",
+        "description": "Koji GLS račun želite dodati?\n\nVaše države nema na popisu? [Zatražite drugu državu]({issue_url}).",
+        "data": {
+          "country": "Država"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Postavljanje GLS-a",
+        "description": "Odaberite državu isporuke vaših paketa i poštanski broj u koji obično stižu. Pakete dodajete nakon postavljanja.\n\nVaše države nema na popisu? [Zatražite drugu državu]({issue_url}).",
+        "data": {
+          "country": "Država",
+          "postal_code": "Poštanski broj"
+        },
+        "data_description": {
+          "postal_code": "npr. {postcode_example}. Koristi se kao zadana adresa dostave za pakete koje dodate."
         }
       },
       "reauth_confirm": {

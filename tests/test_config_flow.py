@@ -8,6 +8,10 @@ from homeassistant.config_entries import ConfigEntryState
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.gls.account.countries.dk.session import (
+    GlsDkApiError,
+    GlsDkAuthError,
+)
 from custom_components.gls.const import (
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
@@ -20,16 +24,32 @@ from custom_components.gls.const import (
     COUNTRIES,
     DOMAIN,
 )
-from custom_components.gls.countries.de.session import GlsDeSessionError
-from custom_components.gls.countries.dk.session import GlsDkApiError, GlsDkAuthError
+from custom_components.gls.tracking.countries.de.session import GlsDeSessionError
 
 from .payloads import minimal_sample
 
 
-async def test_user_flow_creates_hub_with_postcode_only(hass):
+async def _open_tracking_flow(hass):
+    """Open the setup flow and pick tracking numbers from its menu."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "tracking"}
+    )
+
+
+async def test_setup_opens_on_a_menu_choosing_account_or_tracking(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    assert result["type"] == "menu"
+    assert result["step_id"] == "user"
+    assert result["menu_options"] == ["account", "tracking"]
+
+
+async def test_user_flow_creates_hub_with_postcode_only(hass):
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_POSTAL_CODE: "1234 ab"}
     )
@@ -42,9 +62,7 @@ async def test_user_flow_creates_hub_with_postcode_only(hass):
 
 
 async def test_user_flow_invalid_postcode(hass):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_POSTAL_CODE: "nope"}
     )
@@ -59,9 +77,7 @@ async def test_user_flow_invalid_postcode_keeps_selected_country(hass):
     even when the user had picked DE — and the error/help text always
     referred to the Dutch postcode format regardless of country.
     """
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "de", CONF_POSTAL_CODE: "nope"}
     )
@@ -77,9 +93,7 @@ async def test_country_dropdown_is_sorted_by_its_translated_label(hass):
     """The frontend alphabetises the dropdown; sorting the ISO codes here
     would put Germany above Denmark, and be wrong in every language but
     English anyway."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     country_key = next(k for k in result["data_schema"].schema if k == CONF_COUNTRY)
     config = result["data_schema"].schema[country_key].config
     assert config["sort"] is True
@@ -90,9 +104,7 @@ async def test_cz_user_flow_creates_hub_with_spaced_postcode(hass):
     """CZ postcodes are written with or without the internal space; either
     form must be accepted and stored space-stripped (the
     unspaced form is the verified-working one sent on the wire)."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "cz", CONF_POSTAL_CODE: "110 00"}
     )
@@ -102,9 +114,7 @@ async def test_cz_user_flow_creates_hub_with_spaced_postcode(hass):
 
 
 async def test_cz_user_flow_invalid_postcode(hass):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "cz", CONF_POSTAL_CODE: "nope"}
     )
@@ -113,9 +123,7 @@ async def test_cz_user_flow_invalid_postcode(hass):
 
 
 async def test_ca_user_flow_normalizes_canadian_postcode(hass):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "ca", CONF_POSTAL_CODE: "k1a 0b1"}
     )
@@ -125,9 +133,7 @@ async def test_ca_user_flow_normalizes_canadian_postcode(hass):
 
 
 async def test_ca_user_flow_rejects_non_canadian_postcode(hass):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "ca", CONF_POSTAL_CODE: "12345"}
     )
@@ -139,9 +145,7 @@ async def test_ca_user_flow_rejects_non_canadian_postcode(hass):
     [("90210", "90210"), ("90210-1234", "90210-1234"), ("902101234", "902101234")],
 )
 async def test_us_user_flow_accepts_zip_and_zip_plus_four(hass, entered, stored):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "us", CONF_POSTAL_CODE: entered}
     )
@@ -151,9 +155,7 @@ async def test_us_user_flow_accepts_zip_and_zip_plus_four(hass, entered, stored)
 
 
 async def test_us_user_flow_rejects_a_non_us_postcode(hass):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "us", CONF_POSTAL_CODE: "K1A 0B1"}
     )
@@ -162,9 +164,7 @@ async def test_us_user_flow_rejects_a_non_us_postcode(hass):
 
 @pytest.mark.parametrize("entered", ["00-001", "00001"])
 async def test_pl_user_flow_accepts_both_postcode_spellings(hass, entered):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "pl", CONF_POSTAL_CODE: entered}
     )
@@ -174,9 +174,7 @@ async def test_pl_user_flow_accepts_both_postcode_spellings(hass, entered):
 
 
 async def test_pl_user_flow_rejects_a_non_polish_postcode(hass):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "pl", CONF_POSTAL_CODE: "1234AB"}
     )
@@ -187,9 +185,7 @@ async def test_same_postcode_hub_rejected(hass):
     """A second hub for the same postcode+country aborts (unique_id is now
     f"{country}:{postal_code}")."""
     MockConfigEntry(domain=DOMAIN, unique_id="NL:1234AB").add_to_hass(hass)
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_POSTAL_CODE: "1234AB"}
     )
@@ -200,9 +196,7 @@ async def test_same_postcode_hub_rejected(hass):
 async def test_second_hub_different_postcode_allowed(hass):
     """A hub for a different postcode is allowed (home + work)."""
     MockConfigEntry(domain=DOMAIN, unique_id="NL:1234AB").add_to_hass(hass)
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_POSTAL_CODE: "5678CD"}
     )
@@ -214,9 +208,7 @@ async def test_same_postcode_different_country_hub_allowed(hass):
     """The same postcode string in a different country is a different hub —
     French and German postcodes can both read "39100"."""
     MockConfigEntry(domain=DOMAIN, unique_id="DE:39100").add_to_hass(hass)
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "fr", CONF_POSTAL_CODE: "39100"}
     )
@@ -256,9 +248,7 @@ async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
     hass, country
 ):
     example = COUNTRIES[country]["postcode_example"]
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: country.lower(), CONF_POSTAL_CODE: example},
@@ -290,9 +280,7 @@ async def test_group_leaf_country_user_flow_accepts_its_own_postcode_example(
     ],
 )
 async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: country.lower(), CONF_POSTAL_CODE: "!!!"},
@@ -307,9 +295,7 @@ async def test_group_leaf_country_user_flow_rejects_bad_postcode(hass, country):
 async def test_ie_eircode_accepts_spaced_form(hass):
     """Eircodes are written with an internal space; the regex normalises it
     away first (space-stripped, upper-cased) — the shakiest entry in COUNTRIES."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: "ie", CONF_POSTAL_CODE: "d02 af30"},
@@ -322,9 +308,7 @@ async def test_ie_eircode_accepts_spaced_form(hass):
 async def test_se_accepts_both_written_forms_of_a_postcode(hass, postcode):
     """Swedish postcodes are written "NNN NN" and the space is normalised away
     before matching, so the hub stores the same value either way."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: "se", CONF_POSTAL_CODE: postcode},
@@ -337,9 +321,7 @@ async def test_se_accepts_both_written_forms_of_a_postcode(hass, postcode):
 async def test_li_accepts_every_postcode_in_the_reserved_block(hass, postcode):
     """Liechtenstein's whole postcode range is 9485-9498, so the rule is a
     block rather than CH's generic four digits — the ends must both pass."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: "li", CONF_POSTAL_CODE: postcode},
@@ -352,9 +334,7 @@ async def test_li_accepts_every_postcode_in_the_reserved_block(hass, postcode):
 async def test_li_rejects_a_swiss_postcode_outside_the_block(hass, postcode):
     """A Swiss postcode is valid for CH and wrong for an LI hub; 8001 is CH's
     own example, and 9484/9499 bracket the block."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: "li", CONF_POSTAL_CODE: postcode},
@@ -372,9 +352,7 @@ async def test_de_user_flow_registers_and_stores_app_instance_id(hass):
         "custom_components.gls.config_flow.GlsDeSession.async_register",
         new=AsyncMock(return_value="11111111-2222-3333-4444-555555555555"),
     ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": "user"}
-        )
+        result = await _open_tracking_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {CONF_COUNTRY: "de", CONF_POSTAL_CODE: "12345"},
@@ -391,9 +369,7 @@ async def test_de_user_flow_registration_failure_shows_error(hass):
         "custom_components.gls.config_flow.GlsDeSession.async_register",
         new=AsyncMock(side_effect=GlsDeSessionError("boom")),
     ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": "user"}
-        )
+        result = await _open_tracking_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {CONF_COUNTRY: "de", CONF_POSTAL_CODE: "12345"},
@@ -408,14 +384,12 @@ async def test_nl_user_flow_does_not_touch_de_session(hass):
         "custom_components.gls.config_flow.GlsDeSession.async_register",
         new=AsyncMock(side_effect=AssertionError("should not be called for NL")),
     ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": "user"}
-        )
+        result = await _open_tracking_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {CONF_COUNTRY: "nl", CONF_POSTAL_CODE: "1234AB"}
         )
     assert result["type"] == "create_entry"
-    assert result["data"] == {}
+    assert result["data"] == {"source": "tracking"}
 
 
 def _hub(parcels: list[dict], *, country: str | None = None) -> MockConfigEntry:
@@ -494,9 +468,7 @@ async def test_es_and_pt_user_flow_accept_their_own_postcode_example(
 ):
     """For ES/PT the postcode is half the lookup key, not hub validation — so
     it has to be accepted in the country's own written form."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: country, CONF_POSTAL_CODE: postcode},
@@ -508,9 +480,7 @@ async def test_es_and_pt_user_flow_accept_their_own_postcode_example(
 async def test_pt_postcode_accepts_the_unhyphenated_form(hass):
     """Normalisation only strips spaces, so the hyphen is optional the way
     PL's is."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: "pt", CONF_POSTAL_CODE: "1000001"},
@@ -520,9 +490,7 @@ async def test_pt_postcode_accepts_the_unhyphenated_form(hass):
 
 @pytest.mark.parametrize("country", ["es", "pt"])
 async def test_es_and_pt_reject_a_bad_postcode(hass, country):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_COUNTRY: country, CONF_POSTAL_CODE: "!!!"},
@@ -577,17 +545,41 @@ _ACCOUNT_STATE = {
 
 
 async def _open_account_flow(hass):
+    """Open the setup flow on the Danish sign-in form."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": "user"}
     )
-    return await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"use_danish_account": True}
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "account"}
     )
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "dk"}
+    )
+
+
+async def test_account_route_asks_for_the_country_before_signing_in(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "account"}
+    )
+    assert result["type"] == "form"
+    assert result["step_id"] == "account"
+    country_key = next(k for k in result["data_schema"].schema if k == CONF_COUNTRY)
+    assert result["data_schema"].schema[country_key].config["options"] == ["dk"]
+    assert country_key.default() == "dk"
+    assert CONF_POSTAL_CODE not in result["data_schema"].schema
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "dk"}
+    )
+    assert result["type"] == "form"
+    assert result["step_id"] == "dk"
 
 
 async def test_danish_account_route_needs_no_postcode_and_discards_password(hass):
     result = await _open_account_flow(hass)
-    assert result["step_id"] == "dk_account"
+    assert result["step_id"] == "dk"
     with (
         patch(
             "custom_components.gls.config_flow.GlsDkSession.async_login",
@@ -602,8 +594,8 @@ async def test_danish_account_route_needs_no_postcode_and_discards_password(hass
         await hass.async_block_till_done()
     assert result["type"] == "create_entry"
     assert result["title"] == "GLS Denmark account"
-    assert result["data"] == {"source": "dk_account", **_ACCOUNT_STATE}
-    assert result["result"].unique_id == "dk_account:example-user"
+    assert result["data"] == {"source": "account", **_ACCOUNT_STATE}
+    assert result["result"].unique_id == "account:example-user"
     assert result["options"][CONF_COUNTRY] == "DK"
     assert CONF_POSTAL_CODE not in result["options"]
     assert "password" not in result["data"]
@@ -629,8 +621,8 @@ async def test_danish_account_login_errors_are_sanitized(hass, failure, error):
 async def test_danish_account_duplicate_is_rejected(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="dk_account:example-user",
-        data={"source": "dk_account", **_ACCOUNT_STATE},
+        unique_id="account:example-user",
+        data={"source": "account", **_ACCOUNT_STATE},
     )
     entry.add_to_hass(hass)
     result = await _open_account_flow(hass)
@@ -649,8 +641,8 @@ async def test_danish_account_duplicate_is_rejected(hass):
 async def test_danish_account_reauth_updates_same_account_only(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="dk_account:example-user",
-        data={"source": "dk_account", **_ACCOUNT_STATE},
+        unique_id="account:example-user",
+        data={"source": "account", **_ACCOUNT_STATE},
     )
     entry.add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
@@ -683,8 +675,8 @@ async def test_danish_account_reauth_updates_same_account_only(hass):
 async def test_danish_account_reauth_cannot_switch_user(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="dk_account:example-user",
-        data={"source": "dk_account", **_ACCOUNT_STATE},
+        unique_id="account:example-user",
+        data={"source": "account", **_ACCOUNT_STATE},
     )
     entry.add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
@@ -717,15 +709,16 @@ async def test_manual_hub_does_not_offer_account_reauth(hass):
 
 _ACCOUNT_FEED = {"totalCount": 0, "items": []}
 _SESSION_FEED = (
-    "custom_components.gls.countries.dk.session.GlsDkSession.async_get_parcels"
+    "custom_components.gls.account.countries.dk.session.GlsDkSession.async_get_parcels"
 )
 
 
 def _account_entry() -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
-        unique_id="dk_account:example-user",
-        data={"source": "dk_account", **_ACCOUNT_STATE},
+        version=2,
+        unique_id="account:example-user",
+        data={"source": "account", **_ACCOUNT_STATE},
         options={CONF_COUNTRY: "DK"},
     )
 
@@ -798,7 +791,7 @@ async def test_manual_hub_options_refresh_in_place_without_a_reload(hass):
     )
     entry.add_to_hass(hass)
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)

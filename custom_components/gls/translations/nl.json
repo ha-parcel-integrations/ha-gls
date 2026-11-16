@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "GLS instellen",
-        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nStaat jouw land er niet bij? [Vraag een ander land aan]({issue_url}).",
-        "data": {
-          "country": "Land",
-          "postal_code": "Postcode",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt; voor Canada geeft dit uitgebreide trackinginformatie. Voor de VS wordt hij niet gebruikt bij het volgen.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Account",
+          "tracking": "Trackingcodes"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Inloggen bij een GLS-account",
+        "description": "Welk GLS-account wil je toevoegen?\n\nStaat jouw land er niet bij? [Vraag een ander land aan]({issue_url}).",
+        "data": {
+          "country": "Land"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "GLS instellen",
+        "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nStaat jouw land er niet bij? [Vraag een ander land aan]({issue_url}).",
+        "data": {
+          "country": "Land",
+          "postal_code": "Postcode"
+        },
+        "data_description": {
+          "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt; voor Canada geeft dit uitgebreide trackinginformatie. Voor de VS wordt hij niet gebruikt bij het volgen."
         }
       },
       "reauth_confirm": {

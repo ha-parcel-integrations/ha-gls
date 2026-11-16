@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Configurer GLS",
-        "description": "Choisissez le pays de livraison de vos colis et le code postal habituel. Vous ajoutez des colis après la configuration.\n\nVotre pays n'est pas dans la liste ? [Demandez un autre pays]({issue_url}).",
-        "data": {
-          "country": "Pays",
-          "postal_code": "Code postal",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "par ex. {postcode_example}. Utilisé comme adresse de livraison par défaut pour les colis que vous ajoutez.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Compte",
+          "tracking": "Codes de suivi"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Se connecter à un compte GLS",
+        "description": "Quel compte GLS voulez-vous ajouter ?\n\nVotre pays n'est pas dans la liste ? [Demandez un autre pays]({issue_url}).",
+        "data": {
+          "country": "Pays"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Configurer GLS",
+        "description": "Choisissez le pays de livraison de vos colis et le code postal habituel. Vous ajoutez des colis après la configuration.\n\nVotre pays n'est pas dans la liste ? [Demandez un autre pays]({issue_url}).",
+        "data": {
+          "country": "Pays",
+          "postal_code": "Code postal"
+        },
+        "data_description": {
+          "postal_code": "par ex. {postcode_example}. Utilisé comme adresse de livraison par défaut pour les colis que vous ajoutez."
         }
       },
       "reauth_confirm": {

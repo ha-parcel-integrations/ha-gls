@@ -80,8 +80,8 @@ Or set it up by hand:
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **GLS**
-3. Pick your **country** and enter your **delivery postal code** (the one
-   parcels usually go to)
+3. Choose **Tracking codes**, then pick your **country** and enter your
+   **delivery postal code** (the one parcels usually go to)
 4. Click **Submit**
 
 For manual tracking, setup asks for the country and postal code. The postcode
@@ -104,7 +104,7 @@ work). Each hub is its own **GLS (postcode)** device with its own parcels.
 
 ### Danish account: automatic package discovery
 
-In the GLS setup form, enable **Use my Danish GLS account**. Submit the form and
+In the GLS setup menu, choose **Account** and pick Denmark. Submit the form and
 sign in with the email address and password used in the Danish GLS app. No
 postcode or tracking numbers are required for this mode.
 

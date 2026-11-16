@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Подешавање GLS-а",
-        "description": "Изабери земљу у коју се достављају твоји пакети и поштански број на који обично иду. Пакете додајеш након подешавања.\n\nТвоја земља није на листи? [Затражи другу земљу]({issue_url}).",
-        "data": {
-          "country": "Земља",
-          "postal_code": "Поштански број",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "нпр. {postcode_example}. Користи се као подразумевана адреса доставе за пакете које додаш; у Канади омогућава детаљније праћење. Праћење у САД га не користи.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Налог",
+          "tracking": "Кодови за праћење"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Пријава на GLS налог",
+        "description": "Који GLS налог желиш да додаш?\n\nТвоја земља није на листи? [Затражи другу земљу]({issue_url}).",
+        "data": {
+          "country": "Земља"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Подешавање GLS-а",
+        "description": "Изабери земљу у коју се достављају твоји пакети и поштански број на који обично иду. Пакете додајеш након подешавања.\n\nТвоја земља није на листи? [Затражи другу земљу]({issue_url}).",
+        "data": {
+          "country": "Земља",
+          "postal_code": "Поштански број"
+        },
+        "data_description": {
+          "postal_code": "нпр. {postcode_example}. Користи се као подразумевана адреса доставе за пакете које додаш; у Канади омогућава детаљније праћење. Праћење у САД га не користи."
         }
       },
       "reauth_confirm": {

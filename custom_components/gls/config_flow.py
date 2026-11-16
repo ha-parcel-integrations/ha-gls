@@ -20,7 +20,9 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import voluptuous as vol
 
+from .account.countries.dk.session import GlsDkApiError, GlsDkAuthError, GlsDkSession
 from .const import (
+    ACCOUNT_COUNTRIES,
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
     CONF_DELIVERED_FILTER_AMOUNT,
@@ -33,7 +35,6 @@ from .const import (
     CONF_PARCELS,
     CONF_POSTAL_CODE,
     CONF_SOURCE,
-    CONF_USE_DANISH_ACCOUNT,
     COUNTRIES,
     DEFAULT_COUNTRY,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
@@ -41,10 +42,10 @@ from .const import (
     DEFAULT_INCLUDE_HISTORY,
     DOMAIN,
     REQUEST_COUNTRY_URL,
-    SOURCE_DK_ACCOUNT,
+    SOURCE_ACCOUNT,
+    SOURCE_TRACKING,
 )
-from .countries.de.session import GlsDeSession, GlsDeSessionError
-from .countries.dk.session import GlsDkApiError, GlsDkAuthError, GlsDkSession
+from .tracking.countries.de.session import GlsDeSession, GlsDeSessionError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ _COUNTRY_SELECTOR = selector.SelectSelector(
         # Selector option values double as hassfest translation keys, which
         # must be lowercase — COUNTRIES/CONF_COUNTRY's actual stored value
         # stays upper-case (DPD-style ``"NL"``/``"DE"``) everywhere else, so
-        # this list is a display-only lowercase mirror. async_step_user
+        # this list is a display-only lowercase mirror. async_step_tracking
         # upper-cases the submitted value right back before using it.
         options=[code.lower() for code in COUNTRIES],
         translation_key=CONF_COUNTRY,
@@ -68,6 +69,20 @@ _COUNTRY_SELECTOR = selector.SelectSelector(
         # be wrong for every other language the selector is translated into.
         sort=True,
     )
+)
+
+_ACCOUNT_SCHEMA = vol.Schema(
+    {
+        vol.Required(
+            CONF_COUNTRY, default=ACCOUNT_COUNTRIES[0].lower()
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[code.lower() for code in ACCOUNT_COUNTRIES],
+                translation_key=CONF_COUNTRY,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
+    }
 )
 
 
@@ -86,7 +101,6 @@ def _hub_schema(country: str) -> vol.Schema:
         {
             vol.Required(CONF_COUNTRY, default=country.lower()): _COUNTRY_SELECTOR,
             vol.Optional(CONF_POSTAL_CODE): str,
-            vol.Optional(CONF_USE_DANISH_ACCOUNT, default=False): bool,
         }
     )
 
@@ -126,17 +140,25 @@ def _current_parcels(entry: ConfigEntry) -> list[dict[str, str]]:
 class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle the UI-driven configuration flow for the GLS integration."""
 
-    VERSION = 1
+    VERSION = 2
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> GlsOptionsFlowHandler:
         """Return the options flow handler for the entry's source."""
-        if config_entry.data.get(CONF_SOURCE) == SOURCE_DK_ACCOUNT:
+        if config_entry.data.get(CONF_SOURCE) == SOURCE_ACCOUNT:
             return GlsAccountOptionsFlowHandler()
         return GlsOptionsFlowHandler()
 
     async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Choose between a GLS account and tracking numbers."""
+        return self.async_show_menu(
+            step_id="user", menu_options=[SOURCE_ACCOUNT, SOURCE_TRACKING]
+        )
+
+    async def async_step_tracking(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Create a GLS hub — one per delivery postal code.
@@ -149,8 +171,6 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
         country = DEFAULT_COUNTRY
 
         if user_input is not None:
-            if user_input.get(CONF_USE_DANISH_ACCOUNT):
-                return await self.async_step_dk_account()
             country = user_input[CONF_COUNTRY].upper()
             postal_code = normalize_postcode(user_input.get(CONF_POSTAL_CODE, ""))
             if not valid_postcode(postal_code, country):
@@ -169,7 +189,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                 # preference, options get rewritten on every parcel
                 # add/remove, and entry.data is what async_migrate_entry
                 # already knows how to move.
-                entry_data: dict[str, Any] = {}
+                entry_data: dict[str, Any] = {CONF_SOURCE: SOURCE_TRACKING}
                 if country == "DE":
                     de_session = GlsDeSession(async_get_clientsession(self.hass))
                     try:
@@ -197,7 +217,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
 
         return self.async_show_form(
-            step_id="user",
+            step_id=SOURCE_TRACKING,
             data_schema=_hub_schema(country),
             errors=errors,
             description_placeholders={
@@ -206,7 +226,19 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_dk_account(
+    async def async_step_account(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick the country of the GLS account, then sign in to it."""
+        if user_input is not None:
+            return await self.async_step_dk()
+        return self.async_show_form(
+            step_id=SOURCE_ACCOUNT,
+            data_schema=_ACCOUNT_SCHEMA,
+            description_placeholders={"issue_url": REQUEST_COUNTRY_URL},
+        )
+
+    async def async_step_dk(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Authenticate an existing Danish GLS account without retaining its password."""
@@ -214,7 +246,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Reauthenticate only an existing account entry."""
-        if entry_data.get(CONF_SOURCE) != SOURCE_DK_ACCOUNT:
+        if entry_data.get(CONF_SOURCE) != SOURCE_ACCOUNT:
             return self.async_abort(reason="reauth_not_supported")
         return await self.async_step_reauth_confirm()
 
@@ -255,12 +287,12 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                             CONF_DK_REFRESH_TOKEN: state["refresh_token"],
                         },
                     )
-                await self.async_set_unique_id(f"{SOURCE_DK_ACCOUNT}:{uid}")
+                await self.async_set_unique_id(f"{SOURCE_ACCOUNT}:{uid}")
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title="GLS Denmark account",
                     data={
-                        CONF_SOURCE: SOURCE_DK_ACCOUNT,
+                        CONF_SOURCE: SOURCE_ACCOUNT,
                         CONF_DK_UID: uid,
                         CONF_DK_EMAIL: state["email"],
                         CONF_DK_REFRESH_TOKEN: state["refresh_token"],
@@ -273,7 +305,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                     },
                 )
         return self.async_show_form(
-            step_id="reauth_confirm" if reauth else "dk_account",
+            step_id="reauth_confirm" if reauth else "dk",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_EMAIL, default=email): selector.TextSelector(

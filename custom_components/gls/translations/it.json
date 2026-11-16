@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Configura GLS",
-        "description": "Scegli il paese di consegna dei tuoi pacchi e il CAP abituale. I pacchi si aggiungono dopo la configurazione.\n\nIl tuo paese non è nell'elenco? [Richiedi un altro paese]({issue_url}).",
-        "data": {
-          "country": "Paese",
-          "postal_code": "CAP",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "es. {postcode_example}. Usato come indirizzo di consegna predefinito per i pacchi che aggiungi.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Account",
+          "tracking": "Codici di tracciamento"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Accedi a un account GLS",
+        "description": "Quale account GLS vuoi aggiungere?\n\nIl tuo paese non è nell'elenco? [Richiedi un altro paese]({issue_url}).",
+        "data": {
+          "country": "Paese"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Configura GLS",
+        "description": "Scegli il paese di consegna dei tuoi pacchi e il CAP abituale. I pacchi si aggiungono dopo la configurazione.\n\nIl tuo paese non è nell'elenco? [Richiedi un altro paese]({issue_url}).",
+        "data": {
+          "country": "Paese",
+          "postal_code": "CAP"
+        },
+        "data_description": {
+          "postal_code": "es. {postcode_example}. Usato come indirizzo di consegna predefinito per i pacchi che aggiungi."
         }
       },
       "reauth_confirm": {

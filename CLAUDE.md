@@ -10,7 +10,7 @@ Three places hold the knowledge, and they do not overlap:
 
 | What | Where |
 |---|---|
-| How this integration is built, and why it is built that way | [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it before touching `api.py`'s dispatch, a `countries/` package, or the DE session |
+| How this integration is built, and why it is built that way | [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it before touching `tracking/api.py`'s dispatch, a `tracking/countries/` package, or the DE session |
 | Endpoint mechanics, status vocabularies | `carrier-research/gls/api/` (private repo). **Never** duplicated into this repo |
 | Suite-wide conventions | [`.github/CONVENTIONS.md`](https://github.com/ha-parcel-integrations/.github/blob/main/CONVENTIONS.md) |
 
@@ -45,10 +45,19 @@ endpoint needs a parcel number). `unique_id` is country plus postcode;
 were the point. The shared `gls.*` services unload only when no other hub is
 still loaded.
 
+**Code is split by source.** `account/` holds the Danish account (session,
+coordinator, `account/countries/<code>/`), `tracking/` the tracking-number code
+(`api.py`, `coordinator.py`, `parcels.py`, `countries/`); what both share
+(`coordinator.py`'s `GlsBaseCoordinator`, `parcels.py`, `const.py`, entities)
+stays top-level. Setup opens on an account/tracking menu *before* it asks for a
+country. Entries are version 2: `async_migrate_entry` renames the first
+release's `dk_account` source and unique ID, so don't drop it while such
+entries can exist.
+
 **Danish account mode is source-scoped, not country-scoped.**
-`entry.data["source"] == "dk_account"` selects its account coordinator and
+`entry.data["source"] == "account"` selects its account coordinator and
 session; manual DK remains on its current group transport. Account unique IDs
-are `dk_account:<identity>`; passwords are never persisted. Refreshed credentials
+are `account:<identity>`; passwords are never persisted. Refreshed credentials
 are saved in entry data; the entry has no update listener, so those writes never
 poll. Reauth must verify the same identity. **Only Firebase refusing the
 credentials means reauth** (`GlsDkAuthError` → `ConfigEntryAuthFailed`): a
@@ -88,16 +97,16 @@ dropdown (Phase 1) is gone; see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 `parcel_no` (`CONF_PARCEL_NO`) — an internal options key, not the service field,
 never part of the alias. Don't conflate them.
 
-**Dispatch lives in `api.py`, not the coordinator** — `GlsApiClient.async_get_parcel`
+**Dispatch lives in `tracking/api.py`, not the coordinator** — `GlsApiClient.async_get_parcel`
 picks NL / CA / US / PL / DE / ES+PT / group; the coordinator polls a flat pair list and never learns
 the country. DPD dispatches in its coordinator instead; **don't "align" the
-two.** Concern-level files (`coordinator.py`, `sensor.py`, `diagnostics.py`, …)
-stay free of per-country branching — they dispatch into `countries/<code>/`.
+two.** Concern-level files (`tracking/coordinator.py`, `sensor.py`, `diagnostics.py`, …)
+stay free of per-country branching — they dispatch into `tracking/countries/<code>/`.
 
 **A country gets its own submodule on structural divergence from NL** (auth
 model, transport, payload shape, status vocabulary), **not on country count.**
 A new group-leaf country is one more `COUNTRIES` row pointing at
-`countries/group/` — never a copy of that package.
+`tracking/countries/group/` — never a copy of that package.
 
 **`culture` vs `group_locale` are different keys on purpose** — `culture` is a
 national URL template's locale; `group_locale` is the pan-EU leaf's
@@ -126,7 +135,7 @@ derivation-first, like DE's: only the delivered literal is mapped exactly,
 anything else is derived from the record's own dates and logged once.
 
 **Poland is national on purpose, though the group leaf resolves it.** A real
-Polish AWB does answer `rstt029`, so a `COUNTRIES` row on `countries/group/`
+Polish AWB does answer `rstt029`, so a `COUNTRIES` row on `tracking/countries/group/`
 would "work" — don't make that change. The national route gives history and an
 offset-bearing `delivered_at` without a postcode, and it separates a GLS Point
 drop-off from the recipient collecting the parcel; the group leaf calls the
@@ -136,7 +145,7 @@ the group's machine vocabulary (**match exactly** — `DELIVEREDPS` contains
 only. An unrecognised shipment code falls back to the newest event's status.
 
 **Spain and Portugal are one signed transport, and the postcode is half the
-lookup key.** `countries/es/signing.py` stays **pure** — a signature bug and a
+lookup key.** `tracking/countries/es/signing.py` stays **pure** — a signature bug and a
 rejected key look alike on the wire, so the signature must be provable without
 a network. The signed path **excludes** the URL's `/api/v5` prefix. **Re-stamp
 and re-sign inside the request function, never above a retry loop**: a reused
@@ -196,7 +205,7 @@ them prints "Out for delivery" before "At delivery agency".
 endpoint for one job only.** Both are strictly additive — a failure degrades
 to exactly the pre-existing behaviour — and **neither is a transport**; don't
 "finish" them into one.
-- **`countries/fr/` translates, it does not track.** It resolves the
+- **`tracking/countries/fr/` translates, it does not track.** It resolves the
   8-character alphanumeric reference both group leaves reject (`404
   E206`/`E800`) into the numeric AWB they index. A plain numeric code **never**
   reaches it, which is what keeps today's French parcels on today's path with
@@ -206,7 +215,7 @@ to exactly the pre-existing behaviour — and **neither is a transport**; don't
   the two response-driven `rstt029` fallbacks (`E609`, `E800`). A full French
   transport was considered and **rejected**: its status vocabulary is one value
   wide (`LIV` only). Don't re-propose it on payload richness alone.
-- **`countries/it/` supplies history only, and only fills a gap.** Italy keeps
+- **`tracking/countries/it/` supplies history only, and only fills a gap.** Italy keeps
   `progressBar.statusInfo` — a complete machine vocabulary — because
   `rstt030`'s history carries **no event code at all**, only a localized
   sentence. A migration would trade reliable status for history; **don't make

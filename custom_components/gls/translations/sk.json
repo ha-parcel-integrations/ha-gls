@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Nastaviť GLS",
-        "description": "Vyberte krajinu, do ktorej sú vaše zásielky doručované, a poštové smerovacie číslo, kam zvyčajne smerujú. Zásielky pridáte po nastavení.\n\nVaša krajina nie je v zozname? [Požiadať o ďalšiu krajinu]({issue_url}).",
-        "data": {
-          "country": "Krajina",
-          "postal_code": "PSČ",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "napr. {postcode_example}. Použije sa ako predvolená doručovacia adresa pre zásielky, ktoré pridáte.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Účet",
+          "tracking": "Sledovacie kódy"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Prihlásenie do účtu GLS",
+        "description": "Ktorý účet GLS chcete pridať?\n\nVaša krajina nie je v zozname? [Požiadať o ďalšiu krajinu]({issue_url}).",
+        "data": {
+          "country": "Krajina"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Nastaviť GLS",
+        "description": "Vyberte krajinu, do ktorej sú vaše zásielky doručované, a poštové smerovacie číslo, kam zvyčajne smerujú. Zásielky pridáte po nastavení.\n\nVaša krajina nie je v zozname? [Požiadať o ďalšiu krajinu]({issue_url}).",
+        "data": {
+          "country": "Krajina",
+          "postal_code": "PSČ"
+        },
+        "data_description": {
+          "postal_code": "napr. {postcode_example}. Použije sa ako predvolená doručovacia adresa pre zásielky, ktoré pridáte."
         }
       },
       "reauth_confirm": {

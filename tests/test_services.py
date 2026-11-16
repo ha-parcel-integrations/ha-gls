@@ -28,7 +28,7 @@ async def _setup(hass) -> MockConfigEntry:
     )
     entry.add_to_hass(hass)
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_no_eta_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -39,7 +39,7 @@ async def _setup(hass) -> MockConfigEntry:
 async def test_track_parcel_adds_to_options(hass):
     entry = await _setup(hass)
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_no_eta_sample()),
     ):
         await hass.services.async_call(
@@ -65,7 +65,7 @@ async def test_track_parcel_rejects_invalid_postcode(hass):
 async def test_track_parcel_duplicate_is_noop(hass):
     entry = await _setup(hass)
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_no_eta_sample()),
     ):
         for _ in range(2):
@@ -88,7 +88,7 @@ async def _setup_hub(hass, postcode: str) -> MockConfigEntry:
     )
     entry.add_to_hass(hass)
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_no_eta_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -101,7 +101,7 @@ async def test_track_parcel_routes_to_hub_by_postcode(hass):
     work = await _setup_hub(hass, "2000BB")
 
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_no_eta_sample()),
     ):
         await hass.services.async_call(
@@ -138,7 +138,7 @@ async def test_untrack_parcel_removes_from_options(hass):
     )
     entry.add_to_hass(hass)
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_no_eta_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -164,8 +164,8 @@ async def test_track_parcel_requires_a_code(hass):
 async def test_account_only_services_refuse_manual_changes(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="dk_account:example-user",
-        data={"source": "dk_account", "uid": "example-user"},
+        unique_id="account:example-user",
+        data={"source": "account", "uid": "example-user"},
         options={CONF_COUNTRY: "DK"},
     )
     entry.add_to_hass(hass)
@@ -181,8 +181,8 @@ async def test_account_only_services_refuse_manual_changes(hass):
 async def test_manual_service_ignores_account_entry(hass):
     account = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="dk_account:example-user",
-        data={"source": "dk_account"},
+        unique_id="account:example-user",
+        data={"source": "account"},
         options={CONF_COUNTRY: "DK", CONF_PARCELS: [{CONF_PARCEL_NO: "EXAMPLE111111"}]},
     )
     manual = MockConfigEntry(

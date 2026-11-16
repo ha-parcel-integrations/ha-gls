@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Konfiguracja GLS",
-        "description": "Wybierz kraj, do którego dostarczane są Twoje przesyłki, oraz kod pocztowy, pod który zwykle trafiają. Przesyłki dodasz po konfiguracji.\n\nNie ma Twojego kraju na liście? [Poproś o kolejny kraj]({issue_url}).",
-        "data": {
-          "country": "Kraj",
-          "postal_code": "Kod pocztowy",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "np. {postcode_example}. Używany jako domyślny adres dostawy dla dodawanych przesyłek; w Kanadzie włącza rozszerzone szczegóły śledzenia. Śledzenie w USA go nie używa.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Konto",
+          "tracking": "Numery przesyłek"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Zaloguj się do konta GLS",
+        "description": "Które konto GLS chcesz dodać?\n\nNie ma Twojego kraju na liście? [Poproś o kolejny kraj]({issue_url}).",
+        "data": {
+          "country": "Kraj"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Konfiguracja GLS",
+        "description": "Wybierz kraj, do którego dostarczane są Twoje przesyłki, oraz kod pocztowy, pod który zwykle trafiają. Przesyłki dodasz po konfiguracji.\n\nNie ma Twojego kraju na liście? [Poproś o kolejny kraj]({issue_url}).",
+        "data": {
+          "country": "Kraj",
+          "postal_code": "Kod pocztowy"
+        },
+        "data_description": {
+          "postal_code": "np. {postcode_example}. Używany jako domyślny adres dostawy dla dodawanych przesyłek; w Kanadzie włącza rozszerzone szczegóły śledzenia. Śledzenie w USA go nie używa."
         }
       },
       "reauth_confirm": {

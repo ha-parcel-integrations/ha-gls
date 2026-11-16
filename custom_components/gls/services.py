@@ -29,7 +29,7 @@ from .const import (
     CONF_TRACKING_CODE,
     DEFAULT_COUNTRY,
     DOMAIN,
-    SOURCE_DK_ACCOUNT,
+    SOURCE_ACCOUNT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,9 +60,7 @@ def _resolve_entry(hass: HomeAssistant, postal_code: str | None):
     if not all_entries:
         raise ServiceValidationError("GLS is not set up")
     entries = [
-        entry
-        for entry in all_entries
-        if entry.data.get(CONF_SOURCE) != SOURCE_DK_ACCOUNT
+        entry for entry in all_entries if entry.data.get(CONF_SOURCE) != SOURCE_ACCOUNT
     ]
     if not entries:
         raise ServiceValidationError(
@@ -112,9 +110,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         if not entries:
             raise ServiceValidationError("GLS is not set up")
         manual_entries = [
-            entry
-            for entry in entries
-            if entry.data.get(CONF_SOURCE) != SOURCE_DK_ACCOUNT
+            entry for entry in entries if entry.data.get(CONF_SOURCE) != SOURCE_ACCOUNT
         ]
         if not manual_entries:
             raise ServiceValidationError(

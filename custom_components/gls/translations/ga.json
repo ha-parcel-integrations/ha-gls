@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Socraigh GLS",
-        "description": "Roghnaigh an tír a seachadtar do phacáistí chuici agus an cód poist a mbíonn sé i gceist leis go hiondúil. Cuireann tú pacáistí leis tar éis an socrú.\n\nNach bhfuil do thír ar an liosta? [Iarr tír eile]({issue_url}).",
-        "data": {
-          "country": "Tír",
-          "postal_code": "Cód poist",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "m.sh. {postcode_example}. Úsáidtear é mar sheoladh seachadta réamhshocraithe do na pacáistí a chuireann tú leis; i gcás Cheanada cuireann sé sonraí rianaithe breise ar fáil. Ní úsáideann rianú na Stát Aontaithe é.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Cuntas",
+          "tracking": "Cóid rianaithe"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Sínigh isteach i gcuntas GLS",
+        "description": "Cén cuntas GLS is mian leat a chur leis?\n\nNach bhfuil do thír ar an liosta? [Iarr tír eile]({issue_url}).",
+        "data": {
+          "country": "Tír"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Socraigh GLS",
+        "description": "Roghnaigh an tír a seachadtar do phacáistí chuici agus an cód poist a mbíonn sé i gceist leis go hiondúil. Cuireann tú pacáistí leis tar éis an socrú.\n\nNach bhfuil do thír ar an liosta? [Iarr tír eile]({issue_url}).",
+        "data": {
+          "country": "Tír",
+          "postal_code": "Cód poist"
+        },
+        "data_description": {
+          "postal_code": "m.sh. {postcode_example}. Úsáidtear é mar sheoladh seachadta réamhshocraithe do na pacáistí a chuireann tú leis; i gcás Cheanada cuireann sé sonraí rianaithe breise ar fáil. Ní úsáideann rianú na Stát Aontaithe é."
         }
       },
       "reauth_confirm": {

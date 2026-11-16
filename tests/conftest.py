@@ -5,8 +5,18 @@ import sys
 import pytest
 from pytest_homeassistant_custom_component.plugins import hass  # noqa: F401
 
-from custom_components.gls.countries import ca, de, es, fr, group, it, nl, pl, us
-from custom_components.gls.countries.de import session
+from custom_components.gls.tracking.countries import (
+    ca,
+    de,
+    es,
+    fr,
+    group,
+    it,
+    nl,
+    pl,
+    us,
+)
+from custom_components.gls.tracking.countries.de import session
 
 
 @pytest.fixture(autouse=True)

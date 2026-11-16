@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "GLS beállítása",
-        "description": "Válaszd ki az országot, ahová a csomagjaidat szállítják, és a postai irányítószámot, ahová általában mennek. A csomagokat a beállítás után adhatod hozzá.\n\nNem szerepel az országod a listán? [Kérj másik országot]({issue_url}).",
-        "data": {
-          "country": "Ország",
-          "postal_code": "Postai irányítószám",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "pl. {postcode_example}. A hozzáadott csomagok alapértelmezett szállítási címeként szolgál; Kanadában részletesebb nyomkövetést tesz lehetővé. Az Egyesült Államok nyomkövetése nem használja.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Fiók",
+          "tracking": "Követési kódok"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Bejelentkezés GLS-fiókba",
+        "description": "Melyik GLS-fiókot szeretné hozzáadni?\n\nNem szerepel az országod a listán? [Kérj másik országot]({issue_url}).",
+        "data": {
+          "country": "Ország"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "GLS beállítása",
+        "description": "Válaszd ki az országot, ahová a csomagjaidat szállítják, és a postai irányítószámot, ahová általában mennek. A csomagokat a beállítás után adhatod hozzá.\n\nNem szerepel az országod a listán? [Kérj másik országot]({issue_url}).",
+        "data": {
+          "country": "Ország",
+          "postal_code": "Postai irányítószám"
+        },
+        "data_description": {
+          "postal_code": "pl. {postcode_example}. A hozzáadott csomagok alapértelmezett szállítási címeként szolgál; Kanadában részletesebb nyomkövetést tesz lehetővé. Az Egyesült Államok nyomkövetése nem használja."
         }
       },
       "reauth_confirm": {

@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "GLS:n määritys",
-        "description": "Valitse maa, johon pakettisi toimitetaan, ja postinumero, johon ne yleensä menevät. Paketit lisätään määrityksen jälkeen.\n\nEikö maatasi ole luettelossa? [Pyydä uutta maata]({issue_url}).",
-        "data": {
-          "country": "Maa",
-          "postal_code": "Postinumero",
-          "use_danish_account": "Use my Danish GLS account"
-        },
-        "data_description": {
-          "postal_code": "esim. {postcode_example}. Käytetään lisäämiesi pakettien oletustoimitusosoitteena; Kanadassa se ottaa käyttöön laajemmat seurantatiedot. Yhdysvaltain seuranta ei käytä sitä.",
-          "use_danish_account": "Discover packages automatically from the GLS app. Country and postal code are only used for manual tracking."
+        "menu_options": {
+          "account": "Tili",
+          "tracking": "Seurantakoodit"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Kirjaudu GLS-tilille",
+        "description": "Minkä GLS-tilin haluat lisätä?\n\nEikö maatasi ole luettelossa? [Pyydä uutta maata]({issue_url}).",
+        "data": {
+          "country": "Maa"
+        }
+      },
+      "dk": {
         "title": "Sign in to GLS Denmark",
         "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
         "data": {
           "email": "Email",
           "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "GLS:n määritys",
+        "description": "Valitse maa, johon pakettisi toimitetaan, ja postinumero, johon ne yleensä menevät. Paketit lisätään määrityksen jälkeen.\n\nEikö maatasi ole luettelossa? [Pyydä uutta maata]({issue_url}).",
+        "data": {
+          "country": "Maa",
+          "postal_code": "Postinumero"
+        },
+        "data_description": {
+          "postal_code": "esim. {postcode_example}. Käytetään lisäämiesi pakettien oletustoimitusosoitteena; Kanadassa se ottaa käyttöön laajemmat seurantatiedot. Yhdysvaltain seuranta ei käytä sitä."
         }
       },
       "reauth_confirm": {

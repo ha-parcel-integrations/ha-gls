@@ -4,23 +4,35 @@
     "step": {
       "user": {
         "title": "Opsæt GLS",
-        "description": "Vælg det land, dine pakker leveres til, og det postnummer de normalt sendes til. Du tilføjer pakker efter opsætningen.\n\nEr dit land ikke på listen? [Anmod om et andet land]({issue_url}).",
-        "data": {
-          "country": "Land",
-          "postal_code": "Postnummer",
-          "use_danish_account": "Brug min danske GLS-konto"
-        },
-        "data_description": {
-          "postal_code": "f.eks. {postcode_example}. Bruges som standardleveringsadresse for de pakker, du tilføjer; i Canada aktiverer det udvidede sporingsdetaljer. Sporing i USA bruger det ikke.",
-          "use_danish_account": "Hent pakker automatisk fra GLS-appen. Land og postnummer bruges kun til manuel sporing."
+        "menu_options": {
+          "account": "Konto",
+          "tracking": "Sporingskoder"
         }
       },
-      "dk_account": {
+      "account": {
+        "title": "Log ind på en GLS-konto",
+        "description": "Hvilken GLS-konto vil du tilføje?\n\nEr dit land ikke på listen? [Anmod om et andet land]({issue_url}).",
+        "data": {
+          "country": "Land"
+        }
+      },
+      "dk": {
         "title": "Log ind på GLS Danmark",
         "description": "Brug samme mailadresse og adgangskode som i GLS-appen. Nye pakker bliver tilføjet automatisk. Adgangskoden gemmes ikke.",
         "data": {
           "email": "Mailadresse",
           "password": "Adgangskode"
+        }
+      },
+      "tracking": {
+        "title": "Opsæt GLS",
+        "description": "Vælg det land, dine pakker leveres til, og det postnummer de normalt sendes til. Du tilføjer pakker efter opsætningen.\n\nEr dit land ikke på listen? [Anmod om et andet land]({issue_url}).",
+        "data": {
+          "country": "Land",
+          "postal_code": "Postnummer"
+        },
+        "data_description": {
+          "postal_code": "f.eks. {postcode_example}. Bruges som standardleveringsadresse for de pakker, du tilføjer; i Canada aktiverer det udvidede sporingsdetaljer. Sporing i USA bruger det ikke."
         }
       },
       "reauth_confirm": {
