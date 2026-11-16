@@ -161,21 +161,22 @@ async def test_track_parcel_requires_a_code(hass):
         await hass.services.async_call(DOMAIN, "track_parcel", {}, blocking=True)
 
 
-async def test_account_only_services_refuse_manual_changes(hass):
+async def test_account_entry_registers_no_services(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id="account:example-user",
-        data={"source": "account", "uid": "example-user"},
+        data={"source": "account", "uid": "example-user", "refresh_token": "r"},
         options={CONF_COUNTRY: "DK"},
     )
     entry.add_to_hass(hass)
-    async_setup_services(hass)
-    for service in ["track_parcel", "untrack_parcel"]:
-        with pytest.raises(ServiceValidationError, match="managed automatically"):
-            await hass.services.async_call(
-                DOMAIN, service, {"tracking_code": "EXAMPLE111111"}, blocking=True
-            )
-    assert CONF_PARCELS not in entry.options
+    with patch(
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_get_parcels",
+        new=AsyncMock(return_value={"totalCount": 0, "items": []}),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert not hass.services.has_service(DOMAIN, "track_parcel")
+    assert not hass.services.has_service(DOMAIN, "untrack_parcel")
 
 
 async def test_manual_service_ignores_account_entry(hass):

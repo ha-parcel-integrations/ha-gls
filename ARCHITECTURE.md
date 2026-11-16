@@ -119,17 +119,15 @@ so existing country/postcode unique IDs and their migrations are unchanged. The
 country option remains `DK`, while source selection keeps the account client
 separate from the manual Danish group transport.
 
-Config entry version 2 introduced that naming. `async_migrate_entry` upgrades a
-version 1 entry and renames the first release's `dk_account` source and
-`dk_account:` unique ID; every other entry only gets the new version number.
-
 The async account session keeps its access token in memory and persists only
 refresh credentials and the account identity through data-only entry updates.
-An account entry registers no update listener, so those writes cannot poll
-again, and its options flow is an `OptionsFlowWithReload` (the account-based
-half of the suite's two options models): saving changed options reloads the
-entry. Reauth validates the same account identity before replacing credentials
-and reloading that entry. First refresh still completes before platforms load.
+Those writes leave the options unchanged, so the update listener the account
+entry shares with manual hubs does not poll on them, while a saved settings
+change refreshes in place (see *Options apply live, never by reload*). Reauth
+asks only for the password, reuses the stored email, and aborts through
+`_abort_if_unique_id_mismatch` unless the same account identity signs in; it
+then replaces the credentials and reloads that entry. First refresh still
+completes before platforms load.
 
 Only Firebase refusing the credentials asks the user to sign in again. A
 backend 401 or 403 does not prove that: the session refreshes the token once
@@ -144,11 +142,12 @@ when no active parcels remain, rather than stopping as manual tracking does.
 A parcel disappearing from a successful complete list is removed without
 inventing a delivery event.
 
-Account options exclude manual parcel editing. Shared manual services reject an
-account target and continue working for coexisting manual hubs. Credentials and
-pickup codes are stripped before raw attributes or events can expose them;
-diagnostics additionally redacts exact account and recipient field names. The
-account's device is named `GLS Denmark`, never after the email address, because
+Account options exclude manual parcel editing. The shared manual services are
+registered by tracking hubs only and never target an account entry, so they keep
+working for manual hubs that coexist with one. Credentials and pickup codes are
+stripped before raw attributes or events can expose them; diagnostics
+additionally redacts exact account and recipient field names. The account's
+device is named `GLS Denmark`, never after the email address, because
 entity IDs derive from the device name.
 
 The account feed carries no delivery estimate, so `planned_from`/`planned_to`
@@ -165,8 +164,8 @@ validate against. The postcode is stored as the hub default in
 `_abort_if_unique_id_configured`, so home and work can both be added. Device
 name is `"GLS (<postcode>)"`. `single_config_entry` is deliberately **absent** —
 multiple hubs were the point. The shared `gls.*` services are unloaded only when
-no other hub is still loaded. Legacy entries whose `unique_id` was `DOMAIN` are
-migrated to the postcode in `async_setup_entry`.
+no other tracking hub is still loaded. Legacy entries whose `unique_id` was
+`DOMAIN` are migrated to the postcode in `async_setup_entry`.
 
 `unique_id` stays the bare postcode even though hubs now carry a country. That
 is fine while a postcode is unique per hub regardless of country; revisit only
@@ -186,8 +185,8 @@ service field, and never part of the alias. Do not conflate the two.
 
 ### Options apply live, never by reload
 
-This is how manual hubs work; a Danish account entry reloads instead (see
-*Optional Danish account mode*).
+Manual hubs and Danish account entries both work this way; an account entry's
+options flow opens straight on `settings`.
 
 The options flow is a two-page menu (`parcels` / `settings`), not one sectioned
 form. `parcels` edits the whole tracked-code list as a single multi-value text
@@ -198,14 +197,14 @@ An **update listener** (`_async_options_updated`) calls
 `async_request_refresh()`, which recomputes the interval too. The
 coordinator re-reads options on every update, so a refresh — not a reload —
 makes an add or remove reflect immediately, and avoids the config-entry-listener
-deprecation. **Do not switch this to `async_schedule_reload`.** This is the
-account-less half of the suite's two options models.
+deprecation. **Do not switch this to `async_schedule_reload`.**
 
 It first **compares `entry.options` with the snapshot on `runtime_data`** and
 returns early when they match. HA notifies the listener on every
-`async_update_entry`, including a DE write that only rotated `appInstanceId`,
-and `async_request_refresh` bypasses HA's "Enable polling for updates" system
-option — that option only gates the coordinator's *scheduled* refresh.
+`async_update_entry`, including a DE write that only rotated `appInstanceId`
+and a rotated account token, and `async_request_refresh` bypasses HA's "Enable
+polling for updates" system option — that option only gates the coordinator's
+*scheduled* refresh.
 
 A manual hub has no auth, no reauth, and no sent-shipments coordinator. The
 HA-managed session is used directly, with no per-entry cookie jar because there

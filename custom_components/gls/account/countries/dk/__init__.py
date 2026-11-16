@@ -146,10 +146,6 @@ def normalize_parcel_dk(raw: dict, *, include_history: bool = False) -> dict:
     status = next(
         (state for _, _, state in mapped if state is not None), ParcelStatus.UNKNOWN
     )
-    # An unrecognised later scan could reopen a delivered shipment. An old
-    # delivery scan alone cannot prove its current completion in that case.
-    if mapped and mapped[0][2] is None and status == ParcelStatus.DELIVERED:
-        status = ParcelStatus.UNKNOWN
     if raw.get("isDelivered") is True:
         status = ParcelStatus.DELIVERED
     delivered = status == ParcelStatus.DELIVERED

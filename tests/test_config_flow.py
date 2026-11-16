@@ -651,21 +651,23 @@ async def test_danish_account_reauth_updates_same_account_only(hass):
         data=entry.data,
     )
     assert result["step_id"] == "reauth_confirm"
+    assert list(result["data_schema"].schema) == ["password"]
+    assert result["description_placeholders"]["email"] == "parcel@example.test"
     renewed = {**_ACCOUNT_STATE, "refresh_token": "rotated-refresh"}
     with (
         patch(
             "custom_components.gls.config_flow.GlsDkSession.async_login",
             new=AsyncMock(return_value=renewed),
-        ),
+        ) as login,
         patch.object(
             hass.config_entries, "async_reload", return_value=True
         ) as reload_entry,
     ):
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"],
-            {"email": "parcel@example.test", "password": "new-private-password"},
+            result["flow_id"], {"password": "new-private-password"}
         )
         await hass.async_block_till_done()
+    login.assert_awaited_once_with("parcel@example.test", "new-private-password")
     assert result["reason"] == "reauth_successful"
     assert entry.data["refresh_token"] == "rotated-refresh"
     assert "password" not in entry.data
@@ -689,11 +691,40 @@ async def test_danish_account_reauth_cannot_switch_user(hass):
         new=AsyncMock(return_value={**_ACCOUNT_STATE, "uid": "other-user"}),
     ):
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"],
-            {"email": "other@example.test", "password": "private-password"},
+            result["flow_id"], {"password": "private-password"}
         )
     assert result["reason"] == "reauth_account_mismatch"
     assert entry.data["uid"] == "example-user"
+
+
+@pytest.mark.parametrize(
+    ("failure", "error"), [("auth", "invalid_auth"), ("transport", "cannot_connect")]
+)
+async def test_danish_account_reauth_errors_keep_the_password_form(
+    hass, failure, error
+):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="account:example-user",
+        data={"source": "account", **_ACCOUNT_STATE},
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "reauth", "entry_id": entry.entry_id},
+        data=entry.data,
+    )
+    exc = GlsDkAuthError("private") if failure == "auth" else GlsDkApiError("private")
+    with patch(
+        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        new=AsyncMock(side_effect=exc),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"password": "private-password"}
+        )
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": error}
+    assert entry.data["refresh_token"] == "private-refresh"
 
 
 async def test_manual_hub_does_not_offer_account_reauth(hass):
@@ -716,16 +747,13 @@ _SESSION_FEED = (
 def _account_entry() -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
-        version=2,
         unique_id="account:example-user",
         data={"source": "account", **_ACCOUNT_STATE},
         options={CONF_COUNTRY: "DK"},
     )
 
 
-async def test_danish_account_reauth_of_a_running_entry_leaves_no_update_listener_report(
-    hass, caplog
-):
+async def test_danish_account_reauth_of_a_running_entry_reloads_it(hass):
     entry = _account_entry()
     entry.add_to_hass(hass)
     feed = AsyncMock(return_value=_ACCOUNT_FEED)
@@ -739,31 +767,32 @@ async def test_danish_account_reauth_of_a_running_entry_leaves_no_update_listene
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
-        assert entry.update_listeners == []
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={"source": "reauth", "entry_id": entry.entry_id},
             data=entry.data,
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"],
-            {"email": "parcel@example.test", "password": "new-private-password"},
+            result["flow_id"], {"password": "new-private-password"}
         )
         await hass.async_block_till_done()
     assert result["reason"] == "reauth_successful"
     assert entry.state is ConfigEntryState.LOADED
     assert entry.data["refresh_token"] == "rotated-refresh"
     assert feed.await_count == 2
-    assert "update listener" not in caplog.text
 
 
-async def test_account_options_offer_settings_without_manual_parcels_and_reload(hass):
+async def test_account_options_offer_settings_and_refresh_in_place(hass):
     entry = _account_entry()
     entry.add_to_hass(hass)
     feed = AsyncMock(return_value=_ACCOUNT_FEED)
-    with patch(_SESSION_FEED, new=feed):
+    with (
+        patch(_SESSION_FEED, new=feed),
+        patch.object(hass.config_entries, "async_schedule_reload") as reload_entry,
+    ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
+        assert len(entry.update_listeners) == 1
         result = await hass.config_entries.options.async_init(entry.entry_id)
         assert result["type"] == "form"
         assert result["step_id"] == "settings"
@@ -780,6 +809,7 @@ async def test_account_options_offer_settings_without_manual_parcels_and_reload(
     assert CONF_PARCELS not in result["data"]
     assert entry.options[CONF_INCLUDE_HISTORY] is True
     assert entry.state is ConfigEntryState.LOADED
+    reload_entry.assert_not_called()
     assert feed.await_count == 2
 
 

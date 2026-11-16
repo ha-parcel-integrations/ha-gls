@@ -25,11 +25,10 @@ from .const import (
     CONF_PARCEL_NO,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
-    CONF_SOURCE,
     CONF_TRACKING_CODE,
     DEFAULT_COUNTRY,
     DOMAIN,
-    SOURCE_ACCOUNT,
+    is_account_entry,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,16 +55,13 @@ def _resolve_entry(hass: HomeAssistant, postal_code: str | None):
     With one hub, that hub. With several, the ``postal_code`` argument selects
     it; if omitted and ambiguous, raise so the caller knows to specify one.
     """
-    all_entries = hass.config_entries.async_entries(DOMAIN)
-    if not all_entries:
-        raise ServiceValidationError("GLS is not set up")
     entries = [
-        entry for entry in all_entries if entry.data.get(CONF_SOURCE) != SOURCE_ACCOUNT
+        entry
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if not is_account_entry(entry)
     ]
     if not entries:
-        raise ServiceValidationError(
-            "GLS account parcels are managed automatically in the GLS app"
-        )
+        raise ServiceValidationError("GLS is not set up")
     if postal_code:
         target = normalize_postcode(postal_code)
         for entry in entries:
@@ -106,18 +102,15 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def _untrack(call: ServiceCall) -> None:
         parcel_no = normalize_parcel_no(call.data[CONF_TRACKING_CODE])
-        entries = hass.config_entries.async_entries(DOMAIN)
+        entries = [
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if not is_account_entry(entry)
+        ]
         if not entries:
             raise ServiceValidationError("GLS is not set up")
-        manual_entries = [
-            entry for entry in entries if entry.data.get(CONF_SOURCE) != SOURCE_ACCOUNT
-        ]
-        if not manual_entries:
-            raise ServiceValidationError(
-                "GLS account parcels are managed automatically in the GLS app"
-            )
         # Remove the parcel from whichever hub(s) track it.
-        for entry in manual_entries:
+        for entry in entries:
             current = entry.options.get(CONF_PARCELS, [])
             kept = [p for p in current if p[CONF_PARCEL_NO] != parcel_no]
             if len(kept) != len(current):

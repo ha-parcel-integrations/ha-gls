@@ -37,9 +37,8 @@
       },
       "reauth_confirm": {
         "title": "Log ind på GLS igen",
-        "description": "Log ind med samme GLS-konto for at genoptage automatisk sporing.",
+        "description": "Indtast adgangskoden til {email} igen for at genoptage automatisk sporing.",
         "data": {
-          "email": "Mailadresse",
           "password": "Adgangskode"
         }
       }

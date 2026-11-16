@@ -2,6 +2,7 @@
 
 from enum import StrEnum
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 
 DOMAIN = "gls"
@@ -13,6 +14,11 @@ ACCOUNT_COUNTRIES = ("DK",)
 CONF_DK_UID = "uid"
 CONF_DK_EMAIL = "email"
 CONF_DK_REFRESH_TOKEN = "refresh_token"
+
+
+def is_account_entry(entry: ConfigEntry) -> bool:
+    """Whether ``entry`` is an account entry; a missing source means tracking."""
+    return entry.data.get(CONF_SOURCE, SOURCE_TRACKING) == SOURCE_ACCOUNT
 
 
 class ParcelStatus(StrEnum):
@@ -86,7 +92,7 @@ CAPABILITIES_BY_VARIANT = {
     ),
     "Germany": frozenset({"pickup_point", "url", "history"}),
     # Automatic Danish account source; manual DK tracking stays on "Other".
-    "Denmark (account)": frozenset({"weight", "pickup_point", "url", "history"}),
+    "Denmark (account)": frozenset({"url", "history"}),
     "Other": frozenset({"weight", "url", "history"}),
     "Canada": frozenset({"weight", "dimensions", "url", "history"}),
     "United States": frozenset({"url", "history"}),
@@ -106,6 +112,7 @@ PENDING_CAPABILITIES_BY_VARIANT = {
     # has only ever been seen agreeing with the actual delivery date, and
     # whether it is an estimate *before* delivery is still unknown.
     "Spain and Portugal": frozenset({"delivery_window"}),
+    "Denmark (account)": frozenset({"weight", "pickup_point"}),
 }
 
 

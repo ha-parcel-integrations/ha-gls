@@ -7,7 +7,6 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gls.account.coordinator import GlsAccountCoordinator
 from custom_components.gls.account.countries.dk.session import (
     GlsDkApiError,
     GlsDkAuthError,
@@ -25,7 +24,6 @@ from custom_components.gls.const import (
     DOMAIN,
 )
 from custom_components.gls.tracking.api import GlsApiError
-from custom_components.gls.tracking.coordinator import GlsCoordinator
 from tests.account.test_coordinator import raw_parcel
 
 from .payloads import minimal_sample
@@ -404,11 +402,10 @@ async def test_data_only_entry_write_does_not_count_as_an_options_edit(hass):
             assert refresh.call_count == 1
 
 
-async def test_account_setup_registers_no_update_listener_and_ignores_rotation(hass):
+async def test_account_setup_registers_update_listener_that_ignores_rotation(hass):
 
     entry = MockConfigEntry(
         domain=DOMAIN,
-        version=2,
         unique_id="account:example-firebase-user",
         title="GLS Denmark account",
         data={
@@ -435,7 +432,7 @@ async def test_account_setup_registers_no_update_listener_and_ignores_rotation(h
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
-        assert entry.update_listeners == []
+        assert len(entry.update_listeners) == 1
         coordinator = entry.runtime_data.coordinator
         token_updated = constructor.call_args.kwargs["token_updated"]
         with patch.object(
@@ -467,7 +464,6 @@ async def test_account_setup_registers_no_update_listener_and_ignores_rotation(h
 async def test_account_device_and_entity_ids_never_carry_the_email(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        version=2,
         unique_id="account:example-firebase-user",
         title="GLS Denmark account",
         data={
@@ -502,11 +498,11 @@ async def test_account_device_and_entity_ids_never_carry_the_email(hass):
 async def test_account_first_refresh_auth_failure_does_not_forward_platforms(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        version=2,
         unique_id="account:example-user",
         data={
             "source": "account",
             "uid": "example-user",
+            "email": "parcel@example.test",
             "refresh_token": "revoked",
         },
         options={CONF_COUNTRY: "DK"},
@@ -535,7 +531,6 @@ async def test_manual_and_account_can_unload_independently(hass):
     )
     account = MockConfigEntry(
         domain=DOMAIN,
-        version=2,
         unique_id="account:example-firebase-user",
         data={
             "source": "account",
@@ -581,7 +576,6 @@ def _session_that_the_backend_rejects(status):
 def _account_entry():
     return MockConfigEntry(
         domain=DOMAIN,
-        version=2,
         unique_id="account:example-firebase-user",
         data={
             "source": "account",
@@ -623,65 +617,3 @@ async def test_loaded_account_keeps_its_data_when_the_backend_rejects_the_token(
     assert len(coordinator.data) == 1
     assert entry.state is ConfigEntryState.LOADED
     assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
-
-
-async def test_account_entry_from_the_first_release_is_renamed_to_the_account_source(
-    hass,
-):
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id="dk_account:example-firebase-user",
-        data={
-            "source": "dk_account",
-            "uid": "example-firebase-user",
-            "email": "parcel@example.test",
-            "refresh_token": "original-refresh",
-        },
-        options={CONF_COUNTRY: "DK"},
-    )
-    assert entry.version == 1
-    entry.add_to_hass(hass)
-    with patch(
-        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_get_parcels",
-        new=AsyncMock(return_value={"totalCount": 1, "items": [raw_parcel()]}),
-    ):
-        assert await hass.config_entries.async_setup(entry.entry_id)
-        await hass.async_block_till_done()
-    assert entry.state is ConfigEntryState.LOADED
-    assert entry.version == 2
-    assert entry.unique_id == "account:example-firebase-user"
-    assert entry.data == {
-        "source": "account",
-        "uid": "example-firebase-user",
-        "email": "parcel@example.test",
-        "refresh_token": "original-refresh",
-    }
-    assert entry.options == {CONF_COUNTRY: "DK"}
-    assert isinstance(entry.runtime_data.coordinator, GlsAccountCoordinator)
-
-
-async def test_tracking_entry_from_the_upstream_release_keeps_its_data(hass):
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id="NL:1234AB",
-        data={},
-        options={CONF_COUNTRY: "NL", CONF_POSTAL_CODE: "1234AB", CONF_PARCELS: []},
-    )
-    assert entry.version == 1
-    entry.add_to_hass(hass)
-    with patch(
-        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
-        new=AsyncMock(return_value=minimal_sample()),
-    ):
-        assert await hass.config_entries.async_setup(entry.entry_id)
-        await hass.async_block_till_done()
-    assert entry.state is ConfigEntryState.LOADED
-    assert entry.version == 2
-    assert entry.unique_id == "NL:1234AB"
-    assert entry.data == {}
-    assert entry.options == {
-        CONF_COUNTRY: "NL",
-        CONF_POSTAL_CODE: "1234AB",
-        CONF_PARCELS: [],
-    }
-    assert isinstance(entry.runtime_data.coordinator, GlsCoordinator)

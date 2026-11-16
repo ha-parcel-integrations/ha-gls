@@ -42,45 +42,43 @@ of these areas:
 Setup asks only the postcode + country and does **not** hit the API (the
 endpoint needs a parcel number). `unique_id` is country plus postcode;
 `single_config_entry` is deliberately **absent** — multiple hubs (home, work)
-were the point. The shared `gls.*` services unload only when no other hub is
-still loaded.
+were the point. The shared `gls.*` services are registered by tracking hubs
+only and unload only when no other tracking hub is still loaded.
 
 **Code is split by source.** `account/` holds the Danish account (session,
 coordinator, `account/countries/<code>/`), `tracking/` the tracking-number code
 (`api.py`, `coordinator.py`, `parcels.py`, `countries/`); what both share
 (`coordinator.py`'s `GlsBaseCoordinator`, `parcels.py`, `const.py`, entities)
 stays top-level. Setup opens on an account/tracking menu *before* it asks for a
-country. Entries are version 2: `async_migrate_entry` renames the first
-release's `dk_account` source and unique ID, so don't drop it while such
-entries can exist.
+country. Entries stay version 1: no released entry predates the account
+source, so there is nothing to migrate.
 
 **Danish account mode is source-scoped, not country-scoped.**
 `entry.data["source"] == "account"` selects its account coordinator and
 session; manual DK remains on its current group transport. Account unique IDs
 are `account:<identity>`; passwords are never persisted. Refreshed credentials
-are saved in entry data; the entry has no update listener, so those writes never
-poll. Reauth must verify the same identity. **Only Firebase refusing the
-credentials means reauth** (`GlsDkAuthError` → `ConfigEntryAuthFailed`): a
-backend 401/403 gets one forced token refresh, and a rejection that survives it
-is an ordinary retryable `UpdateFailed`. Account polling never stops just because
+are saved in entry data; they leave the options unchanged, so the shared update
+listener never polls on them. Reauth asks only for the password of the stored
+email and must verify the same identity (`_abort_if_unique_id_mismatch`). Use
+`is_account_entry()` for the source check, never an open-coded comparison.
+**Only Firebase refusing the credentials means reauth** (`GlsDkAuthError` →
+`ConfigEntryAuthFailed`): a backend 401/403 gets one forced token refresh, and
+a rejection that survives it is an ordinary retryable `UpdateFailed`. Account polling never stops just because
 the incoming list is empty or all parcels are delivered. Complete-list and
 ownership validation happen before publishing; a failed fetch is not zero
 parcels. Manual add/remove services never mutate account-source options. The
 device is named `GLS Denmark`, never after the email: entity IDs derive from it.
 Pickup codes and tokens must never reach raw attributes or bus events.
 
-**Manual hubs apply options live, never by reload.** An update listener
-(`_async_options_updated`) calls `async_request_refresh()`; the coordinator
-re-reads options each update. **Do not** switch a manual hub to
-`async_schedule_reload` — this is the account-less half of the suite's two
-options models. **A Danish account entry is the other half:** its options flow
-(`GlsAccountOptionsFlowHandler`) is an `OptionsFlowWithReload` and the entry
-registers **no** update listener — HA raises if the two are combined and logs a
-deprecation when reauth reloads an entry that has one. The manual listener
-**compares `entry.options` against the snapshot on `runtime_data` first**: HA
-notifies it on *every* `async_update_entry`, so a DE write that only rotated
-`appInstanceId` otherwise polls as well — and `async_request_refresh` goes
-straight past HA's "Enable polling for updates" system option, which only
+**Options apply live, never by reload**, for manual hubs and Danish account
+entries alike. An update listener (`_async_options_updated`) calls
+`async_request_refresh()`; the coordinator re-reads options each update.
+**Do not** switch either source to `async_schedule_reload` or an
+`OptionsFlowWithReload`. The listener **compares `entry.options` against the
+snapshot on `runtime_data` first**: HA notifies it on *every*
+`async_update_entry`, so a DE write that only rotated `appInstanceId`, or a
+rotated account token, otherwise polls as well — and `async_request_refresh`
+goes straight past HA's "Enable polling for updates" system option, which only
 gates the *scheduled* refresh (see ha-usps#14). A newly learned
 `parcelNumber` does change the options, so `_persist_de_state` still gets its
 refresh.

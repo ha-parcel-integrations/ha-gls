@@ -117,8 +117,9 @@ without another setup step. During the overnight quiet window, discovery
 follows the normal catch-up schedule.
 
 Home Assistant stores refresh credentials, not your password. If GLS revokes
-them, Home Assistant asks you to sign in again. Pickup codes are deliberately
-excluded from sensor attributes and events; use GLS to collect a parcel.
+them, Home Assistant asks for your GLS password again. Pickup codes are
+deliberately excluded from sensor attributes and events; use GLS to collect a
+parcel.
 The account's active feed is followed: moving a parcel to the archive in GLS
 can remove it from this integration. Its disappearance is not reported as a
 new delivery. The Danish account feed has no delivery estimate, so **Next

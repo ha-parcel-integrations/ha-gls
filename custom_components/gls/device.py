@@ -15,10 +15,9 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import (
     CONF_COUNTRY,
     CONF_POSTAL_CODE,
-    CONF_SOURCE,
     DEFAULT_COUNTRY,
     DOMAIN,
-    SOURCE_ACCOUNT,
+    is_account_entry,
 )
 
 ATTRIBUTION = "Data provided by GLS"
@@ -38,7 +37,7 @@ def build_device_info(entry: ConfigEntry) -> DeviceInfo:
     """
     postal_code = entry.options.get(CONF_POSTAL_CODE, "")
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
-    if entry.data.get(CONF_SOURCE) == SOURCE_ACCOUNT:
+    if is_account_entry(entry):
         name = "GLS Denmark"
     else:
         name = f"GLS ({country} {postal_code})" if postal_code else "GLS"

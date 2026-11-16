@@ -37,9 +37,8 @@
       },
       "reauth_confirm": {
         "title": "Sign in to GLS again",
-        "description": "Sign in with the same GLS account to resume automatic tracking.",
+        "description": "Enter the password for {email} again to resume automatic tracking.",
         "data": {
-          "email": "Email",
           "password": "Password"
         }
       }

@@ -12,7 +12,6 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
-    OptionsFlowWithReload,
 )
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import callback
@@ -44,6 +43,7 @@ from .const import (
     REQUEST_COUNTRY_URL,
     SOURCE_ACCOUNT,
     SOURCE_TRACKING,
+    is_account_entry,
 )
 from .tracking.countries.de.session import GlsDeSession, GlsDeSessionError
 
@@ -86,6 +86,11 @@ _ACCOUNT_SCHEMA = vol.Schema(
 )
 
 
+_PASSWORD_SELECTOR = selector.TextSelector(
+    selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+)
+
+
 def _hub_schema(country: str) -> vol.Schema:
     """Build the setup schema, defaulting the country to the last-picked one.
 
@@ -100,7 +105,7 @@ def _hub_schema(country: str) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_COUNTRY, default=country.lower()): _COUNTRY_SELECTOR,
-            vol.Optional(CONF_POSTAL_CODE): str,
+            vol.Required(CONF_POSTAL_CODE): str,
         }
     )
 
@@ -140,13 +145,13 @@ def _current_parcels(entry: ConfigEntry) -> list[dict[str, str]]:
 class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle the UI-driven configuration flow for the GLS integration."""
 
-    VERSION = 2
+    VERSION = 1
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> GlsOptionsFlowHandler:
         """Return the options flow handler for the entry's source."""
-        if config_entry.data.get(CONF_SOURCE) == SOURCE_ACCOUNT:
+        if is_account_entry(config_entry):
             return GlsAccountOptionsFlowHandler()
         return GlsOptionsFlowHandler()
 
@@ -172,7 +177,7 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             country = user_input[CONF_COUNTRY].upper()
-            postal_code = normalize_postcode(user_input.get(CONF_POSTAL_CODE, ""))
+            postal_code = normalize_postcode(user_input[CONF_POSTAL_CODE])
             if not valid_postcode(postal_code, country):
                 errors[CONF_POSTAL_CODE] = "invalid_postcode"
             else:
@@ -242,58 +247,25 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Authenticate an existing Danish GLS account without retaining its password."""
-        return await self._async_account_form(user_input, reauth=False)
-
-    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
-        """Reauthenticate only an existing account entry."""
-        if entry_data.get(CONF_SOURCE) != SOURCE_ACCOUNT:
-            return self.async_abort(reason="reauth_not_supported")
-        return await self.async_step_reauth_confirm()
-
-    async def async_step_reauth_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Require credentials for the same account before resuming its session."""
-        return await self._async_account_form(user_input, reauth=True)
-
-    async def _async_account_form(
-        self, user_input: dict[str, Any] | None, *, reauth: bool
-    ) -> ConfigFlowResult:
-        """Share credential validation between initial setup and HA reauth."""
         errors: dict[str, str] = {}
-        email = ""
-        entry = self._get_reauth_entry() if reauth else None
-        if entry is not None:
-            email = entry.data.get(CONF_DK_EMAIL, "")
         if user_input is not None:
-            email = user_input[CONF_EMAIL].strip()
             session = GlsDkSession(async_get_clientsession(self.hass))
             try:
-                state = await session.async_login(email, user_input[CONF_PASSWORD])
+                state = await session.async_login(
+                    user_input[CONF_EMAIL].strip(), user_input[CONF_PASSWORD]
+                )
             except GlsDkAuthError:
                 errors["base"] = "invalid_auth"
             except (GlsDkApiError, aiohttp.ClientError):
                 errors["base"] = "cannot_connect"
             else:
-                uid = state["uid"]
-                if entry is not None:
-                    if uid != entry.data.get(CONF_DK_UID):
-                        return self.async_abort(reason="reauth_account_mismatch")
-                    return self.async_update_reload_and_abort(
-                        entry,
-                        data_updates={
-                            CONF_DK_UID: uid,
-                            CONF_DK_EMAIL: state["email"],
-                            CONF_DK_REFRESH_TOKEN: state["refresh_token"],
-                        },
-                    )
-                await self.async_set_unique_id(f"{SOURCE_ACCOUNT}:{uid}")
+                await self.async_set_unique_id(f"{SOURCE_ACCOUNT}:{state['uid']}")
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title="GLS Denmark account",
                     data={
                         CONF_SOURCE: SOURCE_ACCOUNT,
-                        CONF_DK_UID: uid,
+                        CONF_DK_UID: state["uid"],
                         CONF_DK_EMAIL: state["email"],
                         CONF_DK_REFRESH_TOKEN: state["refresh_token"],
                     },
@@ -305,21 +277,56 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
                     },
                 )
         return self.async_show_form(
-            step_id="reauth_confirm" if reauth else "dk",
+            step_id="dk",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_EMAIL, default=email): selector.TextSelector(
+                    vol.Required(CONF_EMAIL): selector.TextSelector(
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.EMAIL
                         )
                     ),
-                    vol.Required(CONF_PASSWORD): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.PASSWORD
-                        )
-                    ),
+                    vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR,
                 }
             ),
+            errors=errors,
+        )
+
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+        """Reauthenticate only an existing account entry."""
+        if not is_account_entry(self._get_reauth_entry()):
+            return self.async_abort(reason="reauth_not_supported")
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the stored account's password; never silently change accounts."""
+        errors: dict[str, str] = {}
+        entry = self._get_reauth_entry()
+        email = entry.data[CONF_DK_EMAIL]
+        if user_input is not None:
+            session = GlsDkSession(async_get_clientsession(self.hass))
+            try:
+                state = await session.async_login(email, user_input[CONF_PASSWORD])
+            except GlsDkAuthError:
+                errors["base"] = "invalid_auth"
+            except (GlsDkApiError, aiohttp.ClientError):
+                errors["base"] = "cannot_connect"
+            else:
+                await self.async_set_unique_id(f"{SOURCE_ACCOUNT}:{state['uid']}")
+                self._abort_if_unique_id_mismatch(reason="reauth_account_mismatch")
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={
+                        CONF_DK_UID: state["uid"],
+                        CONF_DK_EMAIL: state["email"],
+                        CONF_DK_REFRESH_TOKEN: state["refresh_token"],
+                    },
+                )
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR}),
+            description_placeholders={"email": email},
             errors=errors,
         )
 
@@ -442,12 +449,8 @@ class GlsOptionsFlowHandler(OptionsFlow):
         )
 
 
-class GlsAccountOptionsFlowHandler(OptionsFlowWithReload, GlsOptionsFlowHandler):
-    """Settings for a Danish account entry; its parcels come from the account.
-
-    Saving changed options reloads the entry, so an account entry registers no
-    update listener: ``OptionsFlowWithReload`` forbids combining the two.
-    """
+class GlsAccountOptionsFlowHandler(GlsOptionsFlowHandler):
+    """Settings for a Danish account entry; its parcels come from the account."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

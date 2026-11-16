@@ -243,7 +243,7 @@ def test_history_is_bounded_and_optional_strings_are_type_checked():
     assert parcel["receiver"] is None
 
 
-def test_unknown_after_delivery_does_not_reaffirm_old_completion():
+def test_unknown_after_delivery_falls_back_to_the_delivered_scan():
     parcel = normalize_parcel_dk(
         _parcel(
             [
@@ -252,8 +252,8 @@ def test_unknown_after_delivery_does_not_reaffirm_old_completion():
             ]
         )
     )
-    assert parcel["status"] == ParcelStatus.UNKNOWN
-    assert parcel["delivered"] is False
+    assert parcel["status"] == ParcelStatus.DELIVERED
+    assert parcel["delivered"] is True
 
 
 def test_history_preserves_source_order_when_timestamps_tie():

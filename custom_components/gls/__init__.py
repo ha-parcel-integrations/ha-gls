@@ -20,13 +20,11 @@ from .const import (
     CONF_DK_UID,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
-    CONF_SOURCE,
     COUNTRIES,
     DEFAULT_COUNTRY,
     DOMAIN,
     PLATFORMS,
-    SOURCE_ACCOUNT,
-    SOURCE_TRACKING,
+    is_account_entry,
 )
 from .coordinator import GlsBaseCoordinator
 from .services import async_setup_services, async_unload_services
@@ -35,8 +33,6 @@ from .tracking.coordinator import GlsCoordinator
 from .tracking.countries.de.session import GlsDeSession
 
 _LOGGER = logging.getLogger(__name__)
-
-_LEGACY_ACCOUNT_SOURCE = "dk_account"
 
 
 @dataclass
@@ -52,24 +48,6 @@ class GlsData:
 
 
 type GlsConfigEntry = ConfigEntry[GlsData]
-
-
-def is_account_entry(entry: ConfigEntry) -> bool:
-    """Whether ``entry`` is an account entry; a missing source means tracking."""
-    return entry.data.get(CONF_SOURCE, SOURCE_TRACKING) == SOURCE_ACCOUNT
-
-
-async def async_migrate_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
-    """Upgrade a version 1 entry; the Danish account source becomes ``account``."""
-    data = dict(entry.data)
-    unique_id = entry.unique_id
-    if data.get(CONF_SOURCE) == _LEGACY_ACCOUNT_SOURCE:
-        data[CONF_SOURCE] = SOURCE_ACCOUNT
-        unique_id = f"{SOURCE_ACCOUNT}:{data[CONF_DK_UID]}"
-    hass.config_entries.async_update_entry(
-        entry, data=data, unique_id=unique_id, version=2
-    )
-    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
@@ -199,11 +177,11 @@ async def _async_setup_dk_account(hass: HomeAssistant, entry: GlsConfigEntry) ->
     )
     coordinator = GlsAccountCoordinator(hass, session, entry)
     await coordinator.async_config_entry_first_refresh()
-    entry.runtime_data = GlsData(client=session, coordinator=coordinator)
+    entry.runtime_data = GlsData(
+        client=session, coordinator=coordinator, options=dict(entry.options)
+    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    # No update listener: the account options flow is an OptionsFlowWithReload,
-    # which may not be combined with one.
-    async_setup_services(hass)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
 
 
@@ -211,9 +189,10 @@ async def _async_options_updated(hass: HomeAssistant, entry: GlsConfigEntry) -> 
     """Apply changed options by refreshing the coordinator.
 
     Every entry write notifies this listener, not just an options edit, so a
-    write that only persisted a new DE ``appInstanceId`` used to poll as well
-    — through ``async_request_refresh``, which bypasses HA's "Enable polling
-    for updates" system option (that only gates the *scheduled* refresh).
+    write that only persisted session state (a new DE ``appInstanceId``, a
+    rotated account token) used to poll as well — through
+    ``async_request_refresh``, which bypasses HA's "Enable polling for
+    updates" system option (that only gates the *scheduled* refresh).
     A newly learned ``parcelNumber`` does change the options and still
     refreshes, which is the behaviour ``_persist_de_state`` relies on.
     """
@@ -228,12 +207,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool
     """Unload a GLS config entry."""
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
-    # The services are shared across hubs, so only remove them once the last
-    # hub is gone — otherwise unloading one hub would break the others.
+    # The services belong to tracking hubs only: drop them when the last
+    # loaded one goes, so unloading one hub never breaks the others.
     others_loaded = any(
-        other.entry_id != entry.entry_id and other.state is ConfigEntryState.LOADED
+        other.entry_id != entry.entry_id
+        and other.state is ConfigEntryState.LOADED
+        and not is_account_entry(other)
         for other in hass.config_entries.async_entries(DOMAIN)
     )
-    if not others_loaded:
+    if not is_account_entry(entry) and not others_loaded:
         async_unload_services(hass)
     return True
