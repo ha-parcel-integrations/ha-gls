@@ -4,6 +4,28 @@
     "step": {
       "user": {
         "title": "Set up GLS",
+        "menu_options": {
+          "account": "Account",
+          "tracking": "Tracking codes"
+        }
+      },
+      "account": {
+        "title": "Log in to a GLS account",
+        "description": "Which GLS account do you want to add?\n\nIs your country not listed? [Request another country]({issue_url}).",
+        "data": {
+          "country": "Country"
+        }
+      },
+      "dk": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Set up GLS",
         "description": "Pick the country your parcels are delivered to and the postal code they usually go to. You add parcels after setup.\n\nIs your country not listed? [Request another country]({issue_url}).",
         "data": {
           "country": "Country",
@@ -12,16 +34,27 @@
         "data_description": {
           "postal_code": "e.g. {postcode_example}. Used as the default delivery address for parcels you add; for Canada it enables enhanced tracking details. US tracking does not use it."
         }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
       "cannot_connect": "Unable to reach GLS. Check your network.",
       "invalid_parcel_no": "That does not look like a GLS parcel number or tracking ID.",
       "invalid_postcode": "Enter a valid postal code for the selected country, e.g. {postcode_example}.",
-      "de_registration_failed": "Could not register an anonymous GLS Germany session. Check your network and try again."
+      "de_registration_failed": "Could not register an anonymous GLS Germany session. Check your network and try again.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "A GLS hub for this postal code is already set up."
+      "already_configured": "A GLS hub for this postal code or this GLS account is already set up.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

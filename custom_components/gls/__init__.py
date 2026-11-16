@@ -7,23 +7,30 @@ from dataclasses import dataclass, field
 import logging
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import GlsApiClient
+from .account.coordinator import GlsAccountCoordinator
+from .account.countries.dk.session import GlsDkSession
 from .const import (
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
+    CONF_DK_EMAIL,
+    CONF_DK_REFRESH_TOKEN,
+    CONF_DK_UID,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
     COUNTRIES,
     DEFAULT_COUNTRY,
     DOMAIN,
     PLATFORMS,
+    is_account_entry,
 )
-from .coordinator import GlsCoordinator
-from .countries.de.session import GlsDeSession
+from .coordinator import GlsBaseCoordinator
 from .services import async_setup_services, async_unload_services
+from .tracking.api import GlsApiClient
+from .tracking.coordinator import GlsCoordinator
+from .tracking.countries.de.session import GlsDeSession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,8 +39,8 @@ _LOGGER = logging.getLogger(__name__)
 class GlsData:
     """Runtime data attached to a GLS config entry."""
 
-    client: GlsApiClient
-    coordinator: GlsCoordinator
+    client: GlsApiClient | GlsDkSession
+    coordinator: GlsBaseCoordinator
     de_session: GlsDeSession | None = None
     # The options as last applied, so an entry write that only rotated DE
     # session state is not mistaken for an options edit.
@@ -45,6 +52,8 @@ type GlsConfigEntry = ConfigEntry[GlsData]
 
 async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Set up GLS from a config entry."""
+    if is_account_entry(entry):
+        return await _async_setup_dk_account(hass, entry)
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     postal_code = entry.options.get(CONF_POSTAL_CODE)
 
@@ -145,13 +154,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     return True
 
 
+async def _async_setup_dk_account(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
+    """Restore an account session before loading the shared entity platforms."""
+
+    @callback
+    def token_updated(state: dict) -> None:
+        updates = {
+            CONF_DK_UID: state["uid"],
+            CONF_DK_REFRESH_TOKEN: state["refresh_token"],
+        }
+        if state.get("email"):
+            updates[CONF_DK_EMAIL] = state["email"]
+        data = {**entry.data, **updates}
+        if data != entry.data:
+            hass.config_entries.async_update_entry(entry, data=data)
+
+    session = GlsDkSession(
+        async_get_clientsession(hass),
+        uid=entry.data.get(CONF_DK_UID),
+        refresh_token=entry.data.get(CONF_DK_REFRESH_TOKEN),
+        token_updated=token_updated,
+    )
+    coordinator = GlsAccountCoordinator(hass, session, entry)
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = GlsData(
+        client=session, coordinator=coordinator, options=dict(entry.options)
+    )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+    return True
+
+
 async def _async_options_updated(hass: HomeAssistant, entry: GlsConfigEntry) -> None:
     """Apply changed options by refreshing the coordinator.
 
     Every entry write notifies this listener, not just an options edit, so a
-    write that only persisted a new DE ``appInstanceId`` used to poll as well
-    — through ``async_request_refresh``, which bypasses HA's "Enable polling
-    for updates" system option (that only gates the *scheduled* refresh).
+    write that only persisted session state (a new DE ``appInstanceId``, a
+    rotated account token) used to poll as well — through
+    ``async_request_refresh``, which bypasses HA's "Enable polling for
+    updates" system option (that only gates the *scheduled* refresh).
     A newly learned ``parcelNumber`` does change the options and still
     refreshes, which is the behaviour ``_persist_de_state`` relies on.
     """
@@ -166,12 +207,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool
     """Unload a GLS config entry."""
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
-    # The services are shared across hubs, so only remove them once the last
-    # hub is gone — otherwise unloading one hub would break the others.
+    # The services belong to tracking hubs only: drop them when the last
+    # loaded one goes, so unloading one hub never breaks the others.
     others_loaded = any(
-        other.entry_id != entry.entry_id and other.state is ConfigEntryState.LOADED
+        other.entry_id != entry.entry_id
+        and other.state is ConfigEntryState.LOADED
+        and not is_account_entry(other)
         for other in hass.config_entries.async_entries(DOMAIN)
     )
-    if not others_loaded:
+    if not is_account_entry(entry) and not others_loaded:
         async_unload_services(hass)
     return True

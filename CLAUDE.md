@@ -3,13 +3,14 @@
 Home Assistant custom integration for **GLS** parcel tracking (25 countries).
 Distributed via HACS; not part of HA core. Fourth carrier in the suite (with DHL,
 DPD, PostNL) — same canonical shape, events and entity set; **mirror DHL when in
-doubt**. Account-less (user-entered tracking codes). No DTO layer.
+doubt**. Manual tracking (user-entered codes), plus optional Danish account
+discovery. No DTO layer.
 
 Three places hold the knowledge, and they do not overlap:
 
 | What | Where |
 |---|---|
-| How this integration is built, and why it is built that way | [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it before touching `api.py`'s dispatch, a `countries/` package, or the DE session |
+| How this integration is built, and why it is built that way | [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it before touching `tracking/api.py`'s dispatch, a `tracking/countries/` package, or the DE session |
 | Endpoint mechanics, status vocabularies | `carrier-research/gls/api/` (private repo). **Never** duplicated into this repo |
 | Suite-wide conventions | [`.github/CONVENTIONS.md`](https://github.com/ha-parcel-integrations/.github/blob/main/CONVENTIONS.md) |
 
@@ -37,21 +38,47 @@ of these areas:
 
 ## Load-bearing GLS decisions — do not refactor away
 
-**Account-less, postcode-keyed hubs** — GLS has no consumer account or feed.
+**Manual postcode-keyed hubs** — the manual source has no account feed.
 Setup asks only the postcode + country and does **not** hit the API (the
-endpoint needs a parcel number). `unique_id` is the bare postcode;
+endpoint needs a parcel number). `unique_id` is country plus postcode;
 `single_config_entry` is deliberately **absent** — multiple hubs (home, work)
-were the point. The shared `gls.*` services unload only when no other hub is
-still loaded.
+were the point. The shared `gls.*` services are registered by tracking hubs
+only and unload only when no other tracking hub is still loaded.
 
-**Options apply live, never by reload.** An update listener
-(`_async_options_updated`) calls `async_request_refresh()`; the coordinator
-re-reads options each update. **Do not** switch to `async_schedule_reload` —
-this is the account-less half of the suite's two options models. The listener
-**compares `entry.options` against the snapshot on `runtime_data` first**: HA
-notifies it on *every* `async_update_entry`, so a DE write that only rotated
-`appInstanceId` otherwise polls as well — and `async_request_refresh` goes
-straight past HA's "Enable polling for updates" system option, which only
+**Code is split by source.** `account/` holds the Danish account (session,
+coordinator, `account/countries/<code>/`), `tracking/` the tracking-number code
+(`api.py`, `coordinator.py`, `parcels.py`, `countries/`); what both share
+(`coordinator.py`'s `GlsBaseCoordinator`, `parcels.py`, `const.py`, entities)
+stays top-level. Setup opens on an account/tracking menu *before* it asks for a
+country. Entries stay version 1: no released entry predates the account
+source, so there is nothing to migrate.
+
+**Danish account mode is source-scoped, not country-scoped.**
+`entry.data["source"] == "account"` selects its account coordinator and
+session; manual DK remains on its current group transport. Account unique IDs
+are `account:<identity>`; passwords are never persisted. Refreshed credentials
+are saved in entry data; they leave the options unchanged, so the shared update
+listener never polls on them. Reauth asks only for the password of the stored
+email and must verify the same identity (`_abort_if_unique_id_mismatch`). Use
+`is_account_entry()` for the source check, never an open-coded comparison.
+**Only Firebase refusing the credentials means reauth** (`GlsDkAuthError` →
+`ConfigEntryAuthFailed`): a backend 401/403 gets one forced token refresh, and
+a rejection that survives it is an ordinary retryable `UpdateFailed`. Account polling never stops just because
+the incoming list is empty or all parcels are delivered. Complete-list and
+ownership validation happen before publishing; a failed fetch is not zero
+parcels. Manual add/remove services never mutate account-source options. The
+device is named `GLS Denmark`, never after the email: entity IDs derive from it.
+Pickup codes and tokens must never reach raw attributes or bus events.
+
+**Options apply live, never by reload**, for manual hubs and Danish account
+entries alike. An update listener (`_async_options_updated`) calls
+`async_request_refresh()`; the coordinator re-reads options each update.
+**Do not** switch either source to `async_schedule_reload` or an
+`OptionsFlowWithReload`. The listener **compares `entry.options` against the
+snapshot on `runtime_data` first**: HA notifies it on *every*
+`async_update_entry`, so a DE write that only rotated `appInstanceId`, or a
+rotated account token, otherwise polls as well — and `async_request_refresh`
+goes straight past HA's "Enable polling for updates" system option, which only
 gates the *scheduled* refresh (see ha-usps#14). A newly learned
 `parcelNumber` does change the options, so `_persist_de_state` still gets its
 refresh.
@@ -68,16 +95,16 @@ dropdown (Phase 1) is gone; see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 `parcel_no` (`CONF_PARCEL_NO`) — an internal options key, not the service field,
 never part of the alias. Don't conflate them.
 
-**Dispatch lives in `api.py`, not the coordinator** — `GlsApiClient.async_get_parcel`
+**Dispatch lives in `tracking/api.py`, not the coordinator** — `GlsApiClient.async_get_parcel`
 picks NL / CA / US / PL / DE / ES+PT / group; the coordinator polls a flat pair list and never learns
 the country. DPD dispatches in its coordinator instead; **don't "align" the
-two.** Concern-level files (`coordinator.py`, `sensor.py`, `diagnostics.py`, …)
-stay free of per-country branching — they dispatch into `countries/<code>/`.
+two.** Concern-level files (`tracking/coordinator.py`, `sensor.py`, `diagnostics.py`, …)
+stay free of per-country branching — they dispatch into `tracking/countries/<code>/`.
 
 **A country gets its own submodule on structural divergence from NL** (auth
 model, transport, payload shape, status vocabulary), **not on country count.**
 A new group-leaf country is one more `COUNTRIES` row pointing at
-`countries/group/` — never a copy of that package.
+`tracking/countries/group/` — never a copy of that package.
 
 **`culture` vs `group_locale` are different keys on purpose** — `culture` is a
 national URL template's locale; `group_locale` is the pan-EU leaf's
@@ -106,7 +133,7 @@ derivation-first, like DE's: only the delivered literal is mapped exactly,
 anything else is derived from the record's own dates and logged once.
 
 **Poland is national on purpose, though the group leaf resolves it.** A real
-Polish AWB does answer `rstt029`, so a `COUNTRIES` row on `countries/group/`
+Polish AWB does answer `rstt029`, so a `COUNTRIES` row on `tracking/countries/group/`
 would "work" — don't make that change. The national route gives history and an
 offset-bearing `delivered_at` without a postcode, and it separates a GLS Point
 drop-off from the recipient collecting the parcel; the group leaf calls the
@@ -116,7 +143,7 @@ the group's machine vocabulary (**match exactly** — `DELIVEREDPS` contains
 only. An unrecognised shipment code falls back to the newest event's status.
 
 **Spain and Portugal are one signed transport, and the postcode is half the
-lookup key.** `countries/es/signing.py` stays **pure** — a signature bug and a
+lookup key.** `tracking/countries/es/signing.py` stays **pure** — a signature bug and a
 rejected key look alike on the wire, so the signature must be provable without
 a network. The signed path **excludes** the URL's `/api/v5` prefix. **Re-stamp
 and re-sign inside the request function, never above a retry loop**: a reused
@@ -176,7 +203,7 @@ them prints "Out for delivery" before "At delivery agency".
 endpoint for one job only.** Both are strictly additive — a failure degrades
 to exactly the pre-existing behaviour — and **neither is a transport**; don't
 "finish" them into one.
-- **`countries/fr/` translates, it does not track.** It resolves the
+- **`tracking/countries/fr/` translates, it does not track.** It resolves the
   8-character alphanumeric reference both group leaves reject (`404
   E206`/`E800`) into the numeric AWB they index. A plain numeric code **never**
   reaches it, which is what keeps today's French parcels on today's path with
@@ -186,7 +213,7 @@ to exactly the pre-existing behaviour — and **neither is a transport**; don't
   the two response-driven `rstt029` fallbacks (`E609`, `E800`). A full French
   transport was considered and **rejected**: its status vocabulary is one value
   wide (`LIV` only). Don't re-propose it on payload richness alone.
-- **`countries/it/` supplies history only, and only fills a gap.** Italy keeps
+- **`tracking/countries/it/` supplies history only, and only fills a gap.** Italy keeps
   `progressBar.statusInfo` — a complete machine vocabulary — because
   `rstt030`'s history carries **no event code at all**, only a localized
   sentence. A migration would trade reliable status for history; **don't make

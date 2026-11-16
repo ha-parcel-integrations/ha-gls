@@ -28,6 +28,7 @@ from .const import (
     CONF_TRACKING_CODE,
     DEFAULT_COUNTRY,
     DOMAIN,
+    is_account_entry,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,7 +55,11 @@ def _resolve_entry(hass: HomeAssistant, postal_code: str | None):
     With one hub, that hub. With several, the ``postal_code`` argument selects
     it; if omitted and ambiguous, raise so the caller knows to specify one.
     """
-    entries = hass.config_entries.async_entries(DOMAIN)
+    entries = [
+        entry
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if not is_account_entry(entry)
+    ]
     if not entries:
         raise ServiceValidationError("GLS is not set up")
     if postal_code:
@@ -97,7 +102,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def _untrack(call: ServiceCall) -> None:
         parcel_no = normalize_parcel_no(call.data[CONF_TRACKING_CODE])
-        entries = hass.config_entries.async_entries(DOMAIN)
+        entries = [
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if not is_account_entry(entry)
+        ]
         if not entries:
             raise ServiceValidationError("GLS is not set up")
         # Remove the parcel from whichever hub(s) track it.

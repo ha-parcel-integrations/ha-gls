@@ -20,7 +20,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import GlsConfigEntry
 from .const import DOMAIN, ParcelStatus
-from .coordinator import GlsCoordinator
+from .coordinator import GlsBaseCoordinator
 from .device import ATTRIBUTION, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class GlsIncomingParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+class GlsIncomingParcelsSensor(CoordinatorEntity[GlsBaseCoordinator], SensorEntity):
     """Summary sensor: count of active (not-yet-delivered) tracked parcels.
 
     Spawns a per-parcel sensor for each new barcode and removes stale ones
@@ -121,7 +121,7 @@ class GlsIncomingParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
 
     def __init__(
         self,
-        coordinator: GlsCoordinator,
+        coordinator: GlsBaseCoordinator,
         entry: ConfigEntry,
         async_add_entities: AddEntitiesCallback,
         known_barcodes: set[str] | None = None,
@@ -170,7 +170,7 @@ class GlsIncomingParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         super()._handle_coordinator_update()
 
 
-class GlsParcelSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+class GlsParcelSensor(CoordinatorEntity[GlsBaseCoordinator], SensorEntity):
     """Per-parcel sensor reporting the status of a single tracked GLS parcel."""
 
     _attr_has_entity_name = True
@@ -179,7 +179,7 @@ class GlsParcelSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _unrecorded_attributes = frozenset({"raw", "history"})
 
     def __init__(
-        self, coordinator: GlsCoordinator, entry: ConfigEntry, barcode: str
+        self, coordinator: GlsBaseCoordinator, entry: ConfigEntry, barcode: str
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -208,7 +208,7 @@ class GlsParcelSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         return dict(parcel) if parcel else {}
 
 
-class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+class GlsNextDeliverySensor(CoordinatorEntity[GlsBaseCoordinator], SensorEntity):
     """Earliest expected delivery datetime across all active parcels."""
 
     _attr_has_entity_name = True
@@ -216,7 +216,7 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_attribution = ATTRIBUTION
 
-    def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: GlsBaseCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_next_delivery"
@@ -257,7 +257,9 @@ class GlsNextDeliverySensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         }
 
 
-class GlsEnRouteToPickupPointSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+class GlsEnRouteToPickupPointSensor(
+    CoordinatorEntity[GlsBaseCoordinator], SensorEntity
+):
     """Active parcels still in transit to a GLS pickup point."""
 
     _attr_has_entity_name = True
@@ -266,7 +268,7 @@ class GlsEnRouteToPickupPointSensor(CoordinatorEntity[GlsCoordinator], SensorEnt
     _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
-    def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: GlsBaseCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_en_route_to_pickup_point"
@@ -290,7 +292,7 @@ class GlsEnRouteToPickupPointSensor(CoordinatorEntity[GlsCoordinator], SensorEnt
         return {"parcels": self._parcels()}
 
 
-class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+class GlsAwaitingPickupSensor(CoordinatorEntity[GlsBaseCoordinator], SensorEntity):
     """Parcels that have arrived at a GLS ParcelShop and are ready to collect."""
 
     _attr_has_entity_name = True
@@ -299,7 +301,7 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
-    def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: GlsBaseCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_awaiting_pickup"
@@ -323,7 +325,7 @@ class GlsAwaitingPickupSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
         return {"parcels": self._parcels()}
 
 
-class GlsDeliveredParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+class GlsDeliveredParcelsSensor(CoordinatorEntity[GlsBaseCoordinator], SensorEntity):
     """Recently delivered tracked GLS parcels."""
 
     _attr_has_entity_name = True
@@ -332,7 +334,7 @@ class GlsDeliveredParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity)
     _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
-    def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: GlsBaseCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_delivered_parcels"
@@ -349,7 +351,7 @@ class GlsDeliveredParcelsSensor(CoordinatorEntity[GlsCoordinator], SensorEntity)
         return {"parcels": self.coordinator.delivered}
 
 
-class GlsLastUpdateSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
+class GlsLastUpdateSensor(CoordinatorEntity[GlsBaseCoordinator], SensorEntity):
     """Diagnostic sensor reporting when GLS was last polled successfully."""
 
     _attr_has_entity_name = True
@@ -358,7 +360,7 @@ class GlsLastUpdateSensor(CoordinatorEntity[GlsCoordinator], SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_attribution = ATTRIBUTION
 
-    def __init__(self, coordinator: GlsCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: GlsBaseCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_last_update"

@@ -4,6 +4,28 @@
     "step": {
       "user": {
         "title": "Nastaviť GLS",
+        "menu_options": {
+          "account": "Účet",
+          "tracking": "Sledovacie kódy"
+        }
+      },
+      "account": {
+        "title": "Prihlásenie do účtu GLS",
+        "description": "Ktorý účet GLS chcete pridať?\n\nVaša krajina nie je v zozname? [Požiadať o ďalšiu krajinu]({issue_url}).",
+        "data": {
+          "country": "Krajina"
+        }
+      },
+      "dk": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "Nastaviť GLS",
         "description": "Vyberte krajinu, do ktorej sú vaše zásielky doručované, a poštové smerovacie číslo, kam zvyčajne smerujú. Zásielky pridáte po nastavení.\n\nVaša krajina nie je v zozname? [Požiadať o ďalšiu krajinu]({issue_url}).",
         "data": {
           "country": "Krajina",
@@ -12,16 +34,27 @@
         "data_description": {
           "postal_code": "napr. {postcode_example}. Použije sa ako predvolená doručovacia adresa pre zásielky, ktoré pridáte."
         }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
       "cannot_connect": "Nepodarilo sa pripojiť k GLS. Skontrolujte sieťové pripojenie.",
       "invalid_parcel_no": "Toto nevyzerá ako číslo zásielky alebo sledovací kód GLS.",
       "invalid_postcode": "Zadajte platné PSČ pre vybranú krajinu, napr. {postcode_example}.",
-      "de_registration_failed": "Nepodarilo sa zaregistrovať anonymnú reláciu GLS Nemecko. Skontrolujte sieťové pripojenie a skúste to znova."
+      "de_registration_failed": "Nepodarilo sa zaregistrovať anonymnú reláciu GLS Nemecko. Skontrolujte sieťové pripojenie a skúste to znova.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Hub GLS pre toto PSČ je už nastavený."
+      "already_configured": "Hub GLS pre toto PSČ je už nastavený.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

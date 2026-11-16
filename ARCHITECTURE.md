@@ -5,13 +5,18 @@ list of things not to get wrong; this file is the reasoning behind it. API
 mechanics — endpoints, parameters, status vocabularies — live in the private
 `carrier-research/gls/api/` and are never copied here.
 
-Two things drive everything else. GLS has **no consumer account or parcel
-feed**, so the user enters tracking codes and a hub is keyed by postcode rather
-than by login. And GLS is not one backend but six: a keyless national GET for
-the Netherlands, a postcode-enhanced keyless GET for Canada, a keyless JSON
+Two things drive everything else. Manual tracking has **no consumer account or
+parcel feed**, so the user enters tracking codes and a hub is keyed by postcode
+rather than by login. And GLS is not one backend but six: a keyless national GET
+for the Netherlands, a postcode-enhanced keyless GET for Canada, a keyless JSON
 POST for the United States, a keyless national GET for Poland, a stateful
 bearer-token POST for Germany, and a keyless pan-EU group index serving
 fourteen more countries.
+
+On top of that, the optional Danish account mode shares the same GLS entities
+and canonical parcel contract but discovers incoming packages from the user's
+account instead; it has its own authenticated session and account coordinator,
+without changing manual Danish tracking.
 
 This is the suite's first multi-country carrier, so the country-package pattern
 originated here. DPD followed it later with a different dispatch point — check
@@ -21,13 +26,12 @@ each repo rather than assuming they match.
 
 ```
 custom_components/gls/
-├── __init__.py          setup, transport construction, first refresh
-├── api.py               GlsApiClient — the per-country dispatcher (thin)
+├── __init__.py          setup, entry migration, transport construction, first refresh
 ├── const.py             COUNTRIES, GROUP_LEAF_COUNTRIES, ParcelStatus, CAPABILITIES_BY_VARIANT, GlsApiError
-├── coordinator.py       poll loop, _raw_cache, DE state persistence, event firing
+├── coordinator.py       GlsBaseCoordinator: dynamic polling, events, active/delivered split
 ├── parcels.py           shared pure helpers (filters, sort) — no I/O, no HA objects
 ├── timeutils.py         timestamp parsing shared across countries
-├── config_flow.py       postcode + country setup, two-page options menu
+├── config_flow.py       account/tracking setup menu, reauth and source-specific options
 ├── sensor.py            summary, per-parcel, pickup and diagnostic sensors
 ├── button.py            refresh button
 ├── calendar.py          read-only deliveries calendar
@@ -35,30 +39,39 @@ custom_components/gls/
 ├── device.py            device registry helpers
 ├── device_trigger.py    device automation triggers
 ├── diagnostics.py       redacted diagnostics
-└── countries/
-    ├── nl/              keyless national GET + normalize + status map
-    ├── ca/              postcode-enhanced keyless GET + normalize + status map
-    ├── us/              keyless POST + newest-of-several-shipments selection
-    ├── pl/              keyless national GET + Polish-text event map
-    ├── es/              signed POST: __init__.py (transport) + signing.py (pure HMAC)
-    ├── de/              bearer POST: __init__.py (transport) + session.py (lifecycle)
-    ├── fr/              reference -> AWB resolver only; France tracks on group/
-    ├── it/              national history leaf only; Italy tracks on group/
-    └── group/           pan-EU rstt028/rstt029 leaves + normalize + status map
+├── account/             Danish account source
+│   ├── coordinator.py   account discovery and continuous scheduling
+│   └── countries/
+│       └── dk/          __init__.py (normalizer + status map) + session.py (sign-in lifecycle)
+└── tracking/            tracking-number source
+    ├── api.py           GlsApiClient — the per-country dispatcher (thin)
+    ├── coordinator.py   GlsCoordinator: poll loop over the tracked parcels, DE state
+    ├── parcels.py       normalize_parcel — dispatch to the country normalizers
+    └── countries/
+        ├── nl/          keyless national GET + normalize + status map
+        ├── ca/          postcode-enhanced keyless GET + normalize + status map
+        ├── us/          keyless POST + newest-of-several-shipments selection
+        ├── pl/          keyless national GET + Polish-text event map
+        ├── es/          signed POST: __init__.py (transport) + signing.py (pure HMAC)
+        ├── de/          bearer POST: __init__.py (transport) + session.py (lifecycle)
+        ├── fr/          reference -> AWB resolver only; France tracks on group/
+        ├── it/          national history leaf only; Italy tracks on group/
+        └── group/       pan-EU rstt028/rstt029 leaves + normalize + status map
 ```
 
-`GlsApiError` is defined in `const.py`, not `api.py`, so a country package can
-raise it without an import cycle back through the dispatcher. It is re-exported
-from `api.py` so `from .api import GlsApiClient, GlsApiError` and existing test
-patch targets keep working.
+`GlsApiError` is defined in `const.py`, not `tracking/api.py`, so a country
+package can raise it without an import cycle back through the dispatcher. It is
+re-exported from `tracking/api.py` so `from .api import GlsApiClient,
+GlsApiError` and existing test patch targets keep working.
 
 ## Transports and dispatch
 
-**The dispatch point is `GlsApiClient.async_get_parcel` in `api.py`**, not the
+**The dispatch point is `GlsApiClient.async_get_parcel` in `tracking/api.py`**, not the
 coordinator. The coordinator polls a flat list of `(parcel_no, postal_code)`
 pairs and never learns which country it is talking to. (DPD puts its dispatch
 in the coordinator instead; do not "align" the two — GLS's per-parcel fetch has
-no account-level list call to branch on.)
+no account-level list call to branch on. The separate account coordinator
+handles Danish account discovery.)
 
 | Country | Transport | Auth | Entry point |
 |---|---|---|---|
@@ -90,10 +103,60 @@ not a runtime API failure.
 
 ## Key design decisions
 
+### Optional Danish account mode
+
+Setup opens on a menu (`async_step_user`) that chooses the source before any
+country: `account` asks for the account's country (only Denmark so far) and then
+signs in (`async_step_dk`), `tracking` asks for the hub's country and postcode.
+Account code lives in `account/`, with one `account/countries/<code>/` package
+per account country; tracking-number code lives in `tracking/`; modules both
+share stay at the top level.
+
+`entry.data["source"] == "account"` selects automatic incoming-package
+discovery; `"tracking"` (or a missing source) is tracking by number. Account
+unique IDs are prefixed with `account:` and keyed on the authenticated identity,
+so existing country/postcode unique IDs and their migrations are unchanged. The
+country option remains `DK`, while source selection keeps the account client
+separate from the manual Danish group transport.
+
+The async account session keeps its access token in memory and persists only
+refresh credentials and the account identity through data-only entry updates.
+Those writes leave the options unchanged, so the update listener the account
+entry shares with manual hubs does not poll on them, while a saved settings
+change refreshes in place (see *Options apply live, never by reload*). Reauth
+asks only for the password, reuses the stored email, and aborts through
+`_abort_if_unique_id_mismatch` unless the same account identity signs in; it
+then replaces the credentials and reloads that entry. First refresh still
+completes before platforms load.
+
+Only Firebase refusing the credentials asks the user to sign in again. A
+backend 401 or 403 does not prove that: the session refreshes the token once
+and retries, and a rejection that survives it is an ordinary failed update that
+is retried on the next poll.
+
+The account coordinator validates a complete, owned list before publishing it.
+A failed or incomplete response leaves the previous coordinator snapshot intact;
+it cannot become an empty account. Both modes share sorting, delivered retention
+and canonical events. Account discovery retains the normal mid-tier schedule
+when no active parcels remain, rather than stopping as manual tracking does.
+A parcel disappearing from a successful complete list is removed without
+inventing a delivery event.
+
+Account options exclude manual parcel editing. The shared manual services are
+registered by tracking hubs only and never target an account entry, so they keep
+working for manual hubs that coexist with one. Credentials and pickup codes are
+stripped before raw attributes or events can expose them; diagnostics
+additionally redacts exact account and recipient field names. The account's
+device is named `GLS Denmark`, never after the email address, because
+entity IDs derive from the device name.
+
+The account feed carries no delivery estimate, so `planned_from`/`planned_to`
+stay empty and the next-delivery sensor and the calendar have nothing to show.
+
 ### Account-less, postcode-keyed hubs
 
-Setup asks only for a postal code and a country (`async_step_user`) and does
-**not** hit the API — the endpoint needs a parcel number, so there is nothing to
+The tracking route of setup (`async_step_tracking`) asks only for a postal code
+and a country and does **not** hit the API — the endpoint needs a parcel number, so there is nothing to
 validate against. The postcode is stored as the hub default in
 `entry.options[CONF_POSTAL_CODE]`; `CONF_PARCELS` starts empty.
 
@@ -101,8 +164,8 @@ validate against. The postcode is stored as the hub default in
 `_abort_if_unique_id_configured`, so home and work can both be added. Device
 name is `"GLS (<postcode>)"`. `single_config_entry` is deliberately **absent** —
 multiple hubs were the point. The shared `gls.*` services are unloaded only when
-no other hub is still loaded. Legacy entries whose `unique_id` was `DOMAIN` are
-migrated to the postcode in `async_setup_entry`.
+no other tracking hub is still loaded. Legacy entries whose `unique_id` was
+`DOMAIN` are migrated to the postcode in `async_setup_entry`.
 
 `unique_id` stays the bare postcode even though hubs now carry a country. That
 is fine while a postcode is unique per hub regardless of country; revisit only
@@ -122,6 +185,9 @@ service field, and never part of the alias. Do not conflate the two.
 
 ### Options apply live, never by reload
 
+Manual hubs and Danish account entries both work this way; an account entry's
+options flow opens straight on `settings`.
+
 The options flow is a two-page menu (`parcels` / `settings`), not one sectioned
 form. `parcels` edits the whole tracked-code list as a single multi-value text
 field; `settings` holds delivered-parcel retention and history. Polling cadence
@@ -131,18 +197,18 @@ An **update listener** (`_async_options_updated`) calls
 `async_request_refresh()`, which recomputes the interval too. The
 coordinator re-reads options on every update, so a refresh — not a reload —
 makes an add or remove reflect immediately, and avoids the config-entry-listener
-deprecation. **Do not switch this to `async_schedule_reload`.** This is the
-account-less half of the suite's two options models.
+deprecation. **Do not switch this to `async_schedule_reload`.**
 
 It first **compares `entry.options` with the snapshot on `runtime_data`** and
 returns early when they match. HA notifies the listener on every
-`async_update_entry`, including a DE write that only rotated `appInstanceId`,
-and `async_request_refresh` bypasses HA's "Enable polling for updates" system
-option — that option only gates the coordinator's *scheduled* refresh.
+`async_update_entry`, including a DE write that only rotated `appInstanceId`
+and a rotated account token, and `async_request_refresh` bypasses HA's "Enable
+polling for updates" system option — that option only gates the coordinator's
+*scheduled* refresh.
 
-There is no auth, no reauth, and no sent-shipments coordinator. The HA-managed
-session is used directly, with no per-entry cookie jar because there are no
-cookies. Entities are entry-scoped.
+A manual hub has no auth, no reauth, and no sent-shipments coordinator. The
+HA-managed session is used directly, with no per-entry cookie jar because there
+are no cookies. Entities are entry-scoped.
 
 ### Dynamic polling
 
@@ -177,13 +243,13 @@ instead. A country row without `culture` (CZ, SK) falls back to `""` in
 
 ### Per-country packages
 
-Per-country code lives in `custom_components/gls/countries/<code>/` — each
+Per-country code lives in `custom_components/gls/tracking/countries/<code>/` — each
 country is its own package holding its transport, `normalize_parcel_<code>` and
 `map_parcel_status_<code>`, with an *extra* submodule only where a country needs
-its own lifecycle handling (`countries/de/session.py`). Concern-level files —
-`coordinator.py`, `config_flow.py`, `diagnostics.py`, `sensor.py` — stay
-top-level and dispatch into the country package; they carry no per-country
-branching themselves.
+its own lifecycle handling (`tracking/countries/de/session.py`). Concern-level files —
+`tracking/coordinator.py`, `config_flow.py`, `diagnostics.py`, `sensor.py` —
+sit outside the country packages and dispatch into them; they carry no
+per-country branching themselves.
 
 **The trigger for a country getting an extra submodule is structural divergence
 from NL** — auth model, transport, payload shape, status vocabulary — **not
@@ -191,8 +257,8 @@ country count.** That was decided when DE (bearer POST, session lifecycle,
 string status enum, non-ISO timestamps) turned out to share almost nothing with
 NL's keyless GET beyond the canonical output shape.
 
-`countries/group/` is a package rather than a flat `countries/group.py` purely
-for structural symmetry with `countries/de/`; being keyless and sessionless, it
+`tracking/countries/group/` is a package rather than a flat `tracking/countries/group.py` purely
+for structural symmetry with `tracking/countries/de/`; being keyless and sessionless, it
 needs no lifecycle submodule, same as NL.
 
 ### Germany is stateful — the only transport that is
@@ -214,7 +280,7 @@ config entry's `appInstanceId` and bearer token.
   `_prepare_de_poll` seeds it from the `parcelNumber` persisted per tracked
   parcel (`CONF_DE_PARCEL_NUMBER`) before every poll. It only ever `setdefault`s,
   never clobbering a value already learned this session; the cache stays owned
-  by `countries/de/__init__.py`.
+  by `tracking/countries/de/__init__.py`.
 - **`_persist_de_state` runs after the poll** and writes back any newly-learned
   `parcelNumber`. It goes through `async_update_entry`, which — once the update
   listener is registered, i.e. after the first refresh — triggers one extra
@@ -297,7 +363,7 @@ a payload family observed on far fewer real parcels than NL's.
 
 GLS US answers one tracking number with a `shipments[]` array that can hold
 **more than one record** — a return-to-sender and the replacement sent
-afterwards, for instance — listed oldest first. So `countries/us/` never trusts
+afterwards, for instance — listed oldest first. So `tracking/countries/us/` never trusts
 array position: it keeps only the records whose `trackingNumber` matches the
 tracked code and picks the one with the most recent timestamp (latest transit
 event, else delivery date, else ship date). The backend's `0001-01-01` /
@@ -326,7 +392,7 @@ but `async_get_parcel_us` never sends it.
 
 Polish numbering *is* in the pan-EU group index — a real Polish AWB answers
 `rstt029` — so PL could have been one more `COUNTRIES` row on
-`countries/group/`. It deliberately is not. Measured against the same two real
+`tracking/countries/group/`. It deliberately is not. Measured against the same two real
 parcels, the national myGLS route fills more of the canonical shape **without**
 a postcode than the group leaf does with one:
 
@@ -360,7 +426,7 @@ that log is the answer arriving.
 
 ### Spain signs its requests, and the postcode is half the key
 
-ES is the only transport here that signs, and `countries/es/signing.py` is a
+ES is the only transport here that signs, and `tracking/countries/es/signing.py` is a
 pure function of `(method, path, timestamp)` for one reason: a signature bug
 and a rejected key look alike on the wire, so the signature itself has to be
 provable without a network. The signed path excludes the URL's version prefix,
@@ -523,9 +589,9 @@ Same set as DHL, entry-scoped: `sensor` (incoming summary, per-parcel,
    links `NEW_COUNTRY_ISSUE_URL` for requests that have not cleared this.
 2. If its numbering lives in the pan-EU group index, add one `COUNTRIES` row
    with `host` + `group_locale` + postcode regex, pointing at
-   `countries/group/`. Nothing else is needed.
+   `tracking/countries/group/`. Nothing else is needed.
 3. If it diverges structurally from NL (auth model, transport, payload shape,
-   status vocabulary), give it its own `countries/<cc>/` package with a
+   status vocabulary), give it its own `tracking/countries/<cc>/` package with a
    `normalize_parcel_<cc>` and `map_parcel_status_<cc>`, plus a `session.py`
    only if it needs lifecycle handling. Add a branch in
    `GlsApiClient.async_get_parcel`.
@@ -544,4 +610,4 @@ Same set as DHL, entry-scoped: `sensor` (incoming summary, per-parcel,
    shared keys (`tools/translation_report.py` reports the drift) rather than
    translating afresh.
 7. Add it to the parametrized country lists in `tests/test_config_flow.py`
-   and, for a group leaf, `tests/countries/group/test_group.py`.
+   and, for a group leaf, `tests/tracking/countries/group/test_group.py`.

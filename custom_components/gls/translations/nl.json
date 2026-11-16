@@ -4,6 +4,28 @@
     "step": {
       "user": {
         "title": "GLS instellen",
+        "menu_options": {
+          "account": "Account",
+          "tracking": "Trackingcodes"
+        }
+      },
+      "account": {
+        "title": "Inloggen bij een GLS-account",
+        "description": "Welk GLS-account wil je toevoegen?\n\nStaat jouw land er niet bij? [Vraag een ander land aan]({issue_url}).",
+        "data": {
+          "country": "Land"
+        }
+      },
+      "dk": {
+        "title": "Sign in to GLS Denmark",
+        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "tracking": {
+        "title": "GLS instellen",
         "description": "Kies het land waar je pakketten bezorgd worden en de postcode waar ze meestal heen gaan. Pakketten voeg je toe na het instellen.\n\nStaat jouw land er niet bij? [Vraag een ander land aan]({issue_url}).",
         "data": {
           "country": "Land",
@@ -12,16 +34,27 @@
         "data_description": {
           "postal_code": "Bijv. {postcode_example}. Wordt als standaard bezorgadres gebruikt voor pakketten die je toevoegt; voor Canada geeft dit uitgebreide trackinginformatie. Voor de VS wordt hij niet gebruikt bij het volgen."
         }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to GLS again",
+        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
       "cannot_connect": "Kan GLS niet bereiken. Controleer je netwerkverbinding.",
       "invalid_parcel_no": "Dit lijkt geen GLS-pakketnummer of tracking-ID.",
       "invalid_postcode": "Voer een geldige postcode in voor het gekozen land, bijv. {postcode_example}.",
-      "de_registration_failed": "Kon geen anonieme GLS Duitsland-sessie registreren. Controleer je netwerkverbinding en probeer het opnieuw."
+      "de_registration_failed": "Kon geen anonieme GLS Duitsland-sessie registreren. Controleer je netwerkverbinding en probeer het opnieuw.",
+      "invalid_auth": "Invalid email or password."
     },
     "abort": {
-      "already_configured": "Er is al een GLS-hub voor deze postcode ingesteld."
+      "already_configured": "Er is al een GLS-hub voor deze postcode ingesteld.",
+      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reauth_not_supported": "This GLS hub does not use an account login."
     }
   },
   "options": {

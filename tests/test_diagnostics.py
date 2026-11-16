@@ -3,6 +3,8 @@
 import json
 from unittest.mock import MagicMock
 
+from homeassistant.components.diagnostics import REDACTED
+
 from custom_components.gls.diagnostics import async_get_config_entry_diagnostics
 
 
@@ -319,3 +321,47 @@ async def test_diagnostics_redacts_the_spanish_raw_payload(hass):
     # Still readable, on purpose.
     assert raw["state"]["code"] == "delivered"
     assert raw["tracking"][0]["description"] == "Delivered"
+
+
+async def test_danish_account_diagnostics_redact_credentials_and_contacts(hass):
+    entry = MagicMock()
+    entry.data = dict.fromkeys(
+        [
+            "uid",
+            "identityId",
+            "refresh_token",
+            "id_token",
+            "api_key",
+            "email",
+            "password",
+        ],
+        "private-value",
+    )
+    entry.options = {}
+    sensitive = [
+        "userId",
+        "senderName",
+        "receiverName",
+        "receiverContact",
+        "receiverAddress",
+        "receiverZipCode",
+        "receiverCity",
+        "receiverEmail",
+        "pickUpCode",
+        "pickupCode",
+        "shareParcelLink",
+        "trustPilotLink",
+        "podImageUrl",
+        "latitude",
+        "longitude",
+    ]
+    entry.runtime_data.coordinator.data = [
+        {"barcode": "EXAMPLE111111", "raw": dict.fromkeys(sensitive, "private-value")}
+    ]
+    entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
+    entry.runtime_data.coordinator.current_tier_minutes = 45
+    entry.runtime_data.coordinator.update_interval = None
+    result = await async_get_config_entry_diagnostics(hass, entry)
+    assert set(result["entry_data"].values()) == {REDACTED}
+    assert set(result["incoming"][0]["raw"].values()) == {REDACTED}

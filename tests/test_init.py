@@ -3,10 +3,15 @@
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gls.api import GlsApiError
+from custom_components.gls.account.countries.dk.session import (
+    GlsDkApiError,
+    GlsDkAuthError,
+    GlsDkSession,
+)
 from custom_components.gls.const import (
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
@@ -18,8 +23,20 @@ from custom_components.gls.const import (
     CONF_POSTAL_CODE,
     DOMAIN,
 )
+from custom_components.gls.tracking.api import GlsApiError
+from tests.account.test_coordinator import raw_parcel
 
 from .payloads import minimal_sample
+
+
+async def _open_tracking_flow(hass):
+    """Open the setup flow and pick tracking numbers from its menu."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "tracking"}
+    )
 
 
 async def test_setup_and_unload(hass):
@@ -35,7 +52,7 @@ async def test_setup_and_unload(hass):
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -72,7 +89,7 @@ async def test_setup_retries_when_first_refresh_fails(hass):
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(side_effect=GlsApiError("GLS unreachable")),
     ):
         assert not await hass.config_entries.async_setup(entry.entry_id)
@@ -94,7 +111,9 @@ async def test_per_parcel_sensor_spawn_and_remove(hass):
     entry.add_to_hass(hass)
 
     mock = AsyncMock(return_value=minimal_sample())
-    with patch("custom_components.gls.api.GlsApiClient.async_get_parcel", new=mock):
+    with patch(
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel", new=mock
+    ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
@@ -137,7 +156,7 @@ async def test_legacy_unique_id_migrates_to_country_scoped_postcode(hass):
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -147,9 +166,7 @@ async def test_legacy_unique_id_migrates_to_country_scoped_postcode(hass):
 
     # A second hub for the same postcode+country now aborts instead of
     # duplicating.
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_POSTAL_CODE: "1234AB"}
     )
@@ -174,7 +191,7 @@ async def test_bare_postcode_unique_id_migrates_to_country_scoped(hass):
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -194,7 +211,7 @@ async def test_already_country_scoped_unique_id_is_left_alone(hass):
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -210,17 +227,13 @@ async def test_same_postcode_different_country_hubs_do_not_collide(hass):
     let both stand. (DE is avoided here since its setup step performs a live
     registration call.)
     """
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "it", CONF_POSTAL_CODE: "39100"}
     )
     assert result["type"] == "create_entry"
 
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _open_tracking_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_COUNTRY: "fr", CONF_POSTAL_CODE: "39100"}
     )
@@ -258,7 +271,7 @@ async def test_de_setup_wires_country_and_de_session_end_to_end(hass):
         "deliveryEvents": [],
     }
     with patch(
-        "custom_components.gls.api.async_get_parcel_de",
+        "custom_components.gls.tracking.api.async_get_parcel_de",
         new=AsyncMock(return_value=de_payload),
     ) as mock_transport:
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -315,7 +328,7 @@ async def test_cz_setup_wires_group_locale_end_to_end(hass):
         },
     }
     with patch(
-        "custom_components.gls.api.async_get_parcel_group",
+        "custom_components.gls.tracking.api.async_get_parcel_group",
         new=AsyncMock(return_value=cz_payload),
     ) as mock_transport:
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -356,7 +369,7 @@ async def test_data_only_entry_write_does_not_count_as_an_options_edit(hass):
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.gls.api.GlsApiClient.async_get_parcel",
+        "custom_components.gls.tracking.api.GlsApiClient.async_get_parcel",
         new=AsyncMock(return_value=minimal_sample()),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -387,3 +400,220 @@ async def test_data_only_entry_write_does_not_count_as_an_options_edit(hass):
             )
             await hass.async_block_till_done()
             assert refresh.call_count == 1
+
+
+async def test_account_setup_registers_update_listener_that_ignores_rotation(hass):
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="account:example-firebase-user",
+        title="GLS Denmark account",
+        data={
+            "source": "account",
+            "uid": "example-firebase-user",
+            "email": "parcel@example.test",
+            "refresh_token": "original-refresh",
+        },
+        options={CONF_COUNTRY: "DK"},
+    )
+    entry.add_to_hass(hass)
+    session = GlsDkSession(
+        None, uid="example-firebase-user", refresh_token="original-refresh"
+    )
+    with (
+        patch(
+            "custom_components.gls.GlsDkSession", return_value=session
+        ) as constructor,
+        patch.object(
+            session,
+            "async_get_parcels",
+            new=AsyncMock(return_value={"totalCount": 1, "items": [raw_parcel()]}),
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert len(entry.update_listeners) == 1
+        coordinator = entry.runtime_data.coordinator
+        token_updated = constructor.call_args.kwargs["token_updated"]
+        with patch.object(
+            coordinator, "async_request_refresh", new=AsyncMock()
+        ) as refresh:
+            token_updated(
+                {
+                    "uid": "example-firebase-user",
+                    "email": "",
+                    "refresh_token": "rotated-refresh",
+                }
+            )
+            await hass.async_block_till_done()
+            assert entry.data["email"] == "parcel@example.test"
+            assert entry.data["refresh_token"] == "rotated-refresh"
+            token_updated(
+                {
+                    "uid": "example-firebase-user",
+                    "email": "parcel@example.test",
+                    "refresh_token": "rotated-refresh",
+                }
+            )
+            await hass.async_block_till_done()
+            refresh.assert_not_awaited()
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_account_device_and_entity_ids_never_carry_the_email(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="account:example-firebase-user",
+        title="GLS Denmark account",
+        data={
+            "source": "account",
+            "uid": "example-firebase-user",
+            "email": "mailbox-owner@sample.test",
+            "refresh_token": "original-refresh",
+        },
+        options={CONF_COUNTRY: "DK"},
+    )
+    entry.add_to_hass(hass)
+    with patch(
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_get_parcels",
+        new=AsyncMock(return_value={"totalCount": 1, "items": [raw_parcel()]}),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    assert [device.name for device in devices] == ["GLS Denmark"]
+    entity_ids = [
+        item.entity_id
+        for item in er.async_entries_for_config_entry(
+            er.async_get(hass), entry.entry_id
+        )
+    ]
+    assert "sensor.gls_denmark_incoming_parcels" in entity_ids
+    assert not any(
+        slug in entity_id for slug in ("mailbox", "sample") for entity_id in entity_ids
+    )
+
+
+async def test_account_first_refresh_auth_failure_does_not_forward_platforms(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="account:example-user",
+        data={
+            "source": "account",
+            "uid": "example-user",
+            "email": "parcel@example.test",
+            "refresh_token": "revoked",
+        },
+        options={CONF_COUNTRY: "DK"},
+    )
+    entry.add_to_hass(hass)
+    with (
+        patch(
+            "custom_components.gls.account.countries.dk.session.GlsDkSession.async_get_parcels",
+            new=AsyncMock(side_effect=GlsDkAuthError("sign-in required")),
+        ),
+        patch.object(
+            hass.config_entries, "async_forward_entry_setups", new=AsyncMock()
+        ) as forward,
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    forward.assert_not_awaited()
+
+
+async def test_manual_and_account_can_unload_independently(hass):
+    manual = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="NL:1234AB",
+        options={CONF_COUNTRY: "NL", CONF_POSTAL_CODE: "1234AB", CONF_PARCELS: []},
+    )
+    account = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="account:example-firebase-user",
+        data={
+            "source": "account",
+            "uid": "example-firebase-user",
+            "refresh_token": "example-refresh",
+        },
+        options={CONF_COUNTRY: "DK"},
+    )
+    manual.add_to_hass(hass)
+    account.add_to_hass(hass)
+    with patch(
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_get_parcels",
+        new=AsyncMock(return_value={"totalCount": 1, "items": [raw_parcel()]}),
+    ):
+        assert await hass.config_entries.async_setup(manual.entry_id)
+        await hass.async_block_till_done()
+        assert account.state is ConfigEntryState.LOADED
+        assert await hass.config_entries.async_unload(account.entry_id)
+        assert hass.services.has_service(DOMAIN, "track_parcel")
+        assert manual.state is ConfigEntryState.LOADED
+        assert await hass.config_entries.async_unload(manual.entry_id)
+        assert not hass.services.has_service(DOMAIN, "track_parcel")
+
+
+def _session_that_the_backend_rejects(status):
+    async def request(self, method, url, *, firebase=False, **kwargs):
+        if firebase:
+            return {
+                "user_id": "example-firebase-user",
+                "id_token": "synthetic-id-token",
+                "refresh_token": "original-refresh",
+                "expires_in": "3600",
+                "token_type": "Bearer",
+            }
+        raise GlsDkApiError("rejected", status_code=status)
+
+    return patch(
+        "custom_components.gls.account.countries.dk.session.GlsDkSession._request",
+        new=request,
+    )
+
+
+def _account_entry():
+    return MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="account:example-firebase-user",
+        data={
+            "source": "account",
+            "uid": "example-firebase-user",
+            "refresh_token": "original-refresh",
+        },
+        options={CONF_COUNTRY: "DK"},
+    )
+
+
+@pytest.mark.parametrize("status", [401, 403])
+async def test_account_setup_retries_when_the_backend_rejects_the_token(hass, status):
+    entry = _account_entry()
+    entry.add_to_hass(hass)
+    with _session_that_the_backend_rejects(status):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+
+
+@pytest.mark.parametrize("status", [401, 403])
+async def test_loaded_account_keeps_its_data_when_the_backend_rejects_the_token(
+    hass, status
+):
+    entry = _account_entry()
+    entry.add_to_hass(hass)
+    with patch(
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_get_parcels",
+        new=AsyncMock(return_value={"totalCount": 1, "items": [raw_parcel()]}),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    coordinator = entry.runtime_data.coordinator
+    with _session_that_the_backend_rejects(status):
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+    assert coordinator.last_update_success is False
+    assert len(coordinator.data) == 1
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
