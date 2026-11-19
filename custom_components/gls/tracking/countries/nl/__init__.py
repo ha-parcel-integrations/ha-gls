@@ -10,7 +10,7 @@ own — unlike DE, NL has no lifecycle module (no ``session.py`` here).
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 import json
 import logging
 from typing import Any
@@ -26,6 +26,7 @@ from ....const import (
     GlsApiError,
     ParcelStatus,
 )
+from ....delivery_window import is_pickup, planned_for_status, planned_window
 from ....timeutils import parse_iso as _parse_iso
 
 _LOGGER = logging.getLogger(__name__)
@@ -257,7 +258,8 @@ def normalize_parcel_nl(
 
     scan_info = raw.get("deliveryScanInfo") or {}
     state = raw.get("state")
-    delivered = bool(scan_info.get("isDelivered")) or state == 4
+    status = map_parcel_status_nl(4 if scan_info.get("isDelivered") else state)
+    delivered = status is ParcelStatus.DELIVERED
 
     delivery_status = raw.get("deliveryStatus") or {}
     eta_min = delivery_status.get("etaTimestampMin")
@@ -266,8 +268,17 @@ def normalize_parcel_nl(
     parcels_list = raw.get("parcels") or []
     raw_status = parcels_list[0].get("lastStatus") if parcels_list else None
 
-    is_pickup = bool(raw.get("isPickup")) or bool(
-        (raw.get("deliveryListInfo") or {}).get("isParcelShop")
+    pickup = is_pickup(
+        bool(raw.get("isPickup"))
+        or bool((raw.get("deliveryListInfo") or {}).get("isParcelShop")),
+        status,
+    )
+    first = _parse_iso(eta_min) or _parse_iso(eta_max)
+    planned_from, planned_to = planned_for_status(
+        status,
+        *planned_window(
+            eta_min, eta_max, zone=first.tzinfo if first and first.tzinfo else UTC
+        ),
     )
 
     weight = raw.get("weighedWeight")
@@ -279,14 +290,14 @@ def normalize_parcel_nl(
         "barcode": raw.get("parcelNo"),
         "sender": sender,
         "receiver": receiver or None,
-        "status": map_parcel_status_nl(state),
+        "status": status,
         "raw_status": raw_status,
         "delivered": delivered,
         "delivered_at": scan_info.get("dateTime") if delivered else None,
-        "planned_from": None if delivered else eta_min,
-        "planned_to": None if delivered else eta_max,
-        "pickup": is_pickup,
-        "pickup_point": _pickup_point(raw) if is_pickup else None,
+        "planned_from": planned_from,
+        "planned_to": planned_to,
+        "pickup": pickup,
+        "pickup_point": _pickup_point(raw) if pickup else None,
         "url": _tracking_url(raw.get("parcelNo"), postal_code, country),
         "weight": weight,
         "dimensions": _dimensions(raw),

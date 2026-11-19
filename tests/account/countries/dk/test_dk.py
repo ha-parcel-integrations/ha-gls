@@ -162,7 +162,7 @@ def test_pickup_evidence_survives_collection_history(state, reason):
         events.append(_event(60, 54, when="2026-10-01T08:00:00Z"))
     parcel = normalize_parcel_dk(_parcel(events))
     assert parcel["pickup"] is True
-    assert parcel["pickup_point"] == "Example Street 1, 9999, Example City"
+    assert parcel["pickup_point"] == "123"
 
 
 def test_pickup_falls_back_to_shop_number_without_address():

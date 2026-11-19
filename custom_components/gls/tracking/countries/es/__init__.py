@@ -51,6 +51,7 @@ from ....const import (
     GlsApiError,
     ParcelStatus,
 )
+from ....delivery_window import is_pickup
 from .signing import request_timestamp, sign_request
 
 _LOGGER = logging.getLogger(__name__)
@@ -598,7 +599,9 @@ def normalize_parcel_es(
         # ``state.deliveryDate`` is an estimate or an actual.
         "planned_from": None,
         "planned_to": None,
-        "pickup": status == ParcelStatus.AT_PICKUP_POINT,
+        "pickup": is_pickup(
+            any(row.get("code") in _PICKUP_SCAN_CODES for row in scans), status
+        ),
         "pickup_point": _pickup_point(raw, scans),
         "url": url,
         "weight": _weight(raw),

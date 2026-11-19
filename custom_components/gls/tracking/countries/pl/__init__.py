@@ -40,6 +40,7 @@ from ....const import (
     GlsApiError,
     ParcelStatus,
 )
+from ....delivery_window import is_pickup
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -359,7 +360,16 @@ def normalize_parcel_pl(
         "delivered_at": delivered_at,
         "planned_from": None,
         "planned_to": None,
-        "pickup": status == ParcelStatus.AT_PICKUP_POINT,
+        "pickup": is_pickup(
+            None,
+            status,
+            (
+                _EVENT_TEXT_MAP.get(
+                    _normalise_text(event.get("packageStatusName")) or ""
+                )
+                for event in events
+            ),
+        ),
         "pickup_point": None,
         "url": template.format(parcel_no=barcode) if barcode else None,
         "weight": None,

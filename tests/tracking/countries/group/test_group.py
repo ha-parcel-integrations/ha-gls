@@ -295,7 +295,7 @@ def test_normalize_captured_delivered_parcel():
     assert parcel["planned_to"] is None
     assert parcel["sender"] is None
     assert parcel["receiver"] is None
-    assert parcel["pickup"] is False
+    assert parcel["pickup"] is True
     assert parcel["pickup_point"] is None
     assert parcel["weight"] == 0.9
     assert parcel["dimensions"] is None

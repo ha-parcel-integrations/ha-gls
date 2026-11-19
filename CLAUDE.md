@@ -298,6 +298,26 @@ split colli into separate sensors.
 `diagnostics.py`. They still ride in the per-parcel `raw` attribute (user's own
 data, unrecorded) — don't surface them elsewhere.
 
+## Parcel contract: window, pickup, delivered
+
+- `delivery_window.py` holds the helpers every country shares (`planned_window`,
+  `planned_for_status`, `is_pickup`); never copy them into a country.
+- `planned_*` are emptied at `at_pickup_point`, `returning` and `delivered`. NL
+  is the only country with a delivery window; a single moment runs to 23:59:59
+  of the day in its own offset. US dates stay unmapped (zone unknown).
+- `pickup` is the carrier's own field where there is one (NL, DE shop block,
+  group `DELIVEREDPS`, ES scan codes), else a status or history entry that
+  reached `at_pickup_point`, so it stays true once collected. US and Canada
+  publish a constant `False`.
+- `delivered` is `status is DELIVERED`; NL's `isDelivered` is folded into the
+  state before the mapping. The group source keeps its `retourFlag` return with
+  `statusInfo == DELIVERED` as `returning` with `delivered: true`.
+- Denmark's `pickup_point` is the parcel shop number only, never an address.
+- Germany reads naive timestamps as UTC; confirm against a real parcel before
+  moving them to Berlin time.
+- `next_delivery` skips a parcel whose window has ended; the calendar shows a
+  00:00:00–23:59:59 window as an all-day event.
+
 ## Entities (same set as DHL, entry-scoped)
 
 `sensor` (incoming summary + per-parcel + next_delivery + en_route_to_pickup_point

@@ -807,8 +807,9 @@ def test_the_diverted_parcel_maps_its_gls_point_and_full_history():
     assert parcel["weight"] == 4.7
     assert parcel["sender"] == "SENDER COMPANY"
     assert parcel["receiver"] is None
-    # Collected, so no longer awaiting pickup — but the point is still named.
-    assert parcel["pickup"] is False
+    # Collected, so no longer awaiting pickup — but still a pickup parcel,
+    # and the point is still named.
+    assert parcel["pickup"] is True
     assert parcel["pickup_point"] == SHOP_NAME
     assert [event["status"] for event in parcel["history"]] == [
         ParcelStatus.REGISTERED,

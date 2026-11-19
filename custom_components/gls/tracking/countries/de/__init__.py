@@ -605,7 +605,7 @@ def normalize_parcel_de(
         "receiver": _receiver_name(raw),
         "status": status,
         "raw_status": raw_status,
-        "delivered": delivered_at is not None,
+        "delivered": status is ParcelStatus.DELIVERED,
         "delivered_at": delivered_at,
         "planned_from": None,
         "planned_to": None,

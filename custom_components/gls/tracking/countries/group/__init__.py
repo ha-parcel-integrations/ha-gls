@@ -38,6 +38,7 @@ from ....const import (
     GlsApiError,
     ParcelStatus,
 )
+from ....delivery_window import is_pickup
 from ..it import async_get_history_it
 
 _LOGGER = logging.getLogger(__name__)
@@ -842,10 +843,16 @@ def normalize_parcel_group(
     status = map_parcel_status_group(status_info, retour_flag=retour_flag)
 
     # DELIVEREDPS contains the substring DELIVERED — exact match only.
-    delivered = status_info == "DELIVERED"
-    is_pickup = status_info == "DELIVEREDPS"
+    delivered = status is ParcelStatus.DELIVERED or (
+        status is ParcelStatus.RETURNING and status_info == "DELIVERED"
+    )
 
     raw_history = raw.get("history") or []
+    pickup = is_pickup(
+        status_info == "DELIVEREDPS",
+        status,
+        (_EVENT_STATUS_MAP.get(event.get("evtNo")) for event in raw_history),
+    )
     newest_event = raw_history[0] if raw_history else None
     delivered_at = None
     if delivered and newest_event:
@@ -877,7 +884,7 @@ def normalize_parcel_group(
         "delivered_at": delivered_at,
         "planned_from": None,
         "planned_to": None,
-        "pickup": is_pickup,
+        "pickup": pickup,
         "pickup_point": None,
         "url": _tracking_url_group(barcode, country),
         "weight": _extract_weight_kg(raw.get("infos")),

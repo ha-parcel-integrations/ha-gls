@@ -172,11 +172,7 @@ def normalize_parcel_dk(raw: dict, *, include_history: bool = False) -> dict:
     )
     pickup_point = None
     if pickup:
-        pickup_point = ", ".join(
-            value
-            for key in ("receiverAddress", "receiverZipCode", "receiverCity")
-            if (value := _text(safe_raw.get(key)))
-        ) or _text(safe_raw.get("parcelShopNumber"))
+        pickup_point = _text(safe_raw.get("parcelShopNumber"))
     barcode = _text(safe_raw.get("parcelNumber"))
     history = None
     if include_history:
