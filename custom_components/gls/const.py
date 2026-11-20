@@ -10,10 +10,10 @@ DOMAIN = "gls"
 CONF_SOURCE = "source"
 SOURCE_ACCOUNT = "account"
 SOURCE_TRACKING = "tracking"
-ACCOUNT_COUNTRIES = ("DK",)
-CONF_DK_UID = "uid"
-CONF_DK_EMAIL = "email"
-CONF_DK_REFRESH_TOKEN = "refresh_token"
+# The session state every account country keeps in entry data, beside its own
+# sign-in field (``AccountCountry.login_field``). Nothing else is persisted.
+CONF_ACCOUNT_UID = "uid"
+CONF_ACCOUNT_REFRESH_TOKEN = "refresh_token"
 
 
 def is_account_entry(entry: ConfigEntry) -> bool:
@@ -93,6 +93,9 @@ CAPABILITIES_BY_VARIANT = {
     "Germany": frozenset({"pickup_point", "url", "history"}),
     # Automatic Danish account source; manual DK tracking stays on "Other".
     "Denmark (account)": frozenset({"url", "history"}),
+    # Automatic Polish account source; manual PL tracking stays on "Poland".
+    # Weight and history come from the per-parcel details call.
+    "Poland (account)": frozenset({"weight", "url", "history"}),
     "Other": frozenset({"weight", "url", "history"}),
     "Canada": frozenset({"weight", "dimensions", "url", "history"}),
     "United States": frozenset({"url", "history"}),
@@ -113,6 +116,10 @@ PENDING_CAPABILITIES_BY_VARIANT = {
     # whether it is an estimate *before* delivery is still unknown.
     "Spain and Portugal": frozenset({"delivery_window"}),
     "Denmark (account)": frozenset({"weight", "pickup_point"}),
+    # ``pickup_point`` is not parsed: the details payload's ``parcelShop`` has
+    # not been seen populated on a real account parcel, so its shape is
+    # unknown. ``delivery_window`` the feed never carries.
+    "Poland (account)": frozenset({"pickup_point", "delivery_window"}),
 }
 
 

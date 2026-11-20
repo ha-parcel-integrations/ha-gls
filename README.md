@@ -9,7 +9,7 @@
 >
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
-A custom Home Assistant integration that tracks your GLS parcels in Austria, Belgium, Canada, Croatia, the Czech Republic, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Liechtenstein, Luxembourg, the Netherlands, Poland, Portugal, Romania, Serbia, Slovakia, Slovenia, Spain, Sweden, Switzerland and the United States. Manual tracking needs no GLS account: enter a tracking number and delivery postal code. Danish GLS accounts can also discover incoming packages automatically.
+A custom Home Assistant integration that tracks your GLS parcels in Austria, Belgium, Canada, Croatia, the Czech Republic, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Liechtenstein, Luxembourg, the Netherlands, Poland, Portugal, Romania, Serbia, Slovakia, Slovenia, Spain, Sweden, Switzerland and the United States. Manual tracking needs no GLS account: enter a tracking number and delivery postal code. Danish and Polish GLS accounts can also discover incoming packages automatically.
 
 ## Contents
 
@@ -32,7 +32,7 @@ A custom Home Assistant integration that tracks your GLS parcels in Austria, Bel
 
 ## Features
 
-- Discover incoming parcels automatically from a Danish GLS account
+- Discover incoming parcels automatically from a Danish or Polish GLS account
 - Track multiple GLS parcels by tracking number — no account
 - Add parcels from the options, a service, or a dashboard button
 - Per-parcel sensor per tracked shipment, with full status details as attributes
@@ -102,30 +102,37 @@ at a GLS Point separately from you collecting it.
 You can add **multiple hubs** — one per delivery postal code (e.g. home and
 work). Each hub is its own **GLS (postcode)** device with its own parcels.
 
-### Danish account: automatic package discovery
+### Account mode: automatic package discovery (Denmark and Poland)
 
-In the GLS setup menu, choose **Account** and pick Denmark. Submit the form and
-sign in with the email address and password used in the Danish GLS app. No
-postcode or tracking numbers are required for this mode.
+In the GLS setup menu, choose **Account** and pick your country:
+
+- **Denmark** — sign in with the email address and password from the Danish GLS
+  app.
+- **Poland** — sign in with the phone number (9 digits) and password from the
+  **myGLS** app.
+
+No postcode or tracking numbers are required for this mode.
 
 The integration discovers the incoming parcels already linked to that account.
 Your account must already have automatic parcel addition enabled in GLS; this
-integration does not change that preference. The same sensors, calendar and
-refresh button are created as for manual tracking, on one **GLS Denmark**
+integration does not change that preference. (GLS Poland lists parcels tied to
+your phone number or verified email from the last 7 days, and a new parcel can
+take up to 24 hours to appear.) The same sensors, calendar and refresh button
+are created as for manual tracking, on one **GLS Denmark** or **GLS Poland**
 device. Polling continues when the list is empty, so a new package can appear
 without another setup step. During the overnight quiet window, discovery
 follows the normal catch-up schedule.
 
 Home Assistant stores refresh credentials, not your password. If GLS revokes
-them, Home Assistant asks for your GLS password again. Pickup codes are
-deliberately excluded from sensor attributes and events; use GLS to collect a
-parcel.
+them, Home Assistant asks for your GLS password again. Pickup codes and locker
+PINs are deliberately excluded from sensor attributes and events; use GLS to
+collect a parcel.
 The account's active feed is followed: moving a parcel to the archive in GLS
 can remove it from this integration. Its disappearance is not reported as a
-new delivery. The Danish account feed has no delivery estimate, so **Next
+new delivery. The account feed has no delivery estimate, so **Next
 delivery** and the **Deliveries** calendar stay empty for these parcels.
 
-Manual tracking hubs and Danish accounts can coexist. The manual add/remove
+Manual tracking hubs and account hubs can coexist. The manual add/remove
 services apply only to manual hubs; they never edit the GLS account's list.
 
 ### Adding parcels

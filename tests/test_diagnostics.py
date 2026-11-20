@@ -365,3 +365,49 @@ async def test_danish_account_diagnostics_redact_credentials_and_contacts(hass):
     result = await async_get_config_entry_diagnostics(hass, entry)
     assert set(result["entry_data"].values()) == {REDACTED}
     assert set(result["incoming"][0]["raw"].values()) == {REDACTED}
+
+
+async def test_diagnostics_redacts_polish_account_fields(hass):
+    entry = MagicMock()
+    entry.data = {
+        "source": "account",
+        "uid": "pl-user",
+        "phone": "600000000",
+        "refresh_token": "secret-refresh",
+    }
+    entry.options = {"country": "PL"}
+    entry.runtime_data.coordinator.data = [
+        {
+            "barcode": "490000000001",
+            "raw": {
+                "shipmentNo": "490000000001",
+                "trackingId": "AB1C234D",
+                "receiverPostalCode": "00-001",
+                "receiverName": "Example Recipient",
+                "senderName": "Example Sender",
+                "progressBarIdent": "DELIVERED",
+            },
+        }
+    ]
+    entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
+    entry.runtime_data.coordinator.current_tier_minutes = 45
+    entry.runtime_data.coordinator.update_interval = None
+
+    result = await async_get_config_entry_diagnostics(hass, entry)
+
+    assert result["entry_data"]["phone"] == REDACTED
+    assert result["entry_data"]["uid"] == REDACTED
+    assert result["entry_data"]["refresh_token"] == REDACTED
+    raw = result["incoming"][0]["raw"]
+    for key in (
+        "shipmentNo",
+        "trackingId",
+        "receiverPostalCode",
+        "receiverName",
+        "senderName",
+    ):
+        assert raw[key] == REDACTED, key
+    # The machine status is not personal and stays readable.
+    assert raw["progressBarIdent"] == "DELIVERED"
+    assert "secret-refresh" not in json.dumps(result)

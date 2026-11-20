@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
+from .account.countries import account_country
 from .const import (
     CONF_COUNTRY,
     CONF_POSTAL_CODE,
@@ -32,13 +33,14 @@ def build_device_info(entry: ConfigEntry) -> DeviceInfo:
     stopped uniquely identifying a hub: French and German postcodes can both
     read "39100".
 
-    A Danish account device has a fixed name: entity IDs derive from it, and
-    the account's email address must not end up in them.
+    An account device has a fixed per-country name: entity IDs derive from
+    it, and the account's email address or phone number must not end up in
+    them.
     """
     postal_code = entry.options.get(CONF_POSTAL_CODE, "")
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     if is_account_entry(entry):
-        name = "GLS Denmark"
+        name = account_country(entry).device_name
     else:
         name = f"GLS ({country} {postal_code})" if postal_code else "GLS"
     return DeviceInfo(

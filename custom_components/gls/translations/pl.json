@@ -17,11 +17,19 @@
         }
       },
       "dk": {
-        "title": "Sign in to GLS Denmark",
-        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Zaloguj się do GLS Dania",
+        "description": "Użyj tego samego adresu e-mail i hasła co w aplikacji GLS. Nowe paczki są wykrywane automatycznie. Hasło nie jest zapisywane.",
         "data": {
-          "email": "Email",
-          "password": "Password"
+          "email": "E-mail",
+          "password": "Hasło"
+        }
+      },
+      "pl": {
+        "title": "Zaloguj się do GLS Polska",
+        "description": "Użyj numeru telefonu (9 cyfr) i hasła z aplikacji myGLS. Nowe paczki są wykrywane automatycznie. Hasło nie jest zapisywane.",
+        "data": {
+          "phone": "Numer telefonu",
+          "password": "Hasło"
         }
       },
       "tracking": {
@@ -36,10 +44,10 @@
         }
       },
       "reauth_confirm": {
-        "title": "Sign in to GLS again",
-        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "title": "Zaloguj się ponownie do GLS",
+        "description": "Wprowadź ponownie hasło dla {identifier}, aby wznowić automatyczne śledzenie.",
         "data": {
-          "password": "Password"
+          "password": "Hasło"
         }
       }
     },
@@ -48,7 +56,9 @@
       "invalid_parcel_no": "To nie wygląda na numer przesyłki GLS ani identyfikator śledzenia.",
       "invalid_postcode": "Podaj prawidłowy kod pocztowy dla wybranego kraju, np. {postcode_example}.",
       "de_registration_failed": "Nie udało się zarejestrować anonimowej sesji GLS Niemcy. Sprawdź połączenie sieciowe i spróbuj ponownie.",
-      "invalid_auth": "Invalid email or password."
+      "invalid_auth": "GLS nie zaakceptował tych danych logowania. Sprawdź je i spróbuj ponownie.",
+      "invalid_phone": "Wpisz 9-cyfrowy numer telefonu, np. 600000000.",
+      "invalid_email": "Wpisz adres e-mail swojego konta GLS."
     },
     "abort": {
       "already_configured": "Hub GLS dla tego kodu pocztowego jest już skonfigurowany.",

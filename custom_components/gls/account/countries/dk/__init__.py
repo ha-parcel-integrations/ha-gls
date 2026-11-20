@@ -10,6 +10,9 @@ from urllib.parse import quote
 
 from ....const import HISTORY_MAX_EVENTS, TRACKING_URL, ParcelStatus
 from ....timeutils import parse_iso
+from ...errors import GlsAccountFeedError
+from ...feed import complete_items
+from ...normalize import pick, text as _text
 
 _LOGGER = logging.getLogger(__name__)
 _NEW_ISSUE_URL = (
@@ -62,30 +65,13 @@ _EVENT_FIELDS = frozenset(
 )
 
 
-def _scalar(value: Any) -> bool:
-    """Known fields may carry scalars, never unreviewed nested credentials."""
-    if isinstance(value, float) and not math.isfinite(value):
-        return False
-    return value is None or isinstance(value, (str, int, float, bool))
-
-
 def _safe_raw(raw: dict) -> dict:
     """Drop access material before the payload can enter attributes or events."""
-    result = {
-        key: value
-        for key, value in raw.items()
-        if key in _RAW_FIELDS and _scalar(value)
-    }
+    result = pick(raw, _RAW_FIELDS)
     events = raw.get("parcelStatusDtoList")
     if isinstance(events, list):
         result["parcelStatusDtoList"] = [
-            {
-                key: value
-                for key, value in event.items()
-                if key in _EVENT_FIELDS and _scalar(value)
-            }
-            for event in events
-            if isinstance(event, dict)
+            pick(event, _EVENT_FIELDS) for event in events if isinstance(event, dict)
         ]
     return result
 
@@ -116,11 +102,6 @@ def map_event_status_dk(event: dict) -> ParcelStatus | None:
     return status
 
 
-def _text(value: Any) -> str | None:
-    """Accept only a nonempty human-readable scalar string."""
-    return value.strip() or None if isinstance(value, str) else None
-
-
 def _events(raw: dict) -> list[tuple[datetime | None, dict]]:
     """Sort events by their own timestamps, keeping ties in carrier order."""
     events = raw.get("parcelStatusDtoList")
@@ -136,6 +117,36 @@ def _events(raw: dict) -> list[tuple[datetime | None, dict]]:
         key=lambda item: item[0] or datetime.min.replace(tzinfo=UTC),
         reverse=True,
     )
+
+
+def normalize_email_dk(value: str) -> str | None:
+    """Return the sign-in email as typed, minus surrounding whitespace."""
+    return value.strip() or None
+
+
+def parse_feed_dk(feed: Any, uid: str | None) -> list[tuple[str, dict]]:
+    """Return ``(number, raw)`` pairs from a complete, owned feed — or raise.
+
+    ``totalCount`` must equal the items actually returned, and every item must
+    belong to the signed-in identity: a partial or foreign list is rejected
+    before anything is published, so it can never become an empty account.
+    """
+    entries: list[tuple[str, dict]] = []
+    seen: set[str] = set()
+    for item in complete_items(feed, "totalCount"):
+        number = item.get("parcelNumber")
+        if (
+            not isinstance(number, str)
+            or not number.strip()
+            or number.strip() in seen
+            or item.get("userId") != uid
+        ):
+            raise GlsAccountFeedError(
+                "GLS account parcel identity could not be verified"
+            )
+        seen.add(number.strip())
+        entries.append((number.strip(), item))
+    return entries
 
 
 def normalize_parcel_dk(raw: dict, *, include_history: bool = False) -> dict:

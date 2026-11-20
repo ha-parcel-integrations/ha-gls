@@ -567,7 +567,7 @@ async def test_account_route_asks_for_the_country_before_signing_in(hass):
     assert result["type"] == "form"
     assert result["step_id"] == "account"
     country_key = next(k for k in result["data_schema"].schema if k == CONF_COUNTRY)
-    assert result["data_schema"].schema[country_key].config["options"] == ["dk"]
+    assert result["data_schema"].schema[country_key].config["options"] == ["dk", "pl"]
     assert country_key.default() == "dk"
     assert CONF_POSTAL_CODE not in result["data_schema"].schema
     result = await hass.config_entries.flow.async_configure(
@@ -582,7 +582,7 @@ async def test_danish_account_route_needs_no_postcode_and_discards_password(hass
     assert result["step_id"] == "dk"
     with (
         patch(
-            "custom_components.gls.config_flow.GlsDkSession.async_login",
+            "custom_components.gls.account.countries.dk.session.GlsDkSession.async_login",
             new=AsyncMock(return_value=_ACCOUNT_STATE),
         ),
         patch("custom_components.gls.async_setup_entry", return_value=True),
@@ -608,7 +608,7 @@ async def test_danish_account_login_errors_are_sanitized(hass, failure, error):
     result = await _open_account_flow(hass)
     exc = GlsDkAuthError("private") if failure == "auth" else GlsDkApiError("private")
     with patch(
-        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_login",
         new=AsyncMock(side_effect=exc),
     ):
         result = await hass.config_entries.flow.async_configure(
@@ -623,11 +623,12 @@ async def test_danish_account_duplicate_is_rejected(hass):
         domain=DOMAIN,
         unique_id="account:example-user",
         data={"source": "account", **_ACCOUNT_STATE},
+        options={CONF_COUNTRY: "DK"},
     )
     entry.add_to_hass(hass)
     result = await _open_account_flow(hass)
     with patch(
-        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_login",
         new=AsyncMock(return_value=_ACCOUNT_STATE),
     ):
         result = await hass.config_entries.flow.async_configure(
@@ -643,6 +644,7 @@ async def test_danish_account_reauth_updates_same_account_only(hass):
         domain=DOMAIN,
         unique_id="account:example-user",
         data={"source": "account", **_ACCOUNT_STATE},
+        options={CONF_COUNTRY: "DK"},
     )
     entry.add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
@@ -652,11 +654,11 @@ async def test_danish_account_reauth_updates_same_account_only(hass):
     )
     assert result["step_id"] == "reauth_confirm"
     assert list(result["data_schema"].schema) == ["password"]
-    assert result["description_placeholders"]["email"] == "parcel@example.test"
+    assert result["description_placeholders"]["identifier"] == "parcel@example.test"
     renewed = {**_ACCOUNT_STATE, "refresh_token": "rotated-refresh"}
     with (
         patch(
-            "custom_components.gls.config_flow.GlsDkSession.async_login",
+            "custom_components.gls.account.countries.dk.session.GlsDkSession.async_login",
             new=AsyncMock(return_value=renewed),
         ) as login,
         patch.object(
@@ -679,6 +681,7 @@ async def test_danish_account_reauth_cannot_switch_user(hass):
         domain=DOMAIN,
         unique_id="account:example-user",
         data={"source": "account", **_ACCOUNT_STATE},
+        options={CONF_COUNTRY: "DK"},
     )
     entry.add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
@@ -687,7 +690,7 @@ async def test_danish_account_reauth_cannot_switch_user(hass):
         data=entry.data,
     )
     with patch(
-        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_login",
         new=AsyncMock(return_value={**_ACCOUNT_STATE, "uid": "other-user"}),
     ):
         result = await hass.config_entries.flow.async_configure(
@@ -707,6 +710,7 @@ async def test_danish_account_reauth_errors_keep_the_password_form(
         domain=DOMAIN,
         unique_id="account:example-user",
         data={"source": "account", **_ACCOUNT_STATE},
+        options={CONF_COUNTRY: "DK"},
     )
     entry.add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
@@ -716,7 +720,7 @@ async def test_danish_account_reauth_errors_keep_the_password_form(
     )
     exc = GlsDkAuthError("private") if failure == "auth" else GlsDkApiError("private")
     with patch(
-        "custom_components.gls.config_flow.GlsDkSession.async_login",
+        "custom_components.gls.account.countries.dk.session.GlsDkSession.async_login",
         new=AsyncMock(side_effect=exc),
     ):
         result = await hass.config_entries.flow.async_configure(
@@ -761,7 +765,7 @@ async def test_danish_account_reauth_of_a_running_entry_reloads_it(hass):
     with (
         patch(_SESSION_FEED, new=feed),
         patch(
-            "custom_components.gls.config_flow.GlsDkSession.async_login",
+            "custom_components.gls.account.countries.dk.session.GlsDkSession.async_login",
             new=AsyncMock(return_value=renewed),
         ),
     ):
@@ -843,3 +847,116 @@ async def test_manual_hub_options_refresh_in_place_without_a_reload(hass):
         refresh.assert_awaited_once()
         assert entry.options[CONF_PARCELS] == [{CONF_PARCEL_NO: "EXAMPLE111111"}]
         assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+_PL_ACCOUNT_STATE = {
+    "uid": "pl-user",
+    "phone": "600000000",
+    "refresh_token": "pl-refresh",
+}
+_PL_LOGIN = (
+    "custom_components.gls.account.countries.pl.session.GlsPlSession.async_login"
+)
+
+
+async def _open_polish_account_flow(hass):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "account"}
+    )
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_COUNTRY: "pl"}
+    )
+
+
+async def test_polish_account_signs_in_with_phone(hass):
+    result = await _open_polish_account_flow(hass)
+    assert result["step_id"] == "pl"
+    assert list(result["data_schema"].schema) == ["phone", "password"]
+    with (
+        patch(_PL_LOGIN, new=AsyncMock(return_value=_PL_ACCOUNT_STATE)),
+        patch("custom_components.gls.async_setup_entry", return_value=True),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"phone": "600000000", "password": "private-password"},
+        )
+        await hass.async_block_till_done()
+    assert result["type"] == "create_entry"
+    assert result["title"] == "GLS Poland account"
+    assert result["data"] == {"source": "account", **_PL_ACCOUNT_STATE}
+    assert result["result"].unique_id == "account:pl-user"
+    assert result["options"][CONF_COUNTRY] == "PL"
+    assert "password" not in result["data"]
+
+
+async def test_polish_account_sends_the_nine_digit_form_of_a_typed_number(hass):
+    result = await _open_polish_account_flow(hass)
+    with (
+        patch(_PL_LOGIN, new=AsyncMock(return_value=_PL_ACCOUNT_STATE)) as login,
+        patch("custom_components.gls.async_setup_entry", return_value=True),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"phone": "+48 600 000 000", "password": "private-password"},
+        )
+        await hass.async_block_till_done()
+    login.assert_awaited_once_with("600000000", "private-password")
+    assert result["type"] == "create_entry"
+
+
+async def test_account_entry_stores_only_the_persisted_session_state(hass):
+    result = await _open_polish_account_flow(hass)
+    leaky = {**_PL_ACCOUNT_STATE, "access_token": "never-persisted"}
+    with (
+        patch(_PL_LOGIN, new=AsyncMock(return_value=leaky)),
+        patch("custom_components.gls.async_setup_entry", return_value=True),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"phone": "600000000", "password": "private-password"},
+        )
+        await hass.async_block_till_done()
+    assert result["data"] == {"source": "account", **_PL_ACCOUNT_STATE}
+
+
+async def test_polish_account_rejects_a_number_that_is_not_nine_digits(hass):
+    result = await _open_polish_account_flow(hass)
+    with patch(_PL_LOGIN, new=AsyncMock()) as login:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"phone": "12345", "password": "private-password"}
+        )
+    login.assert_not_awaited()
+    assert result["type"] == "form"
+    assert result["errors"] == {"phone": "invalid_phone"}
+
+
+async def test_polish_account_reauth_shows_phone_and_matches_identity(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="account:pl-user",
+        data={"source": "account", **_PL_ACCOUNT_STATE},
+        options={CONF_COUNTRY: "PL"},
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "reauth", "entry_id": entry.entry_id},
+        data=entry.data,
+    )
+    assert result["step_id"] == "reauth_confirm"
+    assert result["description_placeholders"]["identifier"] == "600000000"
+    renewed = {**_PL_ACCOUNT_STATE, "refresh_token": "rotated"}
+    with (
+        patch(_PL_LOGIN, new=AsyncMock(return_value=renewed)) as login,
+        patch.object(hass.config_entries, "async_reload", return_value=True),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"password": "new-password"}
+        )
+        await hass.async_block_till_done()
+    login.assert_awaited_once_with("600000000", "new-password")
+    assert result["reason"] == "reauth_successful"
+    assert entry.data["refresh_token"] == "rotated"

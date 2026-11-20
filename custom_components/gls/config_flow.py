@@ -13,22 +13,20 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from homeassistant.const import CONF_PASSWORD
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import voluptuous as vol
 
-from .account.countries.dk.session import GlsDkApiError, GlsDkAuthError, GlsDkSession
+from .account.countries import ACCOUNT_SOURCES, AccountCountry, account_country
+from .account.errors import GlsAccountApiError, GlsAccountAuthError
 from .const import (
-    ACCOUNT_COUNTRIES,
+    CONF_ACCOUNT_UID,
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
-    CONF_DK_EMAIL,
-    CONF_DK_REFRESH_TOKEN,
-    CONF_DK_UID,
     CONF_INCLUDE_HISTORY,
     CONF_PARCEL_NO,
     CONF_PARCELS,
@@ -74,10 +72,10 @@ _COUNTRY_SELECTOR = selector.SelectSelector(
 _ACCOUNT_SCHEMA = vol.Schema(
     {
         vol.Required(
-            CONF_COUNTRY, default=ACCOUNT_COUNTRIES[0].lower()
+            CONF_COUNTRY, default=next(iter(ACCOUNT_SOURCES)).lower()
         ): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=[code.lower() for code in ACCOUNT_COUNTRIES],
+                options=[code.lower() for code in ACCOUNT_SOURCES],
                 translation_key=CONF_COUNTRY,
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
@@ -236,7 +234,8 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Pick the country of the GLS account, then sign in to it."""
         if user_input is not None:
-            return await self.async_step_dk()
+            # One step per account country, so each keeps its own form text.
+            return await getattr(self, f"async_step_{user_input[CONF_COUNTRY]}")()
         return self.async_show_form(
             step_id=SOURCE_ACCOUNT,
             data_schema=_ACCOUNT_SCHEMA,
@@ -247,49 +246,84 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Authenticate an existing Danish GLS account without retaining its password."""
+        return await self._async_account_sign_in(ACCOUNT_SOURCES["DK"], user_input)
+
+    async def async_step_pl(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Authenticate an existing Polish GLS account without retaining its password."""
+        return await self._async_account_sign_in(ACCOUNT_SOURCES["PL"], user_input)
+
+    async def _async_account_sign_in(
+        self, country: AccountCountry, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        """Sign in to ``country``'s account and create its entry."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            session = GlsDkSession(async_get_clientsession(self.hass))
-            try:
-                state = await session.async_login(
-                    user_input[CONF_EMAIL].strip(), user_input[CONF_PASSWORD]
-                )
-            except GlsDkAuthError:
-                errors["base"] = "invalid_auth"
-            except (GlsDkApiError, aiohttp.ClientError):
-                errors["base"] = "cannot_connect"
+            identifier = country.normalize_login(user_input[country.login_field])
+            if identifier is None:
+                errors[country.login_field] = f"invalid_{country.login_field}"
             else:
-                await self.async_set_unique_id(f"{SOURCE_ACCOUNT}:{state['uid']}")
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title="GLS Denmark account",
-                    data={
-                        CONF_SOURCE: SOURCE_ACCOUNT,
-                        CONF_DK_UID: state["uid"],
-                        CONF_DK_EMAIL: state["email"],
-                        CONF_DK_REFRESH_TOKEN: state["refresh_token"],
-                    },
-                    options={
-                        CONF_COUNTRY: "DK",
-                        CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
-                        CONF_DELIVERED_FILTER_AMOUNT: DEFAULT_DELIVERED_FILTER_AMOUNT,
-                        CONF_INCLUDE_HISTORY: DEFAULT_INCLUDE_HISTORY,
-                    },
+                result = await self._async_account_create(
+                    country, identifier, user_input[CONF_PASSWORD], errors
                 )
+                if result is not None:
+                    return result
         return self.async_show_form(
-            step_id="dk",
+            step_id=country.code.lower(),
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_EMAIL): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.EMAIL
-                        )
+                    vol.Required(country.login_field): selector.TextSelector(
+                        selector.TextSelectorConfig(type=country.login_input_type)
                     ),
                     vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR,
                 }
             ),
             errors=errors,
         )
+
+    async def _async_account_create(
+        self,
+        country: AccountCountry,
+        identifier: str,
+        password: str,
+        errors: dict[str, str],
+    ) -> ConfigFlowResult | None:
+        """Sign in and create the entry; on failure fill ``errors``, return None."""
+        state = await self._async_account_login(country, identifier, password, errors)
+        if state is None:
+            return None
+        await self.async_set_unique_id(f"{SOURCE_ACCOUNT}:{state[CONF_ACCOUNT_UID]}")
+        self._abort_if_unique_id_configured()
+        return self.async_create_entry(
+            title=country.title,
+            data={CONF_SOURCE: SOURCE_ACCOUNT, **state},
+            options={
+                CONF_COUNTRY: country.code,
+                CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
+                CONF_DELIVERED_FILTER_AMOUNT: DEFAULT_DELIVERED_FILTER_AMOUNT,
+                CONF_INCLUDE_HISTORY: DEFAULT_INCLUDE_HISTORY,
+            },
+        )
+
+    async def _async_account_login(
+        self,
+        country: AccountCountry,
+        identifier: str,
+        password: str,
+        errors: dict[str, str],
+    ) -> dict[str, str] | None:
+        """Sign in; return the state to persist, or fill ``errors`` and None."""
+        session = country.create_session(async_get_clientsession(self.hass))
+        try:
+            state = await session.async_login(identifier, password)
+        except GlsAccountAuthError:
+            errors["base"] = "invalid_auth"
+            return None
+        except (GlsAccountApiError, aiohttp.ClientError):
+            errors["base"] = "cannot_connect"
+            return None
+        return country.persisted_state(state)
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Reauthenticate only an existing account entry."""
@@ -303,30 +337,22 @@ class GlsConfigFlow(ConfigFlow, domain=DOMAIN):
         """Ask for the stored account's password; never silently change accounts."""
         errors: dict[str, str] = {}
         entry = self._get_reauth_entry()
-        email = entry.data[CONF_DK_EMAIL]
+        country = account_country(entry)
+        identifier = entry.data[country.login_field]
         if user_input is not None:
-            session = GlsDkSession(async_get_clientsession(self.hass))
-            try:
-                state = await session.async_login(email, user_input[CONF_PASSWORD])
-            except GlsDkAuthError:
-                errors["base"] = "invalid_auth"
-            except (GlsDkApiError, aiohttp.ClientError):
-                errors["base"] = "cannot_connect"
-            else:
-                await self.async_set_unique_id(f"{SOURCE_ACCOUNT}:{state['uid']}")
-                self._abort_if_unique_id_mismatch(reason="reauth_account_mismatch")
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates={
-                        CONF_DK_UID: state["uid"],
-                        CONF_DK_EMAIL: state["email"],
-                        CONF_DK_REFRESH_TOKEN: state["refresh_token"],
-                    },
+            state = await self._async_account_login(
+                country, identifier, user_input[CONF_PASSWORD], errors
+            )
+            if state is not None:
+                await self.async_set_unique_id(
+                    f"{SOURCE_ACCOUNT}:{state[CONF_ACCOUNT_UID]}"
                 )
+                self._abort_if_unique_id_mismatch(reason="reauth_account_mismatch")
+                return self.async_update_reload_and_abort(entry, data_updates=state)
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=vol.Schema({vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR}),
-            description_placeholders={"email": email},
+            description_placeholders={"identifier": identifier},
             errors=errors,
         )
 
@@ -450,7 +476,7 @@ class GlsOptionsFlowHandler(OptionsFlow):
 
 
 class GlsAccountOptionsFlowHandler(GlsOptionsFlowHandler):
-    """Settings for a Danish account entry; its parcels come from the account."""
+    """Settings for an account entry; its parcels come from the account."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

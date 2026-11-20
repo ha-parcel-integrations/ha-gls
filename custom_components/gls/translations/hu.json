@@ -24,6 +24,14 @@
           "password": "Password"
         }
       },
+      "pl": {
+        "title": "Sign in to GLS Poland",
+        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "phone": "Phone number",
+          "password": "Password"
+        }
+      },
       "tracking": {
         "title": "GLS beállítása",
         "description": "Válaszd ki az országot, ahová a csomagjaidat szállítják, és a postai irányítószámot, ahová általában mennek. A csomagokat a beállítás után adhatod hozzá.\n\nNem szerepel az országod a listán? [Kérj másik országot]({issue_url}).",
@@ -37,7 +45,7 @@
       },
       "reauth_confirm": {
         "title": "Sign in to GLS again",
-        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "description": "Enter the password for {identifier} again to resume automatic tracking.",
         "data": {
           "password": "Password"
         }
@@ -48,7 +56,9 @@
       "invalid_parcel_no": "Ez nem tűnik GLS csomagszámnak vagy nyomkövetési azonosítónak.",
       "invalid_postcode": "Adj meg egy érvényes postai irányítószámot a kiválasztott országhoz, pl. {postcode_example}.",
       "de_registration_failed": "Nem sikerült anonim GLS Németország munkamenetet regisztrálni. Ellenőrizd a hálózati kapcsolatot, és próbáld újra.",
-      "invalid_auth": "Invalid email or password."
+      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
+      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
+      "invalid_email": "Enter the email address of your GLS account."
     },
     "abort": {
       "already_configured": "Ehhez a postai irányítószámhoz már be van állítva egy GLS hub.",
