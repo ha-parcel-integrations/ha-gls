@@ -117,7 +117,6 @@ def test_history_is_built_only_when_requested_and_sorted():
         ParcelStatus.DELIVERED,
     ]
     assert history[0]["raw_status"] == "W doręczeniu"
-    assert history[-1]["location"] == "Gdansk PL8300"
 
 
 def test_pin_and_courier_phone_never_reach_raw():

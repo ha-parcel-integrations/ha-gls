@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from custom_components.gls.account.countries.dk import normalize_parcel_dk
+from custom_components.gls.account.countries.pl import normalize_parcel_pl_account
+from custom_components.gls.account.countries.pl.session import DETAILS_KEY
 from custom_components.gls.const import ParcelStatus
 from custom_components.gls.delivery_window import (
     is_pickup,
@@ -83,7 +85,30 @@ def _pl(ident, *names):
     )
 
 
+def _account_pl(ident, *names):
+    statuses = [
+        {
+            "packageStatusName": name,
+            "packageStatusDate": f"2099-05-2{i + 1}T10:00:00Z",
+        }
+        for i, name in enumerate(names)
+    ]
+    return lambda: normalize_parcel_pl_account(
+        {
+            "shipmentNo": "490000000001",
+            "progressBarIdent": ident,
+            DETAILS_KEY: {
+                "trackingShipment": {},
+                "trackingShipmentPackages": [{"packageStatuses": statuses}],
+            },
+        },
+        include_history=True,
+    )
+
+
 SAMPLES = {
+    "pl_account_collected": _account_pl("DELIVERED", "Gotowa do odbioru", "Doręczona"),
+    "pl_account_home": _account_pl("DELIVERED", "W doręczeniu", "Doręczona"),
     "nl_active": _nl(),
     "nl_moment": _nl(deliveryStatus={"etaTimestampMin": "2099-05-22T13:00:00+02:00"}),
     "nl_delivered": _nl(4),
@@ -151,7 +176,9 @@ def test_pickup_is_a_bool_and_the_point_needs_it(parcel):
         assert parcel["pickup_point"] is None
 
 
-@pytest.mark.parametrize("name", ["group_collected", "pl_collected"])
+@pytest.mark.parametrize(
+    "name", ["group_collected", "pl_collected", "pl_account_collected"]
+)
 def test_a_collected_pickup_parcel_stays_pickup(name):
     parcel = SAMPLES[name]()
     assert parcel["status"] is ParcelStatus.DELIVERED
@@ -159,7 +186,7 @@ def test_a_collected_pickup_parcel_stays_pickup(name):
     assert parcel["pickup"] is True
 
 
-@pytest.mark.parametrize("name", ["group_home", "pl_home"])
+@pytest.mark.parametrize("name", ["group_home", "pl_home", "pl_account_home"])
 def test_a_home_delivery_is_not_pickup(name):
     assert SAMPLES[name]()["pickup"] is False
 

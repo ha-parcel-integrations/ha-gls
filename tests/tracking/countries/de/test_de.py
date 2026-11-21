@@ -944,3 +944,14 @@ def test_reported_top_level_keys_do_not_warn(caplog):
     with caplog.at_level("WARNING"):
         normalize_parcel_de(raw)
     assert not [m for m in caplog.messages if "top-level field" in m]
+
+
+def test_pickup_point_status_without_a_shop_block_is_still_pickup(monkeypatch):
+    monkeypatch.setattr(
+        de_module,
+        "map_parcel_status_de",
+        lambda *args, **kwargs: ParcelStatus.AT_PICKUP_POINT,
+    )
+    parcel = normalize_parcel_de(delivered_sample_de())
+    assert parcel["status"] == ParcelStatus.AT_PICKUP_POINT
+    assert parcel["pickup"] is True

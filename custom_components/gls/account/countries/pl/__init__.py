@@ -24,6 +24,7 @@ from typing import Any
 from urllib.parse import quote
 
 from ....const import COUNTRIES, HISTORY_MAX_EVENTS, ParcelStatus
+from ....delivery_window import is_pickup
 from ....timeutils import parse_iso
 from ....tracking.countries.pl import map_event_status_pl, map_parcel_status_pl
 from ...errors import GlsAccountFeedError
@@ -180,7 +181,11 @@ def normalize_parcel_pl_account(raw: dict, *, include_history: bool = False) -> 
             ParcelStatus.UNKNOWN,
         )
     delivered = status == ParcelStatus.DELIVERED
-    pickup = status == ParcelStatus.AT_PICKUP_POINT
+    pickup = is_pickup(
+        None,
+        status,
+        (map_event_status_pl(event.get("packageStatusName")) for _, event in statuses),
+    )
 
     # Only a delivered parcel has a delivery moment (the suite's shape). The
     # newest "delivered" event gives it; without details — or before any such
@@ -207,7 +212,6 @@ def normalize_parcel_pl_account(raw: dict, *, include_history: bool = False) -> 
                 "timestamp": moment.isoformat(),
                 "status": map_event_status_pl(event.get("packageStatusName")),
                 "raw_status": _text(event.get("packageStatusName")),
-                "location": _text(event.get("packageStatusPlace")),
             }
             for moment, event in statuses
             if moment is not None

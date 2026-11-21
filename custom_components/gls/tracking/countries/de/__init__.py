@@ -32,6 +32,7 @@ from ....const import (
     GlsApiError,
     ParcelStatus,
 )
+from ....delivery_window import is_pickup
 from .session import GlsDeSession
 
 _LOGGER = logging.getLogger(__name__)
@@ -619,7 +620,8 @@ def normalize_parcel_de(
     events.reverse()  # newest-first on the wire -> oldest-first canonical
     history = _build_history_de(events) if include_history else None
 
-    pickup, pickup_point = _pickup(raw)
+    shop_flag, pickup_point = _pickup(raw)
+    pickup = is_pickup(shop_flag, status)
 
     parcel_number = raw.get("parcelNumber") or raw.get("trackingReference")
     url = TRACKING_URL.format(parcel_no=parcel_number) if parcel_number else None
@@ -636,7 +638,7 @@ def normalize_parcel_de(
         "planned_from": None,
         "planned_to": None,
         "pickup": pickup,
-        "pickup_point": pickup_point,
+        "pickup_point": pickup_point if pickup else None,
         "url": url,
         "weight": None,
         "dimensions": None,
