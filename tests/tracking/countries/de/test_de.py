@@ -868,3 +868,34 @@ def test_unconfirmed_text_stays_unknown():
         raw_status="Das Paket ist unterwegs.",
     )
     assert status == ParcelStatus.UNKNOWN
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "Die Paketdaten wurden im GLS IT-System erfasst; das Paket wurde "
+            "noch nicht an GLS übergeben.",
+            ParcelStatus.REGISTERED,
+        ),
+        ("Das Paket wurde durch GLS übernommen.", ParcelStatus.IN_TRANSIT),
+        ("Das Paket ist im Paketzentrum eingetroffen.", ParcelStatus.IN_TRANSIT),
+    ],
+)
+def test_confirmed_in_flight_texts_map_without_pairing_log(caplog, text, expected):
+    raw = delivered_sample_de()
+    raw["deliveredAt"] = None
+    raw["latestStatusText"] = text
+    with caplog.at_level("WARNING"):
+        parcel = normalize_parcel_de(raw)
+    assert parcel["status"] == expected
+    assert not [m for m in caplog.messages if "pairing" in m.lower()]
+
+
+def test_reported_top_level_keys_do_not_warn(caplog):
+    raw = delivered_sample_de()
+    raw["hasAIRerouted"] = False
+    raw["unlockKey"] = None
+    with caplog.at_level("WARNING"):
+        normalize_parcel_de(raw)
+    assert not [m for m in caplog.messages if "top-level field" in m]

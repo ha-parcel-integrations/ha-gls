@@ -233,6 +233,10 @@ _STATUS_TEXT_MAP: dict[str, ParcelStatus] = {
     "Das Paket wird voraussichtlich im Laufe des Tages zugestellt.": (
         ParcelStatus.OUT_FOR_DELIVERY
     ),
+    "Die Paketdaten wurden im GLS IT-System erfasst; das Paket wurde noch "
+    "nicht an GLS übergeben.": ParcelStatus.REGISTERED,
+    "Das Paket wurde durch GLS übernommen.": ParcelStatus.IN_TRANSIT,
+    "Das Paket ist im Paketzentrum eingetroffen.": ParcelStatus.IN_TRANSIT,
 }
 
 # A `DELIVERED_TO_*` member mentioning one of these is the ParcelShop variant
@@ -345,6 +349,9 @@ _KNOWN_TOP_LEVEL_KEYS = {
     # replacement. Also surfaced one genuinely new field, still only ever
     # seen `null`:
     "changeDeliveryUrl",
+    # Reported via this WARNING (ha-gls#24), key names and types only:
+    "hasAIRerouted",
+    "unlockKey",
 }
 
 
