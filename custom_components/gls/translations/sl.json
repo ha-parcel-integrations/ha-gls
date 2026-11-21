@@ -24,6 +24,14 @@
           "password": "Password"
         }
       },
+      "pl": {
+        "title": "Sign in to GLS Poland",
+        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "phone": "Phone number",
+          "password": "Password"
+        }
+      },
       "tracking": {
         "title": "Nastavitev GLS",
         "description": "Izberite državo dostave vaših pošiljk in poštno številko, kamor običajno prihajajo. Pošiljke dodate po nastavitvi.\n\nVaše države ni na seznamu? [Zahtevajte drugo državo]({issue_url}).",
@@ -37,7 +45,7 @@
       },
       "reauth_confirm": {
         "title": "Sign in to GLS again",
-        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "description": "Enter the password for {identifier} again to resume automatic tracking.",
         "data": {
           "password": "Password"
         }
@@ -48,7 +56,9 @@
       "invalid_parcel_no": "To ni videti kot številka pošiljke ali sledilna koda GLS.",
       "invalid_postcode": "Vnesite veljavno poštno številko za izbrano državo, npr. {postcode_example}.",
       "de_registration_failed": "Anonimne seje GLS Nemčija ni bilo mogoče registrirati. Preverite omrežno povezavo in poskusite znova.",
-      "invalid_auth": "Invalid email or password."
+      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
+      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
+      "invalid_email": "Enter the email address of your GLS account."
     },
     "abort": {
       "already_configured": "Vozlišče GLS za to poštno številko je že nastavljeno.",

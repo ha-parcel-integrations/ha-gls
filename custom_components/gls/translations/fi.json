@@ -24,6 +24,14 @@
           "password": "Password"
         }
       },
+      "pl": {
+        "title": "Sign in to GLS Poland",
+        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "phone": "Phone number",
+          "password": "Password"
+        }
+      },
       "tracking": {
         "title": "GLS:n määritys",
         "description": "Valitse maa, johon pakettisi toimitetaan, ja postinumero, johon ne yleensä menevät. Paketit lisätään määrityksen jälkeen.\n\nEikö maatasi ole luettelossa? [Pyydä uutta maata]({issue_url}).",
@@ -37,7 +45,7 @@
       },
       "reauth_confirm": {
         "title": "Sign in to GLS again",
-        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "description": "Enter the password for {identifier} again to resume automatic tracking.",
         "data": {
           "password": "Password"
         }
@@ -48,7 +56,9 @@
       "invalid_parcel_no": "Tämä ei näytä GLS:n pakettinumerolta tai seurantatunnukselta.",
       "invalid_postcode": "Anna valitulle maalle kelvollinen postinumero, esim. {postcode_example}.",
       "de_registration_failed": "Anonyymin GLS Saksa -istunnon rekisteröinti ei onnistunut. Tarkista verkkoyhteytesi ja yritä uudelleen.",
-      "invalid_auth": "Invalid email or password."
+      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
+      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
+      "invalid_email": "Enter the email address of your GLS account."
     },
     "abort": {
       "already_configured": "Tälle postinumerolle on jo määritetty GLS-hub.",

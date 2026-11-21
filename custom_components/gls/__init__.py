@@ -11,13 +11,10 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .account.coordinator import GlsAccountCoordinator
-from .account.countries.dk.session import GlsDkSession
+from .account.countries import AccountSession, account_country
 from .const import (
     CONF_COUNTRY,
     CONF_DE_APP_INSTANCE_ID,
-    CONF_DK_EMAIL,
-    CONF_DK_REFRESH_TOKEN,
-    CONF_DK_UID,
     CONF_PARCELS,
     CONF_POSTAL_CODE,
     COUNTRIES,
@@ -39,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 class GlsData:
     """Runtime data attached to a GLS config entry."""
 
-    client: GlsApiClient | GlsDkSession
+    client: GlsApiClient | AccountSession
     coordinator: GlsBaseCoordinator
     de_session: GlsDeSession | None = None
     # The options as last applied, so an entry write that only rotated DE
@@ -53,7 +50,7 @@ type GlsConfigEntry = ConfigEntry[GlsData]
 async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Set up GLS from a config entry."""
     if is_account_entry(entry):
-        return await _async_setup_dk_account(hass, entry)
+        return await _async_setup_account(hass, entry)
     country = entry.options.get(CONF_COUNTRY, DEFAULT_COUNTRY)
     postal_code = entry.options.get(CONF_POSTAL_CODE)
 
@@ -154,26 +151,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     return True
 
 
-async def _async_setup_dk_account(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
+async def _async_setup_account(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     """Restore an account session before loading the shared entity platforms."""
+    country = account_country(entry)
 
     @callback
     def token_updated(state: dict) -> None:
-        updates = {
-            CONF_DK_UID: state["uid"],
-            CONF_DK_REFRESH_TOKEN: state["refresh_token"],
-        }
-        if state.get("email"):
-            updates[CONF_DK_EMAIL] = state["email"]
-        data = {**entry.data, **updates}
+        # A restored session never knows its sign-in identifier (it is learned
+        # at sign-in only); ``persisted_state`` drops that empty value, so the
+        # stored one is kept.
+        data = {**entry.data, **country.persisted_state(state)}
         if data != entry.data:
             hass.config_entries.async_update_entry(entry, data=data)
 
-    session = GlsDkSession(
-        async_get_clientsession(hass),
-        uid=entry.data.get(CONF_DK_UID),
-        refresh_token=entry.data.get(CONF_DK_REFRESH_TOKEN),
-        token_updated=token_updated,
+    session = country.create_session(
+        async_get_clientsession(hass), entry.data, token_updated
     )
     coordinator = GlsAccountCoordinator(hass, session, entry)
     await coordinator.async_config_entry_first_refresh()

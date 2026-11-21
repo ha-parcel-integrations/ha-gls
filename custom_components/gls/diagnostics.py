@@ -27,6 +27,11 @@ TO_REDACT = {
     "receiverContact",
     "receiverAddress",
     "receiverZipCode",
+    # GLS Poland's spellings of the same recipient data, and the account's
+    # sign-in phone number stored in the entry data.
+    "receiverPostalCode",
+    "trackingId",
+    "phone",
     "receiverCity",
     "receiverEmail",
     "shareParcelLink",

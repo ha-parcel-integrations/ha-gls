@@ -24,6 +24,14 @@
           "password": "Password"
         }
       },
+      "pl": {
+        "title": "Sign in to GLS Poland",
+        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "data": {
+          "phone": "Phone number",
+          "password": "Password"
+        }
+      },
       "tracking": {
         "title": "Socraigh GLS",
         "description": "Roghnaigh an tír a seachadtar do phacáistí chuici agus an cód poist a mbíonn sé i gceist leis go hiondúil. Cuireann tú pacáistí leis tar éis an socrú.\n\nNach bhfuil do thír ar an liosta? [Iarr tír eile]({issue_url}).",
@@ -37,7 +45,7 @@
       },
       "reauth_confirm": {
         "title": "Sign in to GLS again",
-        "description": "Enter the password for {email} again to resume automatic tracking.",
+        "description": "Enter the password for {identifier} again to resume automatic tracking.",
         "data": {
           "password": "Password"
         }
@@ -48,7 +56,9 @@
       "invalid_parcel_no": "Ní cosúil gur uimhir phacáiste GLS ná aitheantas rianaithe é sin.",
       "invalid_postcode": "Cuir isteach cód poist bailí don tír roghnaithe, m.sh. {postcode_example}.",
       "de_registration_failed": "Níorbh fhéidir seisiún gan ainm le GLS Gearmáine a chlárú. Seiceáil do nasc líonra agus bain triail eile as.",
-      "invalid_auth": "Invalid email or password."
+      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
+      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
+      "invalid_email": "Enter the email address of your GLS account."
     },
     "abort": {
       "already_configured": "Tá mol GLS don chód poist seo socraithe cheana féin.",

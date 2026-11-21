@@ -11,6 +11,12 @@ from urllib.parse import quote
 
 import aiohttp
 
+from ....const import CONF_ACCOUNT_REFRESH_TOKEN, CONF_ACCOUNT_UID
+from ...errors import GlsAccountApiError, GlsAccountAuthError
+
+# The session-state key, and the ``entry.data`` key, holding the sign-in email.
+LOGIN_FIELD = "email"
+
 DEFAULT_API_KEY = "AIzaSyDLiC4OY7FPufiaVk1cwMYkUHcV8O1cH_I"
 _IDENTITY_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
 _REFRESH_URL = "https://securetoken.googleapis.com/v1/token"
@@ -33,24 +39,12 @@ _AUTH_ERRORS = frozenset(
 )
 
 
-class GlsDkApiError(Exception):
-    """A transient request or invalid response; messages contain no remote values."""
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        status_code: int | None = None,
-        retry_after: int | None = None,
-    ) -> None:
-        """Keep safe status metadata for the coordinator's backoff."""
-        super().__init__(message)
-        self.status_code = status_code
-        self.retry_after = retry_after
+class GlsDkApiError(GlsAccountApiError):
+    """A transient Danish request or invalid response."""
 
 
-class GlsDkAuthError(GlsDkApiError):
-    """The account needs the user to sign in again."""
+class GlsDkAuthError(GlsDkApiError, GlsAccountAuthError):
+    """The Danish account needs the user to sign in again."""
 
 
 def _required_string(data: dict, key: str) -> str:
@@ -101,9 +95,9 @@ class GlsDkSession:
     def _state(self) -> dict[str, str]:
         """Return only the state the owner must persist across restarts."""
         return {
-            "uid": self.uid or "",
-            "email": self.email or "",
-            "refresh_token": self.refresh_token or "",
+            CONF_ACCOUNT_UID: self.uid or "",
+            LOGIN_FIELD: self.email or "",
+            CONF_ACCOUNT_REFRESH_TOKEN: self.refresh_token or "",
         }
 
     async def _request(

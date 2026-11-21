@@ -1,12 +1,14 @@
 """Tests for GLS setup and unload."""
 
-from unittest.mock import AsyncMock, patch
+from dataclasses import replace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.gls.account.countries import ACCOUNT_SOURCES
 from custom_components.gls.account.countries.dk.session import (
     GlsDkApiError,
     GlsDkAuthError,
@@ -420,10 +422,12 @@ async def test_account_setup_registers_update_listener_that_ignores_rotation(has
     session = GlsDkSession(
         None, uid="example-firebase-user", refresh_token="original-refresh"
     )
+    constructor = MagicMock(return_value=session)
     with (
-        patch(
-            "custom_components.gls.GlsDkSession", return_value=session
-        ) as constructor,
+        patch.dict(
+            ACCOUNT_SOURCES,
+            {"DK": replace(ACCOUNT_SOURCES["DK"], session_class=constructor)},
+        ),
         patch.object(
             session,
             "async_get_parcels",
@@ -457,6 +461,19 @@ async def test_account_setup_registers_update_listener_that_ignores_rotation(has
             )
             await hass.async_block_till_done()
             refresh.assert_not_awaited()
+            # Only uid, refresh token and the sign-in identifier are ever
+            # persisted: a session growing new state cannot leak it here.
+            token_updated(
+                {
+                    "uid": "example-firebase-user",
+                    "refresh_token": "rotated-refresh",
+                    "access_token": "never-persisted",
+                    "password": "never-persisted",
+                }
+            )
+            await hass.async_block_till_done()
+            assert "access_token" not in entry.data
+            assert "password" not in entry.data
         assert await hass.config_entries.async_unload(entry.entry_id)
         await hass.async_block_till_done()
 
