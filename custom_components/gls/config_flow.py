@@ -394,11 +394,19 @@ class GlsOptionsFlowHandler(OptionsFlow):
             if any(not valid_parcel_no(code) for code in codes):
                 errors["base"] = "invalid_parcel_no"
             if not errors:
+                # Kept codes keep their stored item: Germany's learned
+                # parcelNumber lives there and cannot be recovered on its own.
+                existing = {
+                    item[CONF_PARCEL_NO]: item
+                    for item in _current_parcels(self.config_entry)
+                }
                 return self.async_create_entry(
                     title="",
                     data={
                         **self.config_entry.options,
-                        CONF_PARCELS: [{CONF_PARCEL_NO: code} for code in codes],
+                        CONF_PARCELS: [
+                            existing.get(code, {CONF_PARCEL_NO: code}) for code in codes
+                        ],
                     },
                 )
         current_codes = [

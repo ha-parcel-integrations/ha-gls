@@ -733,8 +733,53 @@ async def test_add_returns_none_on_semantic_404():
     assert result is None
 
 
-async def test_add_409_without_a_cached_parcel_number_raises():
-    session = _session_with(_ctx(409, {"displayableMessage": "already tracking"}))
+async def test_add_409_recovers_the_parcel_number_from_the_tracked_list():
+    session = _session_with(
+        _ctx(409, {"displayableMessage": "already tracking"}),
+        _ctx(
+            200,
+            {
+                "pageInfo": {"totalElements": 2},
+                "trackings": [
+                    {"trackingReference": "000000000000", "parcelNumber": "OTHER"},
+                    {"trackingReference": "075624238061", "parcelNumber": "YOXVB8CE"},
+                ],
+            },
+        ),
+        _ctx(200, delivered_sample_de()),
+    )
+    body = await async_get_parcel_de(session, _de_session(), "075624238061", "00000")
+    assert body["parcelNumber"] == "YOXVB8CE"
+    list_call, get_call = session.request.call_args_list[1:]
+    assert list_call.args == ("GET", de_module.GLS_DE_TRACKINGS_ADD_URL)
+    assert get_call.args[0] == "GET"
+    assert get_call.args[1].endswith("/YOXVB8CE")
+    assert de_module._known_parcel_numbers["075624238061"] == "YOXVB8CE"
+
+
+async def test_add_409_raises_when_the_tracked_list_lacks_the_parcel():
+    session = _session_with(
+        _ctx(409, {"displayableMessage": "already tracking"}),
+        _ctx(
+            200,
+            {
+                "pageInfo": {"totalElements": 1},
+                "trackings": [
+                    {"trackingReference": "000000000000", "parcelNumber": "OTHER"},
+                    "not-a-dict",
+                ],
+            },
+        ),
+    )
+    with pytest.raises(GlsApiError):
+        await async_get_parcel_de(session, _de_session(), "075624238061", "00000")
+
+
+async def test_add_409_raises_when_the_tracked_list_fails():
+    session = _session_with(
+        _ctx(409, {"displayableMessage": "already tracking"}),
+        _ctx(500),
+    )
     with pytest.raises(GlsApiError):
         await async_get_parcel_de(session, _de_session(), "075624238061", "00000")
 

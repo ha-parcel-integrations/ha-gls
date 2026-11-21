@@ -849,6 +849,29 @@ async def test_manual_hub_options_refresh_in_place_without_a_reload(hass):
         assert await hass.config_entries.async_unload(entry.entry_id)
 
 
+async def test_parcels_step_keeps_the_stored_item_of_a_kept_code(hass):
+    kept = {CONF_PARCEL_NO: "075624238061", "de_parcel_number": "YOXVB8CE"}
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="NL:1234AB",
+        options={
+            CONF_COUNTRY: "NL",
+            CONF_POSTAL_CODE: "1234AB",
+            CONF_PARCELS: [kept, {CONF_PARCEL_NO: "EXAMPLE222222"}],
+        },
+    )
+    entry.add_to_hass(hass)
+    result = await _open_options_step(hass, entry, "parcels")
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"tracking_codes": ["075624238061", "EXAMPLE111111"]}
+    )
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_PARCELS] == [
+        kept,
+        {CONF_PARCEL_NO: "EXAMPLE111111"},
+    ]
+
+
 _PL_ACCOUNT_STATE = {
     "uid": "pl-user",
     "phone": "600000000",

@@ -54,16 +54,10 @@ _ACCEPT_LANGUAGE = "de-DE"
 
 # trackingReference -> parcelNumber, learned from the first successful add
 # (POST -> 200). A repeat POST for an already-tracked parcel answers 409
-# with no body, so later polls use GET-by-parcelNumber instead — one poll
-# per parcel. In-process only — resets on restart, same lifetime as
-# the coordinator's own `_raw_cache`. A cold restart hitting 409 for a
-# parcel this instance already tracks from a *previous* session has no way
-# to recover `parcelNumber` from the 409 body alone; that surfaces as a
-# GlsApiError(409) below and is absorbed by the coordinator's existing
-# cached/pending-placeholder handling, same as any other transient failure.
-# Durably persisting `parcelNumber` (e.g. alongside `entry.options
-# [CONF_PARCELS]`) is coordinator.py/config_flow.py work, deliberately not
-# part of this change.
+# with no usable body, so later polls use GET-by-parcelNumber instead — one
+# poll per parcel. Seeded from persisted state by the coordinator before
+# every poll; a 409 without a known number is recovered from the
+# instance's tracked list (see `_async_find_tracked_parcel_number`).
 _known_parcel_numbers: dict[str, str] = {}
 
 
@@ -157,11 +151,36 @@ async def _async_add_parcel(
         # backend can't resolve) — mirrors NL's 204 -> None.
         return None
     if status == 409:
-        # Already tracked, but this call site never learned its
-        # parcelNumber (see the module cache note above) — nothing in a 409
-        # body identifies it. Surface as a fetch error.
-        raise GlsApiError(status)
+        # Already tracked, and nothing in a 409 body identifies the parcel.
+        # The instance's own tracked list does, while it is not archived.
+        parcel_number = await _async_find_tracked_parcel_number(
+            session, de_session, tracking_reference
+        )
+        if parcel_number is None:
+            raise GlsApiError(status)
+        return await _async_get_by_parcel_number(session, de_session, parcel_number)
     raise GlsApiError(status)
+
+
+async def _async_find_tracked_parcel_number(
+    session: aiohttp.ClientSession,
+    de_session: GlsDeSession,
+    tracking_reference: str,
+) -> str | None:
+    """``GET /api/v1/trackings`` — this instance's tracked list, searched by reference."""
+    body, status = await _async_request(
+        session, de_session, "GET", GLS_DE_TRACKINGS_ADD_URL
+    )
+    if status != 200 or not isinstance(body, dict):
+        return None
+    wanted = tracking_reference.strip().upper()
+    for item in body.get("trackings") or []:
+        if not isinstance(item, dict):
+            continue
+        reference = str(item.get("trackingReference") or "").strip().upper()
+        if reference == wanted and item.get("parcelNumber"):
+            return item["parcelNumber"]
+    return None
 
 
 async def _async_get_by_parcel_number(

@@ -342,7 +342,14 @@ config entry's `appInstanceId` and bearer token.
   `_prepare_de_poll` seeds it from the `parcelNumber` persisted per tracked
   parcel (`CONF_DE_PARCEL_NUMBER`) before every poll. It only ever `setdefault`s,
   never clobbering a value already learned this session; the cache stays owned
-  by `tracking/countries/de/__init__.py`.
+  by `tracking/countries/de/__init__.py`. Every write of the parcel list —
+  the options flow included — keeps a kept code's stored item, or that value
+  is lost.
+- **A `409` without a known `parcelNumber` is recovered, not surfaced.** The
+  transport reads the instance's tracked list (`GET /api/v1/trackings`), finds
+  the parcel by `trackingReference` and fetches it by its `parcelNumber`. That
+  list leaves out archived parcels, so only those still end in a fetch error
+  (the cached payload keeps the sensor).
 - **`_persist_de_state` runs after the poll** and writes back any newly-learned
   `parcelNumber`. It goes through `async_update_entry`, which — once the update
   listener is registered, i.e. after the first refresh — triggers one extra
