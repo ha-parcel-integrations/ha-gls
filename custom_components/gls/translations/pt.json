@@ -17,19 +17,19 @@
         }
       },
       "dk": {
-        "title": "Sign in to GLS Denmark",
-        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Iniciar sessão na GLS Dinamarca",
+        "description": "Usa o mesmo email e palavra-passe da app GLS. As novas encomendas são detetadas automaticamente. A tua palavra-passe não é guardada.",
         "data": {
           "email": "Email",
-          "password": "Password"
+          "password": "Palavra-passe"
         }
       },
       "pl": {
-        "title": "Sign in to GLS Poland",
-        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Iniciar sessão na GLS Polónia",
+        "description": "Usa o número de telefone (9 dígitos) e a palavra-passe da app myGLS. As novas encomendas são detetadas automaticamente. A tua palavra-passe não é guardada.",
         "data": {
-          "phone": "Phone number",
-          "password": "Password"
+          "phone": "Número de telefone",
+          "password": "Palavra-passe"
         }
       },
       "tracking": {
@@ -44,10 +44,10 @@
         }
       },
       "reauth_confirm": {
-        "title": "Sign in to GLS again",
-        "description": "Enter the password for {identifier} again to resume automatic tracking.",
+        "title": "Iniciar sessão na GLS novamente",
+        "description": "Introduz novamente a palavra-passe de {identifier} para retomar o seguimento automático.",
         "data": {
-          "password": "Password"
+          "password": "Palavra-passe"
         }
       }
     },
@@ -56,15 +56,15 @@
       "invalid_parcel_no": "Isto não parece um número de encomenda nem um ID de seguimento da GLS.",
       "invalid_postcode": "Introduz um código postal válido para o país selecionado, p. ex. {postcode_example}.",
       "de_registration_failed": "Não foi possível registar uma sessão anónima da GLS Alemanha. Verifica a tua ligação de rede e tenta novamente.",
-      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
-      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
-      "invalid_email": "Enter the email address of your GLS account."
+      "invalid_auth": "A GLS não aceitou estes dados de início de sessão. Verifica-os e tenta novamente.",
+      "invalid_phone": "Introduz um número de telefone polaco com 9 dígitos, p. ex. 600000000.",
+      "invalid_email": "Introduz o endereço de email da tua conta GLS."
     },
     "abort": {
-      "already_configured": "Já existe um hub GLS configurado para este código postal.",
-      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
-      "reauth_successful": "Reauthentication was successful.",
-      "reauth_not_supported": "This GLS hub does not use an account login."
+      "already_configured": "Já existe um hub GLS configurado para este código postal ou esta conta GLS.",
+      "reauth_account_mismatch": "Inicia sessão com a conta GLS que já está configurada.",
+      "reauth_successful": "A reautenticação foi bem-sucedida.",
+      "reauth_not_supported": "Este hub GLS não usa início de sessão com conta."
     }
   },
   "options": {

@@ -25,11 +25,11 @@
         }
       },
       "pl": {
-        "title": "Sign in to GLS Poland",
-        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Log ind på GLS Polen",
+        "description": "Brug telefonnummeret (9 cifre) og adgangskoden fra myGLS-appen. Nye pakker bliver tilføjet automatisk. Adgangskoden gemmes ikke.",
         "data": {
-          "phone": "Phone number",
-          "password": "Password"
+          "phone": "Telefonnummer",
+          "password": "Adgangskode"
         }
       },
       "tracking": {
@@ -57,11 +57,11 @@
       "invalid_postcode": "Indtast et gyldigt postnummer for det valgte land, f.eks. {postcode_example}.",
       "de_registration_failed": "Kunne ikke registrere en anonym GLS Tyskland-session. Kontrollér din netværksforbindelse og prøv igen.",
       "invalid_auth": "GLS afviste loginoplysningerne. Kontrollér dem, og prøv igen.",
-      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
+      "invalid_phone": "Indtast et 9-cifret polsk telefonnummer, f.eks. 600000000.",
       "invalid_email": "Indtast e-mailadressen til din GLS-konto."
     },
     "abort": {
-      "already_configured": "Der er allerede opsat et GLS-hub for dette postnummer.",
+      "already_configured": "Der er allerede opsat et GLS-hub for dette postnummer eller denne GLS-konto.",
       "reauth_account_mismatch": "Log ind med den GLS-konto, der allerede er konfigureret.",
       "reauth_successful": "Du er logget ind igen.",
       "reauth_not_supported": "Denne GLS-forbindelse bruger ikke kontologin."

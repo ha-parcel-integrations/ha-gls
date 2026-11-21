@@ -17,19 +17,19 @@
         }
       },
       "dk": {
-        "title": "Sign in to GLS Denmark",
-        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Prijava v GLS Danska",
+        "description": "Uporabite isti e-poštni naslov in geslo kot v aplikaciji GLS. Nove pošiljke se zaznajo samodejno. Vaše geslo se ne shrani.",
         "data": {
-          "email": "Email",
-          "password": "Password"
+          "email": "E-pošta",
+          "password": "Geslo"
         }
       },
       "pl": {
-        "title": "Sign in to GLS Poland",
-        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Prijava v GLS Poljska",
+        "description": "Uporabite telefonsko številko (9 števk) in geslo iz aplikacije myGLS. Nove pošiljke se zaznajo samodejno. Vaše geslo se ne shrani.",
         "data": {
-          "phone": "Phone number",
-          "password": "Password"
+          "phone": "Telefonska številka",
+          "password": "Geslo"
         }
       },
       "tracking": {
@@ -44,10 +44,10 @@
         }
       },
       "reauth_confirm": {
-        "title": "Sign in to GLS again",
-        "description": "Enter the password for {identifier} again to resume automatic tracking.",
+        "title": "Znova se prijavite v GLS",
+        "description": "Znova vnesite geslo za {identifier}, da nadaljujete samodejno sledenje.",
         "data": {
-          "password": "Password"
+          "password": "Geslo"
         }
       }
     },
@@ -56,15 +56,15 @@
       "invalid_parcel_no": "To ni videti kot številka pošiljke ali sledilna koda GLS.",
       "invalid_postcode": "Vnesite veljavno poštno številko za izbrano državo, npr. {postcode_example}.",
       "de_registration_failed": "Anonimne seje GLS Nemčija ni bilo mogoče registrirati. Preverite omrežno povezavo in poskusite znova.",
-      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
-      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
-      "invalid_email": "Enter the email address of your GLS account."
+      "invalid_auth": "GLS teh podatkov za prijavo ni sprejel. Preverite jih in poskusite znova.",
+      "invalid_phone": "Vnesite 9-mestno poljsko telefonsko številko, npr. 600000000.",
+      "invalid_email": "Vnesite e-poštni naslov svojega računa GLS."
     },
     "abort": {
-      "already_configured": "Vozlišče GLS za to poštno številko je že nastavljeno.",
-      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
-      "reauth_successful": "Reauthentication was successful.",
-      "reauth_not_supported": "This GLS hub does not use an account login."
+      "already_configured": "Vozlišče GLS za to poštno številko ali ta račun GLS je že nastavljeno.",
+      "reauth_account_mismatch": "Prijavite se z računom GLS, ki je že nastavljen.",
+      "reauth_successful": "Ponovno preverjanje pristnosti je uspelo.",
+      "reauth_not_supported": "To vozlišče GLS ne uporablja prijave v račun."
     }
   },
   "options": {

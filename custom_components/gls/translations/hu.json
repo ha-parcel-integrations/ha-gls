@@ -17,19 +17,19 @@
         }
       },
       "dk": {
-        "title": "Sign in to GLS Denmark",
-        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Bejelentkezés: GLS Dánia",
+        "description": "Ugyanazt az e-mail-címet és jelszót használd, mint a GLS alkalmazásban. Az új csomagok automatikusan megjelennek. A jelszavadat nem tároljuk.",
         "data": {
-          "email": "Email",
-          "password": "Password"
+          "email": "E-mail",
+          "password": "Jelszó"
         }
       },
       "pl": {
-        "title": "Sign in to GLS Poland",
-        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Bejelentkezés: GLS Lengyelország",
+        "description": "A myGLS alkalmazás telefonszámát (9 számjegy) és jelszavát használd. Az új csomagok automatikusan megjelennek. A jelszavadat nem tároljuk.",
         "data": {
-          "phone": "Phone number",
-          "password": "Password"
+          "phone": "Telefonszám",
+          "password": "Jelszó"
         }
       },
       "tracking": {
@@ -44,10 +44,10 @@
         }
       },
       "reauth_confirm": {
-        "title": "Sign in to GLS again",
-        "description": "Enter the password for {identifier} again to resume automatic tracking.",
+        "title": "Jelentkezz be újra a GLS-be",
+        "description": "Add meg újra a(z) {identifier} jelszavát az automatikus követés folytatásához.",
         "data": {
-          "password": "Password"
+          "password": "Jelszó"
         }
       }
     },
@@ -56,15 +56,15 @@
       "invalid_parcel_no": "Ez nem tűnik GLS csomagszámnak vagy nyomkövetési azonosítónak.",
       "invalid_postcode": "Adj meg egy érvényes postai irányítószámot a kiválasztott országhoz, pl. {postcode_example}.",
       "de_registration_failed": "Nem sikerült anonim GLS Németország munkamenetet regisztrálni. Ellenőrizd a hálózati kapcsolatot, és próbáld újra.",
-      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
-      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
-      "invalid_email": "Enter the email address of your GLS account."
+      "invalid_auth": "A GLS nem fogadta el ezeket a bejelentkezési adatokat. Ellenőrizd őket, és próbáld újra.",
+      "invalid_phone": "Adj meg egy 9 számjegyű lengyel telefonszámot, pl. 600000000.",
+      "invalid_email": "Add meg a GLS-fiókod e-mail-címét."
     },
     "abort": {
-      "already_configured": "Ehhez a postai irányítószámhoz már be van állítva egy GLS hub.",
-      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
-      "reauth_successful": "Reauthentication was successful.",
-      "reauth_not_supported": "This GLS hub does not use an account login."
+      "already_configured": "Ehhez a postai irányítószámhoz vagy GLS-fiókhoz már be van állítva egy GLS hub.",
+      "reauth_account_mismatch": "A már beállított GLS-fiókkal jelentkezz be.",
+      "reauth_successful": "Az újrahitelesítés sikeres volt.",
+      "reauth_not_supported": "Ez a GLS hub nem használ fiókos bejelentkezést."
     }
   },
   "options": {

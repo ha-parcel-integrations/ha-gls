@@ -17,19 +17,19 @@
         }
       },
       "dk": {
-        "title": "Sign in to GLS Denmark",
-        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Kirjaudu palveluun GLS Tanska",
+        "description": "Käytä samaa sähköpostiosoitetta ja salasanaa kuin GLS-sovelluksessa. Uudet paketit tunnistetaan automaattisesti. Salasanaasi ei tallenneta.",
         "data": {
-          "email": "Email",
-          "password": "Password"
+          "email": "Sähköposti",
+          "password": "Salasana"
         }
       },
       "pl": {
-        "title": "Sign in to GLS Poland",
-        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Kirjaudu palveluun GLS Puola",
+        "description": "Käytä myGLS-sovelluksen puhelinnumeroa (9 numeroa) ja salasanaa. Uudet paketit tunnistetaan automaattisesti. Salasanaasi ei tallenneta.",
         "data": {
-          "phone": "Phone number",
-          "password": "Password"
+          "phone": "Puhelinnumero",
+          "password": "Salasana"
         }
       },
       "tracking": {
@@ -44,10 +44,10 @@
         }
       },
       "reauth_confirm": {
-        "title": "Sign in to GLS again",
-        "description": "Enter the password for {identifier} again to resume automatic tracking.",
+        "title": "Kirjaudu GLS:ään uudelleen",
+        "description": "Anna tilin {identifier} salasana uudelleen, jotta automaattinen seuranta jatkuu.",
         "data": {
-          "password": "Password"
+          "password": "Salasana"
         }
       }
     },
@@ -56,15 +56,15 @@
       "invalid_parcel_no": "Tämä ei näytä GLS:n pakettinumerolta tai seurantatunnukselta.",
       "invalid_postcode": "Anna valitulle maalle kelvollinen postinumero, esim. {postcode_example}.",
       "de_registration_failed": "Anonyymin GLS Saksa -istunnon rekisteröinti ei onnistunut. Tarkista verkkoyhteytesi ja yritä uudelleen.",
-      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
-      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
-      "invalid_email": "Enter the email address of your GLS account."
+      "invalid_auth": "GLS ei hyväksynyt näitä kirjautumistietoja. Tarkista ne ja yritä uudelleen.",
+      "invalid_phone": "Anna 9-numeroinen puolalainen puhelinnumero, esim. 600000000.",
+      "invalid_email": "Anna GLS-tilisi sähköpostiosoite."
     },
     "abort": {
-      "already_configured": "Tälle postinumerolle on jo määritetty GLS-hub.",
-      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
-      "reauth_successful": "Reauthentication was successful.",
-      "reauth_not_supported": "This GLS hub does not use an account login."
+      "already_configured": "Tälle postinumerolle tai GLS-tilille on jo määritetty GLS-hub.",
+      "reauth_account_mismatch": "Kirjaudu GLS-tilillä, joka on jo määritetty.",
+      "reauth_successful": "Uudelleentodennus onnistui.",
+      "reauth_not_supported": "Tämä GLS-hub ei käytä tilille kirjautumista."
     }
   },
   "options": {

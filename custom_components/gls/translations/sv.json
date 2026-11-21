@@ -17,19 +17,19 @@
         }
       },
       "dk": {
-        "title": "Sign in to GLS Denmark",
-        "description": "Use the same email and password as the GLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Logga in på GLS Danmark",
+        "description": "Använd samma e-postadress och lösenord som i GLS-appen. Nya paket hittas automatiskt. Ditt lösenord sparas inte.",
         "data": {
-          "email": "Email",
-          "password": "Password"
+          "email": "E-post",
+          "password": "Lösenord"
         }
       },
       "pl": {
-        "title": "Sign in to GLS Poland",
-        "description": "Use the phone number (9 digits) and password from the myGLS app. New parcels are discovered automatically. Your password is not stored.",
+        "title": "Logga in på GLS Polen",
+        "description": "Använd telefonnumret (9 siffror) och lösenordet från myGLS-appen. Nya paket hittas automatiskt. Ditt lösenord sparas inte.",
         "data": {
-          "phone": "Phone number",
-          "password": "Password"
+          "phone": "Telefonnummer",
+          "password": "Lösenord"
         }
       },
       "tracking": {
@@ -44,10 +44,10 @@
         }
       },
       "reauth_confirm": {
-        "title": "Sign in to GLS again",
-        "description": "Enter the password for {identifier} again to resume automatic tracking.",
+        "title": "Logga in på GLS igen",
+        "description": "Ange lösenordet för {identifier} igen för att återuppta den automatiska spårningen.",
         "data": {
-          "password": "Password"
+          "password": "Lösenord"
         }
       }
     },
@@ -56,15 +56,15 @@
       "invalid_parcel_no": "Det ser inte ut som ett GLS-paketnummer eller spårnings-ID.",
       "invalid_postcode": "Ange ett giltigt postnummer för det valda landet, t.ex. {postcode_example}.",
       "de_registration_failed": "Kunde inte registrera en anonym session hos GLS Tyskland. Kontrollera din nätverksanslutning och försök igen.",
-      "invalid_auth": "GLS did not accept these sign-in details. Check them and try again.",
-      "invalid_phone": "Enter a 9-digit Polish phone number, e.g. 600000000.",
-      "invalid_email": "Enter the email address of your GLS account."
+      "invalid_auth": "GLS godkände inte de här inloggningsuppgifterna. Kontrollera dem och försök igen.",
+      "invalid_phone": "Ange ett polskt telefonnummer med 9 siffror, t.ex. 600000000.",
+      "invalid_email": "Ange e-postadressen till ditt GLS-konto."
     },
     "abort": {
-      "already_configured": "En GLS-hubb för det här postnummret är redan konfigurerad.",
-      "reauth_account_mismatch": "Sign in with the GLS account that is already configured.",
-      "reauth_successful": "Reauthentication was successful.",
-      "reauth_not_supported": "This GLS hub does not use an account login."
+      "already_configured": "En GLS-hubb för det här postnumret eller det här GLS-kontot är redan konfigurerad.",
+      "reauth_account_mismatch": "Logga in med det GLS-konto som redan är konfigurerat.",
+      "reauth_successful": "Återautentiseringen lyckades.",
+      "reauth_not_supported": "Den här GLS-hubben använder inte kontoinloggning."
     }
   },
   "options": {
