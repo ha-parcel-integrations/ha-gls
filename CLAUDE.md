@@ -88,40 +88,29 @@ registry-parity test enforces it. The reauth form passes a generic
 `{identifier}` placeholder (email for DK, phone for PL), not `{email}`.
 
 **Poland is Azure AD B2C, not Firebase, and ships no extracted secret.**
-`account/countries/pl/session.py` reproduces the app's OAuth auth-code + PKCE
-web flow headlessly. Load-bearing quirks confirmed on the wire — don't
-"simplify" them: the browser steps run on a **throwaway cookie-isolated
-`ClientSession`** (B2C cookies carry a `|` the shared jar drops); `tx` and
-`csrf_token` go on the URL with a **literal `=`**, not `%3D`; the redirect URI
-is already-percent-encoded (`%2B`/`%2F`/`%3D`) and encoded once more on the
-wire. The myGLS API needs **no `X-Api-Key` and no HMAC signature** — only the
-bearer plus a `sessionid` header — but a token is accepted only after a one-time
-`POST /user/session` registers a client-minted `sessionId` UUID (the backend
-validates it as `deviceId`, but the **JSON key is `sessionId`**). Status and
-history reuse `tracking/countries/pl/`'s `map_parcel_status_pl` /
-`map_event_status_pl` — don't duplicate the maps — and an unrecognised
-`progressBarIdent` falls back to the newest mapped event, exactly as on the
-manual route (the shared mapper's warning promises it). During sign-in, only
-`SelfAsserted`'s `"400"` refusal is `GlsPlAuthError`; unreadable B2C markup,
-any other verdict, a `confirmed` step without a code and a refused code
-exchange are retryable `GlsPlApiError` (after sign-in, a refused refresh token or a changed identity
-is still `GlsPlAuthError`). A details call that fails transiently reuses that
-parcel's last good details; a failed refresh during it propagates to reauth,
-and a 401/403 that survives the forced refresh fails the whole poll — never
-one more refresh per parcel. `delivered_at` is set only for a delivered parcel
-(newest delivered event, else the feed's `stateDate`). Every request, the B2C
-web steps included, sends the app User-Agent: the authorize page answers HA's,
-the app's and none identically, and a real sign-in + feed completed with the
-app one (2026-11-20), so there is no browser User-Agent. `pickup_point` stays `None` until a
-populated `parcelShop` is seen on the wire — don't parse a guessed shape. The
-locker `pin` and `courierPhoneNumber` must never reach `raw`, attributes or events (an allowlist
-enforces it). The device is named `GLS Poland`. The stored phone is the 9-digit
-dialling form (what `SelfAsserted` expects): `normalize_phone_pl` strips
-separators and a `+48`/`0048` prefix and rejects anything else
-(`invalid_phone`). It is never the token's `+48…` `name` claim. Entry data
-holds only `uid`, `refresh_token` and the row's `login_field`:
-`AccountCountry.persisted_state` filters every write — entry creation, reauth
-and token rotation alike.
+`account/countries/pl/session.py` runs the app's sign-in headlessly. Its odd
+bits (the throwaway cookie-isolated `ClientSession`, the literal `=` in `tx`/
+`csrf_token`, the double-encoded redirect URI, `sessionId` as the JSON key) are
+confirmed on the wire: **don't "simplify" them.** Mechanics are in
+`carrier-research/gls/api/gls-pl-account.md`. Decisions that hold here:
+
+- **Reauth only on a real refusal.** At sign-in, only `SelfAsserted`'s `"400"`
+  is `GlsPlAuthError`; every other sign-in failure is a retryable
+  `GlsPlApiError`. After sign-in, a refused refresh token or a changed
+  identity is `GlsPlAuthError`.
+- **Details failures.** A transient details failure reuses that parcel's last
+  good details. A 401/403 that survives the forced refresh fails the whole
+  poll; never refresh again per parcel.
+- **Reuse the manual maps.** Status and history use `tracking/countries/pl/`'s
+  maps, with the same newest-mapped-event fallback. Don't duplicate them.
+- **`delivered_at`** is set only on a delivered parcel.
+- **`pickup_point`** stays `None` until a populated `parcelShop` is seen.
+- **Never published:** the locker `pin` and `courierPhoneNumber` never reach
+  `raw`, attributes or events (allowlist).
+- **Device and phone.** The device is named `GLS Poland`. The stored phone is
+  the 9-digit national form, never the token's `+48…` claim.
+- **Entry data** holds only `uid`, `refresh_token` and the row's
+  `login_field`, filtered by `AccountCountry.persisted_state` on every write.
 
 **Options apply live, never by reload**, for manual hubs and Danish account
 entries alike. An update listener (`_async_options_updated`) calls

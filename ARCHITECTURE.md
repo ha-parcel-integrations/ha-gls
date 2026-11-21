@@ -136,43 +136,30 @@ creation, reauth, token rotation) goes through `AccountCountry.persisted_state`
 — so Danish entries keep the keys they were released with.
 
 The two account countries authenticate differently. **Denmark** is a Firebase
-email/password login. **Poland** is Azure AD B2C: the mobile app drives an
-OAuth authorization-code + PKCE flow through a hidden web view, which
-`account/countries/pl/session.py` reproduces headlessly (authorize → read
-`csrf`/`transId` → `SelfAsserted` with phone + password → `confirmed` → token).
-That browser flow runs on a throwaway, cookie-isolated client session because
-B2C's anti-forgery cookies carry a `|` the shared jar drops and its `tx`/
-`csrf_token` query values must keep a literal `=`. The myGLS API needs **no app
-key and no request signature** — only the bearer token and a per-session
-`sessionid` header — but the backend keeps a server-side session, so the token
-is accepted only after a one-time `POST /user/session` registers a
-client-minted `sessionId` UUID (the backend validates it under the field name
-`deviceId`, yet the JSON key is `sessionId`). The paged feed gives status and
-numbers; a per-parcel details call adds weight and the Polish history, whose two
-status vocabularies are reused from `tracking/countries/pl/` — including the
-manual route's rule that an unrecognised shipment code falls back to the newest
+email/password login. **Poland** is Azure AD B2C: `account/countries/pl/session.py`
+runs the app's OAuth authorization-code + PKCE sign-in headlessly, on a
+throwaway cookie-isolated client session, then registers a server-side device
+session once before the bearer is accepted. The API needs no app key and no
+request signature. The endpoints and their quirks are in
+`carrier-research/gls/api/gls-pl-account.md`.
+
+The paged feed gives status and numbers. A per-parcel details call adds weight
+and the Polish history, mapped with the two vocabularies from
+`tracking/countries/pl/`, including the manual route's fallback to the newest
 mapped event. A transient details failure reuses that parcel's last good
 details (cached per `trackingUid` in the session, pruned when it leaves the
-feed); a failed refresh during it goes to reauth, and a 401/403 that survives
+feed). A failed refresh during it goes to reauth, and a 401/403 that survives
 the one forced refresh fails the poll instead of refreshing again per parcel.
-During sign-in, only B2C's own credential refusal (`SelfAsserted` `"400"`)
-means wrong credentials; changed markup, a throttled answer or a refused code
-exchange after the credentials were accepted is retryable.
-`delivered_at` follows the suite's shape — set only when the parcel is
-delivered, from the newest delivered event or else the feed's `stateDate`.
-Every request, the B2C web steps included, carries the app User-Agent: the
-authorize page answered it, Home Assistant's own and no User-Agent identically,
-and a real sign-in and feed fetch completed with it (2026-11-20), so the
-conventions leave no case for a browser one. `pickup_point` is not parsed: `parcelShop` has
-never been seen populated on an account parcel. The locker `pin` and the
-courier phone never reach `raw`, attributes or events.
+During sign-in, only B2C's own credential refusal means wrong credentials;
+anything else is retryable. `delivered_at` is set only when the parcel is
+delivered. `pickup_point` is not parsed, and the locker `pin` and the courier's
+phone never reach `raw`, attributes or events.
 
-Unlike Denmark's, a Polish feed row carries no owner field, so there is no
-per-row ownership check: the endpoint is scoped to the bearer token. A repeated
-`shipmentNo` keeps the first row rather than failing the poll (Denmark, which
-can verify ownership, still rejects a repeat). The phone is stored in the
-9-digit form `SelfAsserted` expects; the config flow normalizes `+48`, `0048`
-and separators away and rejects anything else.
+A Polish feed row carries no owner field, because the endpoint is scoped to the
+bearer token, so there is no per-row ownership check. A repeated `shipmentNo`
+keeps the first row; Denmark, which can verify ownership, still rejects a
+repeat. The phone is stored as the 9-digit national number; the config flow
+strips `+48`, `0048` and separators and rejects anything else.
 
 `entry.data["source"] == "account"` selects automatic incoming-package
 discovery; `"tracking"` (or a missing source) is tracking by number. Account
