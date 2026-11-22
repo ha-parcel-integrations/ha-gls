@@ -14,6 +14,7 @@ from custom_components.gls.account.countries.dk.session import (
     GlsDkApiError,
     GlsDkAuthError,
 )
+from custom_components.gls.account.countries.pl.session import GlsPlApiError
 from custom_components.gls.const import (
     CONF_COUNTRY,
     CONF_DELIVERED_FILTER_AMOUNT,
@@ -164,6 +165,30 @@ async def test_backend_rejection_is_retried_not_reauthenticated(hass, status):
     with pytest.raises(UpdateFailed) as failure:
         await coordinator._async_update_data()
     assert failure.value.retry_after is None
+
+
+@pytest.mark.parametrize(
+    ("error", "message"),
+    [
+        (
+            GlsDkApiError("GLS Denmark request was rejected", status_code=503),
+            "GLS account could not be refreshed: "
+            "GLS Denmark request was rejected (HTTP 503)",
+        ),
+        (
+            GlsPlApiError("GLS Poland token response was not readable"),
+            "GLS account could not be refreshed: "
+            "GLS Poland token response was not readable",
+        ),
+    ],
+)
+async def test_failure_names_the_step_and_status(hass, error, message):
+    """HA logs one line per failure; it has to say which step failed."""
+    coordinator, session = account(hass)
+    session.async_get_parcels.side_effect = error
+    with pytest.raises(UpdateFailed) as failure:
+        await coordinator._async_update_data()
+    assert str(failure.value) == message
 
 
 async def test_account_feed_is_read_whole_so_nothing_is_skipped_from_the_fetch(hass):

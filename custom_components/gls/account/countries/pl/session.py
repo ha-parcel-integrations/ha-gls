@@ -265,11 +265,31 @@ class GlsPlSession:
             self._token_updated(self._state())
         return access
 
+    @contextlib.asynccontextmanager
+    async def _token_client(self) -> AsyncIterator[aiohttp.ClientSession]:
+        """A cookieless client for the token endpoint, on the shared pool.
+
+        Home Assistant's shared cookie jar keeps B2C's SSO cookie
+        (``x-ms-cpim-sso:…``) and sends it back. With it attached, a valid
+        refresh token was seen (2026-11-21) to get B2C's HTML exception page,
+        status 200, on every try until Home Assistant restarted. The app sends
+        no cookies to this endpoint, so neither do we. (The sign-in's browser
+        steps keep their own throwaway client: they carry B2C's cookies by hand
+        and live only for one sign-in.)
+        """
+        async with aiohttp.ClientSession(
+            cookie_jar=aiohttp.DummyCookieJar(),
+            connector=self._session.connector,
+            connector_owner=False,
+        ) as client:
+            yield client
+
     async def _b2c_token(self, data: dict[str, str]) -> dict:
         """POST the token endpoint and sort auth failures from transient ones."""
         async with (
+            self._token_client() as client,
             _guarded("GLS Poland token request failed"),
-            self._session.post(
+            client.post(
                 _TOKEN,
                 data=data,
                 headers={"User-Agent": _APP_UA, "Accept": "*/*"},
@@ -277,9 +297,20 @@ class GlsPlSession:
             ) as response,
         ):
             status = response.status
+            content_type = response.content_type
             body = await self._read_json(response)
         if status == 200 and isinstance(body, dict):
             return body
+        if status == 200:
+            # A success status without a JSON object is not a refusal (B2C
+            # serves its HTML exception page this way): report it apart so it
+            # cannot be mistaken for one. Only the content type is logged —
+            # the body may hold tokens.
+            _LOGGER.debug(
+                "GLS Poland token endpoint answered 200 with %s, not JSON",
+                content_type,
+            )
+            raise GlsPlApiError("GLS Poland token response was not readable")
         code = body.get("error") if isinstance(body, dict) else None
         if isinstance(code, str) and code in _AUTH_ERROR_CODES:
             raise GlsPlAuthError("GLS Poland credentials were rejected")

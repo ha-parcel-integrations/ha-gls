@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,6 +18,28 @@ from custom_components.gls.account.countries.pl.session import (
     GlsPlSession,
 )
 
+# Captured before the autouse fixture below replaces it.
+_REAL_TOKEN_CLIENT = GlsPlSession._token_client
+
+
+@pytest.fixture(autouse=True)
+def _token_on_shared_mock():
+    """Route token calls through the mocked shared client.
+
+    So every test here sees the token endpoint on ``client.post``, not the
+    real cookieless client. A test about how token calls go out (cookies,
+    connector) must restore ``_REAL_TOKEN_CLIENT`` itself, as the
+    ``*_carries_no_shared_cookies`` tests do.
+    """
+
+    @contextlib.asynccontextmanager
+    async def shared(self):
+        yield self._session
+
+    with patch.object(GlsPlSession, "_token_client", shared):
+        yield
+
+
 UID = "c3b2d5ba-5c1f-4184-af2e-synthetic"
 PHONE = "600000000"
 
@@ -28,6 +51,14 @@ def _jwt(sub=UID, name=f"+48{PHONE}"):
         .decode()
     )
     return f"hdr.{payload}.sig"
+
+
+def _async_cm(value):
+    """An ``async with`` context manager that yields ``value``."""
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=value)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    return cm
 
 
 def _api_ctx(status=200, body=None):
@@ -42,10 +73,7 @@ def _api_ctx(status=200, body=None):
         yield content
 
     response.content.iter_chunked = stream
-    ctx = MagicMock()
-    ctx.__aenter__ = AsyncMock(return_value=response)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    return ctx
+    return _async_cm(response)
 
 
 class _Headers:
@@ -65,10 +93,7 @@ def _text_ctx(text="", location=None):
     response.history = ()
     response.headers = _Headers(location)
     response.text = AsyncMock(return_value=text)
-    ctx = MagicMock()
-    ctx.__aenter__ = AsyncMock(return_value=response)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    return ctx
+    return _async_cm(response)
 
 
 def _token_body(access=None, refresh="refresh-two", expires_in=3600):
@@ -126,6 +151,73 @@ async def test_backend_5xx_on_token_is_retryable():
     with pytest.raises(GlsPlApiError) as err:
         await session.async_get_token()
     assert not isinstance(err.value, GlsPlAuthError)
+
+
+async def test_unreadable_200_on_token_is_retryable_not_a_refusal():
+    client = MagicMock()
+    client.post = MagicMock(side_effect=[_api_ctx(status=200, body=None)])
+    session = GlsPlSession(client, uid=UID, refresh_token="r1")
+    with pytest.raises(GlsPlApiError) as err:
+        await session.async_get_token()
+    assert not isinstance(err.value, GlsPlAuthError)
+    assert str(err.value) == "GLS Poland token response was not readable"
+    assert err.value.status_code is None
+    assert session.refresh_token == "r1"
+
+
+def _cookieless_client_cm(response_body):
+    client = MagicMock()
+    client.post = MagicMock(side_effect=[_api_ctx(body=response_body)])
+    return _async_cm(client)
+
+
+def _assert_cookieless(factory, shared):
+    kwargs = factory.call_args.kwargs
+    assert isinstance(kwargs["cookie_jar"], aiohttp.DummyCookieJar)
+    assert kwargs["connector"] is shared.connector
+    assert kwargs["connector_owner"] is False
+    shared.post.assert_not_called()
+
+
+async def test_token_refresh_carries_no_shared_cookies():
+    """B2C's SSO cookie in HA's shared jar broke every refresh until restart."""
+    shared = MagicMock()
+    session = GlsPlSession(shared, uid=UID, refresh_token="r1")
+    with (
+        patch.object(GlsPlSession, "_token_client", _REAL_TOKEN_CLIENT),
+        patch.object(
+            session_module.aiohttp,
+            "ClientSession",
+            return_value=_cookieless_client_cm(_token_body()),
+        ) as factory,
+    ):
+        assert await session.async_get_token() == _jwt()
+    _assert_cookieless(factory, shared)
+
+
+async def test_code_exchange_carries_no_shared_cookies():
+    """Sign-in's code exchange goes through the same cookieless client."""
+    shared = MagicMock()
+    session = GlsPlSession(shared)
+    with (
+        patch.object(GlsPlSession, "_token_client", _REAL_TOKEN_CLIENT),
+        patch.object(
+            GlsPlSession,
+            "_b2c_authorize",
+            AsyncMock(return_value=("code", "verifier")),
+        ),
+        patch.object(
+            session_module.aiohttp,
+            "ClientSession",
+            side_effect=[
+                _async_cm(MagicMock()),  # the sign-in's browser client
+                _cookieless_client_cm(_token_body()),
+            ],
+        ) as factory,
+    ):
+        await session.async_login(PHONE, "secret")
+    _assert_cookieless(factory, shared)
+    assert session.uid == UID
 
 
 async def test_identity_change_is_auth_error():
@@ -386,10 +478,7 @@ def _text_ctx_cookie(text="", location=None, set_cookie=None):
     response.history = ()
     response.headers = _CookieHeaders(location, set_cookie)
     response.text = AsyncMock(return_value=text)
-    ctx = MagicMock()
-    ctx.__aenter__ = AsyncMock(return_value=response)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    return ctx
+    return _async_cm(response)
 
 
 async def test_jwt_with_corrupt_payload_errors():

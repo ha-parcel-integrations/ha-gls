@@ -94,6 +94,11 @@ bits (the throwaway cookie-isolated `ClientSession`, the literal `=` in `tx`/
 confirmed on the wire: **don't "simplify" them.** Mechanics are in
 `carrier-research/gls/api/gls-pl-account.md`. Decisions that hold here:
 
+- **Token calls never carry the shared jar.** Every token-endpoint request
+  (refresh and code exchange) goes through `_token_client`, a cookieless
+  client on the shared pool: the B2C SSO cookie HA's shared jar picked up
+  broke every refresh until HA restarted (2026-11-21). A non-JSON `200` is
+  "not readable", never a refusal.
 - **Reauth only on a real refusal.** At sign-in, only `SelfAsserted`'s `"400"`
   is `GlsPlAuthError`; every other sign-in failure is a retryable
   `GlsPlApiError`. After sign-in, a refused refresh token or a changed
