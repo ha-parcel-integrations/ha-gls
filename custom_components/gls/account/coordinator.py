@@ -31,8 +31,12 @@ class GlsAccountCoordinator(GlsBaseCoordinator):
         except GlsAccountAuthError as err:
             raise ConfigEntryAuthFailed("GLS account requires sign-in") from err
         except GlsAccountApiError as err:
+            # ``GlsAccountApiError``'s contract: fixed text and a status code,
+            # never a remote value — so both are safe to surface, and without
+            # them HA's one-line "Error fetching" log hides which step failed.
+            status = f" (HTTP {err.status_code})" if err.status_code else ""
             raise UpdateFailed(
-                "GLS account could not be refreshed",
+                f"GLS account could not be refreshed: {err}{status}",
                 retry_after=(err.retry_after or 3600)
                 if err.status_code == 429
                 else None,
