@@ -143,6 +143,13 @@ session once before the bearer is accepted. The API needs no app key and no
 request signature. The endpoints and their quirks are in
 `carrier-research/gls/api/gls-pl-account.md`.
 
+Every token-endpoint call, refresh and code exchange alike, also runs on a
+cookieless client (on the shared connection pool), because the app sends no
+cookies there and the B2C SSO cookie Home Assistant's shared jar picked up broke
+every refresh until Home Assistant restarted. Reloading the entry keeps that
+jar, which is why it never helped (2026-11-21). A `200` that is not JSON is
+reported as unreadable, never as a refusal.
+
 The paged feed gives status and numbers. A per-parcel details call adds weight
 and the Polish history, mapped with the two vocabularies from
 `tracking/countries/pl/`, including the manual route's fallback to the newest
