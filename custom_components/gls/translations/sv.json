@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Postnummer",
           "description": "Postnummer för leverans. Väljer hubben när flera är konfigurerade; annars används den enda hubben."
+        },
+        "contents": {
+          "name": "Innehåll",
+          "description": "Vad som finns i paketet, med dina egna ord. Om du anropar den igen för ett spårat paket ersätts innehållet; en tom text rensar det."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Spårningskod",
           "description": "GLS-spårningsnummret som ska slutas spåras."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Uppdatera paketets innehåll",
+      "description": "Ange vad som finns i ett paket, med dina egna ord, för ett spårningsnummer. En tom text rensar innehållet.",
+      "fields": {
+        "tracking_code": {
+          "name": "Spårningskod",
+          "description": "GLS-paketnummret eller spårnings-ID:t."
+        },
+        "contents": {
+          "name": "Innehåll",
+          "description": "Vad som finns i paketet, med dina egna ord. En tom text rensar det."
+        },
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Kontot som värdet sparas för. Krävs när inget konto känner till koden än."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Paket {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Inget konto känner till den här koden. Välj kontot att spara den för."
     }
   }
 }

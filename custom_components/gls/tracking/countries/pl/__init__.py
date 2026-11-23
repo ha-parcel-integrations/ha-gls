@@ -354,6 +354,7 @@ def normalize_parcel_pl(
         # integration deliberately does not use.
         "sender": None,
         "receiver": None,
+        "contents": None,
         "status": status,
         "raw_status": raw_status,
         "delivered": delivered,

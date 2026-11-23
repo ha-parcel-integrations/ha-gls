@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Cód poist",
           "description": "Cód poist an seachadta. Roghnaíonn sé an mol nuair atá níos mó ná ceann amháin socraithe; thairis sin úsáidtear an t-aon mhol atá ann."
+        },
+        "contents": {
+          "name": "Ábhar",
+          "description": "Cad atá sa phacáiste, i d'fhocail féin. Má ghlaonn tú arís é do phacáiste atá á rianú, cuirtear ábhar nua in ionad an ábhair; glanann téacs folamh é."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Cód rianaithe",
           "description": "An uimhir rianaithe GLS nach bhfuil le rianú a thuilleadh."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Nuashonraigh ábhar an phacáiste",
+      "description": "Socraigh, i d'fhocail féin, cad atá i bpacáiste le cód rianaithe. Glanann téacs folamh an t-ábhar.",
+      "fields": {
+        "tracking_code": {
+          "name": "Cód rianaithe",
+          "description": "Uimhir phacáiste GLS nó an aitheantas rianaithe."
+        },
+        "contents": {
+          "name": "Ábhar",
+          "description": "Cad atá sa phacáiste, i d'fhocail féin. Glanann téacs folamh é."
+        },
+        "config_entry_id": {
+          "name": "Cuntas",
+          "description": "An cuntas ar chóir an luach a shábháil dó. Riachtanach nuair nach bhfuil an cód ar eolas ag aon chuntas go fóill."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Pacáiste {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Níl an cód seo ar eolas ag aon chuntas. Roghnaigh an cuntas lena shábháil."
     }
   }
 }

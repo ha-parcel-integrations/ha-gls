@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Postnummer",
           "description": "Leveringspostnummer. Vælger hubben, når der er opsat flere; ellers bruges det eneste hub."
+        },
+        "contents": {
+          "name": "Indhold",
+          "description": "Hvad der er i pakken, med dine egne ord. Hvis du kalder den igen for en fulgt pakke, erstattes indholdet; en tom tekst rydder det."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Sporingskode",
           "description": "Det GLS-sporingsnummer, der ikke længere skal spores."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Opdater pakkens indhold",
+      "description": "Angiv med dine egne ord, hvad der er i en pakke, for et sporingsnummer. En tom tekst rydder indholdet.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sporingskode",
+          "description": "GLS-pakkenummeret eller sporings-id."
+        },
+        "contents": {
+          "name": "Indhold",
+          "description": "Hvad der er i pakken, med dine egne ord. En tom tekst rydder det."
+        },
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Kontoen, som værdien gemmes for. Kræves, når ingen konto kender koden endnu."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Pakke {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Ingen konto kender denne kode. Vælg den konto, den skal gemmes for."
     }
   }
 }

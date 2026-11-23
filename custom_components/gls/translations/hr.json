@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Poštanski broj",
           "description": "Poštanski broj dostave. Odabire čvor kada je postavljeno više njih; inače zadano koristi jedini dostupni čvor."
+        },
+        "contents": {
+          "name": "Sadržaj",
+          "description": "Što je u paketu, vlastitim riječima. Ponovni poziv za praćeni paket zamjenjuje sadržaj; prazan tekst ga briše."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Pratni broj",
           "description": "GLS pratni broj koji treba prestati pratiti."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Ažuriraj sadržaj paketa",
+      "description": "Vlastitim riječima postavite što je u paketu s ovim kodom za praćenje. Prazan tekst briše sadržaj.",
+      "fields": {
+        "tracking_code": {
+          "name": "Pratni broj",
+          "description": "Broj paketa ili GLS pratni broj."
+        },
+        "contents": {
+          "name": "Sadržaj",
+          "description": "Što je u paketu, vlastitim riječima. Prazan tekst ga briše."
+        },
+        "config_entry_id": {
+          "name": "Račun",
+          "description": "Račun za koji se vrijednost sprema. Potreban kada nijedan račun još ne poznaje kod."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Paket {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Nijedan račun ne poznaje ovaj kod. Odaberite račun za koji ga želite spremiti."
     }
   }
 }

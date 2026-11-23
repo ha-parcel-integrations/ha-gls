@@ -631,6 +631,7 @@ def normalize_parcel_de(
         "barcode": raw.get("trackingReference"),
         "sender": _sender_name(raw),
         "receiver": _receiver_name(raw),
+        "contents": None,
         "status": status,
         "raw_status": raw_status,
         "delivered": status is ParcelStatus.DELIVERED,

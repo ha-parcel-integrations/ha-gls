@@ -612,6 +612,7 @@ def normalize_parcel_es(
         # signed for the parcel, which is not the addressee, and the
         # destination block carries a locality and nothing else.
         "receiver": None,
+        "contents": None,
         "status": status,
         "raw_status": code,
         "delivered": delivered,

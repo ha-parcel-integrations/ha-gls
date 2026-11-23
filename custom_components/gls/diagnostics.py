@@ -79,7 +79,7 @@ TO_REDACT = {
     "id",
     # The *canonical* (normalize_parcel_*) top-level fields, not just the
     # raw payload's own key spellings above. Without these, a parcel dict's
-    # "raw" sub-tree gets redacted but its own "barcode"/"sender"/"receiver"/
+    # "raw" sub-tree gets redacted but its own "barcode"/"sender"/"receiver"/"contents"/
     # "pickup_point"/"url" siblings don't — and "url" embeds the tracking
     # number and postal code as literal query-string values (NL's
     # gls-info.nl deep-link, DE/generic gls-group.com's), which
@@ -88,6 +88,7 @@ TO_REDACT = {
     "barcode",
     "sender",
     "receiver",
+    "contents",
     "pickup_point",
     "url",
     # GLS Germany's guest-account identity: a stable per-install

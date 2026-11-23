@@ -23,6 +23,7 @@ from .const import (
     PLATFORMS,
     is_account_entry,
 )
+from .contents import ContentsStore
 from .coordinator import GlsBaseCoordinator
 from .services import async_setup_services, async_unload_services
 from .tracking.api import GlsApiClient
@@ -122,6 +123,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
         group_locale=country_cfg.get("group_locale"),
     )
     coordinator = GlsCoordinator(hass, client, entry, de_session=de_session)
+    await coordinator.contents_store.async_load()
 
     # Fetch initial data here, before forwarding to platforms. Raising
     # ConfigEntryNotReady from a forwarded platform is too late for HA to catch
@@ -167,12 +169,14 @@ async def _async_setup_account(hass: HomeAssistant, entry: GlsConfigEntry) -> bo
         async_get_clientsession(hass), entry.data, token_updated
     )
     coordinator = GlsAccountCoordinator(hass, session, entry)
+    await coordinator.contents_store.async_load()
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = GlsData(
         client=session, coordinator=coordinator, options=dict(entry.options)
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+    async_setup_services(hass, hub=False)
     return True
 
 
@@ -198,14 +202,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool
     """Unload a GLS config entry."""
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
-    # The services belong to tracking hubs only: drop them when the last
-    # loaded one goes, so unloading one hub never breaks the others.
-    others_loaded = any(
-        other.entry_id != entry.entry_id
-        and other.state is ConfigEntryState.LOADED
-        and not is_account_entry(other)
+    # Drop a service when the last entry that needs it goes, so unloading one
+    # entry never breaks the others.
+    others = [
+        other
         for other in hass.config_entries.async_entries(DOMAIN)
-    )
-    if not is_account_entry(entry) and not others_loaded:
-        async_unload_services(hass)
+        if other.entry_id != entry.entry_id and other.state is ConfigEntryState.LOADED
+    ]
+    hubs_left = any(not is_account_entry(other) for other in others)
+    async_unload_services(hass, hubs_left=hubs_left, entries_left=bool(others))
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> None:
+    """Delete the contents the user set for the removed entry."""
+    await ContentsStore(hass, entry.entry_id).async_remove()

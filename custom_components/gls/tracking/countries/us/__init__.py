@@ -357,6 +357,7 @@ def normalize_parcel_us(
         # ``raw`` rather than being reinterpreted as one.
         "sender": None,
         "receiver": None,
+        "contents": None,
         "status": status,
         "raw_status": status_name,
         "delivered": status == ParcelStatus.DELIVERED,

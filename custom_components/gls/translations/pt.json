@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Código postal",
           "description": "Código postal de entrega. Seleciona o hub quando existem vários configurados; caso contrário, usa o único hub."
+        },
+        "contents": {
+          "name": "Conteúdo",
+          "description": "O que está na encomenda, nas suas próprias palavras. Chamar novamente para uma encomenda acompanhada substitui o conteúdo; um texto vazio apaga-o."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Código de rastreio",
           "description": "O número de seguimento da GLS que deve deixar de ser seguido."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Atualizar o conteúdo da encomenda",
+      "description": "Defina o que está numa encomenda, nas suas próprias palavras, para um código de seguimento. Um texto vazio apaga o conteúdo.",
+      "fields": {
+        "tracking_code": {
+          "name": "Código de rastreio",
+          "description": "O número de encomenda ou ID de seguimento da GLS."
+        },
+        "contents": {
+          "name": "Conteúdo",
+          "description": "O que está na encomenda, nas suas próprias palavras. Um texto vazio apaga-o."
+        },
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "A conta para a qual guardar isto. Necessária quando nenhuma conta conhece ainda o código."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Encomenda {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Nenhuma conta conhece este código. Escolha a conta para a qual o guardar."
     }
   }
 }

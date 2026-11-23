@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "PSČ",
           "description": "Doručovacie PSČ. Ak je nastavených viac hubov, vyberie správny; inak použije jediný hub."
+        },
+        "contents": {
+          "name": "Obsah",
+          "description": "Čo je v balíku, vlastnými slovami. Opätovné volanie pre sledovaný balík obsah nahradí; prázdny text ho vymaže."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Sledovací kód",
           "description": "Sledovacie číslo GLS, ktoré sa má prestať sledovať."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Aktualizovať obsah balíka",
+      "description": "Nastavte vlastnými slovami, čo je v balíku s daným sledovacím číslom. Prázdny text obsah vymaže.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledovací kód",
+          "description": "Číslo zásielky alebo sledovací kód GLS."
+        },
+        "contents": {
+          "name": "Obsah",
+          "description": "Čo je v balíku, vlastnými slovami. Prázdny text ho vymaže."
+        },
+        "config_entry_id": {
+          "name": "Účet",
+          "description": "Účet, pre ktorý sa hodnota uloží. Potrebné, keď kód ešte nepozná žiadny účet."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Zásielka {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Tento kód nepozná žiadny účet. Vyberte účet, pre ktorý ho uložiť."
     }
   }
 }

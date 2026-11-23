@@ -47,7 +47,15 @@ PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 # subset of this — it exists so a typo in CAPABILITIES fails a test instead of
 # silently dropping this carrier off a table on the docs site.
 KNOWN_CAPABILITIES = frozenset(
-    {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
+    {
+        "weight",
+        "dimensions",
+        "delivery_window",
+        "pickup_point",
+        "url",
+        "history",
+        "contents",
+    }
 )
 
 # Which optional contract fields each of this carrier's backends actually
@@ -723,6 +731,9 @@ CONF_DE_PARCEL_NUMBER = "de_parcel_number"
 CONF_DE_APP_INSTANCE_ID = "de_app_instance_id"
 # Standard service field name shared by every parcel-suite carrier.
 CONF_TRACKING_CODE = "tracking_code"
+# The user-set parcel contents, and the optional account an update is limited to.
+CONF_CONTENTS = "contents"
+CONF_CONFIG_ENTRY_ID = "config_entry_id"
 
 # Delivered-parcels retention: keep delivered parcels visible for the last N
 # days, or keep only the N most recent — mirrors the other suite carriers.

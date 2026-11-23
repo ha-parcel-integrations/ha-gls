@@ -217,6 +217,7 @@ def normalize_parcel_pl_account(raw: dict, *, include_history: bool = False) -> 
         "barcode": barcode,
         "sender": _text(raw.get("senderName")),
         "receiver": _text(raw.get("receiverName")),
+        "contents": None,
         "status": status,
         "raw_status": _text(raw.get("progressBar")),
         "delivered": delivered,

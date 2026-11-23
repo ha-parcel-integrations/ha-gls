@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Poštna številka",
           "description": "Poštna številka dostave. Izbere vozlišče, kadar je nastavljenih več; sicer privzeto uporabi edino razpoložljivo vozlišče."
+        },
+        "contents": {
+          "name": "Vsebina",
+          "description": "Kaj je v paketu, z lastnimi besedami. Ponoven klic za spremljan paket vsebino zamenja; prazno besedilo jo izbriše."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Sledilna koda",
           "description": "Sledilna številka GLS, ki ji naj se preneha slediti."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Posodobi vsebino paketa",
+      "description": "Z lastnimi besedami nastavite, kaj je v paketu s to sledilno kodo. Prazno besedilo vsebino izbriše.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sledilna koda",
+          "description": "Številka pošiljke ali sledilna koda GLS."
+        },
+        "contents": {
+          "name": "Vsebina",
+          "description": "Kaj je v paketu, z lastnimi besedami. Prazno besedilo jo izbriše."
+        },
+        "config_entry_id": {
+          "name": "Račun",
+          "description": "Račun, za katerega se vrednost shrani. Potreben, ko kode še ne pozna noben račun."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Paket {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Nobeden račun ne pozna te kode. Izberite račun, za katerega jo shranite."
     }
   }
 }

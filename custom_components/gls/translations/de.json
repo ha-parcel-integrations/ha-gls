@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Postleitzahl",
           "description": "Postleitzahl der Lieferadresse. Wählt den Hub, wenn mehrere eingerichtet sind; andernfalls wird der einzige Hub verwendet."
+        },
+        "contents": {
+          "name": "Inhalt",
+          "description": "Was im Paket ist, in deinen eigenen Worten. Ein erneuter Aufruf für ein verfolgtes Paket ersetzt den Inhalt; ein leerer Text löscht ihn."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Sendungsverfolgungsnummer",
           "description": "Die GLS-Sendungsverfolgungsnummer, deren Verfolgung beendet werden soll."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Paketinhalt aktualisieren",
+      "description": "Lege für eine Sendungsnummer fest, was im Paket ist, in deinen eigenen Worten. Ein leerer Text löscht den Inhalt.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sendungsverfolgungsnummer",
+          "description": "Die GLS-Paketnummer oder Sendungsverfolgungsnummer."
+        },
+        "contents": {
+          "name": "Inhalt",
+          "description": "Was im Paket ist, in deinen eigenen Worten. Ein leerer Text löscht ihn."
+        },
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Das Konto, für das dies gespeichert wird. Nötig, wenn noch kein Konto den Code kennt."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Paket {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Kein Konto kennt diesen Code. Wähle das Konto, für das er gespeichert werden soll."
     }
   }
 }

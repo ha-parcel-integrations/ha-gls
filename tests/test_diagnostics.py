@@ -19,6 +19,7 @@ async def test_diagnostics_redacts_and_counts(hass):
             "barcode": "123",
             "sender": "S",
             "receiver": "R",
+            "contents": "Running shoes",
             "pickup_point": "GLS ParcelShop Voorbeeldstraat",
             "url": "https://www.gls-info.nl/tracking?trackid=123&zipcode=1234AB",
             "raw": {"zipcode": "1234AB", "city": "Amsterdam"},
@@ -45,6 +46,7 @@ async def test_diagnostics_redacts_and_counts(hass):
     assert result["incoming"][0]["barcode"] == "**REDACTED**"
     assert result["incoming"][0]["sender"] == "**REDACTED**"
     assert result["incoming"][0]["receiver"] == "**REDACTED**"
+    assert result["incoming"][0]["contents"] == "**REDACTED**"
     assert result["incoming"][0]["pickup_point"] == "**REDACTED**"
     assert result["incoming"][0]["url"] == "**REDACTED**"
 

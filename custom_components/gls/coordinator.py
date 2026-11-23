@@ -29,6 +29,7 @@ from .const import (
     STAGGER_MINUTES,
     ParcelStatus,
 )
+from .contents import ContentsStore, normalize_code
 from .parcels import _apply_delivered_filter, sort_parcels_by_ts
 
 _LOGGER = logging.getLogger(__name__)
@@ -129,6 +130,10 @@ class GlsBaseCoordinator(DataUpdateCoordinator[list[dict]]):
             # promptly regardless of what it finds.
             update_interval=timedelta(minutes=HOT_INTERVAL_MINUTES),
         )
+        self.contents_store = ContentsStore(hass, entry.entry_id)
+        # Every code this entry lists, delivered ones past the retention filter
+        # included: update_contents asks which entry a code belongs to.
+        self.known_codes: frozenset[str] = frozenset()
         self.delivered: list[dict] = []
         # parcel_no values confirmed delivered on a prior refresh — excluded
         # from the fetch this cycle since a delivered parcel's payload can
@@ -217,6 +222,16 @@ class GlsBaseCoordinator(DataUpdateCoordinator[list[dict]]):
         discovery_minutes: int | None = None,
     ) -> list[dict]:
         """Publish a complete normalized snapshot using the shared parcel lifecycle."""
+        for code, parcel in entries:
+            user_value = self.contents_store.get(code)
+            if user_value is not None:
+                parcel["contents"] = user_value
+        self.known_codes = frozenset(
+            normalize_code(value)
+            for code, parcel in entries
+            for value in (code, parcel.get("barcode"))
+            if value
+        )
         active = [p for _, p in entries if not p["delivered"]]
         delivered = [p for _, p in entries if p["delivered"]]
 

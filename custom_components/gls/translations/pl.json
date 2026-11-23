@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Kod pocztowy",
           "description": "Kod pocztowy dostawy. Wybiera hub, gdy skonfigurowano kilka; w przeciwnym razie używa jedynego huba."
+        },
+        "contents": {
+          "name": "Zawartość",
+          "description": "Co jest w paczce, własnymi słowami. Ponowne wywołanie dla śledzonej paczki zastępuje zawartość; pusty tekst ją usuwa."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Numer przesyłki",
           "description": "Numer śledzenia GLS, który ma przestać być śledzony."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Zaktualizuj zawartość paczki",
+      "description": "Ustaw własnymi słowami, co jest w paczce o danym numerze śledzenia. Pusty tekst usuwa zawartość.",
+      "fields": {
+        "tracking_code": {
+          "name": "Numer przesyłki",
+          "description": "Numer przesyłki GLS lub identyfikator śledzenia."
+        },
+        "contents": {
+          "name": "Zawartość",
+          "description": "Co jest w paczce, własnymi słowami. Pusty tekst ją usuwa."
+        },
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Konto, dla którego zapisać wartość. Wymagane, gdy żadne konto jeszcze nie zna kodu."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Przesyłka {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Żadne konto nie zna tego kodu. Wybierz konto, dla którego go zapisać."
     }
   }
 }

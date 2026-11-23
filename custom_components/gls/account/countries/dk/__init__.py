@@ -240,6 +240,7 @@ def normalize_parcel_dk(raw: dict, *, include_history: bool = False) -> dict:
         "barcode": barcode,
         "sender": _text(safe_raw.get("senderName")),
         "receiver": _text(safe_raw.get("receiverName")),
+        "contents": None,
         "status": status,
         "raw_status": _text(latest.get("parcelStateText")),
         "delivered": delivered,

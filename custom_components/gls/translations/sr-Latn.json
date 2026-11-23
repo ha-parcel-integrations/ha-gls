@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "Poštanski broj",
           "description": "Poštanski broj dostave. Bira hab kada je podešeno više njih; u suprotnom koristi jedini hab."
+        },
+        "contents": {
+          "name": "Sadržaj",
+          "description": "Šta je u paketu, sopstvenim rečima. Ponovni poziv za praćeni paket zamenjuje sadržaj; prazan tekst ga briše."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Kod za praćenje",
           "description": "GLS broj za praćenje koje treba prekinuti."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Ažuriraj sadržaj paketa",
+      "description": "Sopstvenim rečima podesite šta je u paketu sa ovim kodom za praćenje. Prazan tekst briše sadržaj.",
+      "fields": {
+        "tracking_code": {
+          "name": "Kod za praćenje",
+          "description": "GLS broj paketa ili identifikator praćenja."
+        },
+        "contents": {
+          "name": "Sadržaj",
+          "description": "Šta je u paketu, sopstvenim rečima. Prazan tekst ga briše."
+        },
+        "config_entry_id": {
+          "name": "Nalog",
+          "description": "Nalog za koji se vrednost čuva. Potreban kada nijedan nalog još ne poznaje kôd."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Paket {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Nijedan nalog ne poznaje ovaj kôd. Izaberite nalog za koji ga treba sačuvati."
     }
   }
 }

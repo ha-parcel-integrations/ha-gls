@@ -161,7 +161,7 @@ async def test_track_parcel_requires_a_code(hass):
         await hass.services.async_call(DOMAIN, "track_parcel", {}, blocking=True)
 
 
-async def test_account_entry_registers_no_services(hass):
+async def test_account_entry_registers_only_update_contents(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id="account:example-user",
@@ -175,6 +175,7 @@ async def test_account_entry_registers_no_services(hass):
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
+    assert hass.services.has_service(DOMAIN, "update_contents")
     assert not hass.services.has_service(DOMAIN, "track_parcel")
     assert not hass.services.has_service(DOMAIN, "untrack_parcel")
 

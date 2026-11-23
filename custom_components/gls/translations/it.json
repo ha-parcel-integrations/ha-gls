@@ -177,6 +177,10 @@
         "postal_code": {
           "name": "CAP",
           "description": "CAP di consegna. Seleziona l'hub quando ne sono configurati diversi; altrimenti usa l'unico hub disponibile."
+        },
+        "contents": {
+          "name": "Contenuto",
+          "description": "Che cosa c'è nel pacco, con parole tue. Richiamando di nuovo l'azione per un pacco monitorato, il contenuto viene sostituito; un testo vuoto lo cancella."
         }
       }
     },
@@ -187,6 +191,24 @@
         "tracking_code": {
           "name": "Codice di tracciamento",
           "description": "Il numero di tracciamento GLS da smettere di monitorare."
+        }
+      }
+    },
+    "update_contents": {
+      "name": "Aggiorna il contenuto del pacco",
+      "description": "Imposta che cosa c'è in un pacco, con parole tue, per un codice di tracciamento. Un testo vuoto cancella il contenuto.",
+      "fields": {
+        "tracking_code": {
+          "name": "Codice di tracciamento",
+          "description": "Il numero di pacco o il codice di tracciamento GLS."
+        },
+        "contents": {
+          "name": "Contenuto",
+          "description": "Che cosa c'è nel pacco, con parole tue. Un testo vuoto lo cancella."
+        },
+        "config_entry_id": {
+          "name": "Account",
+          "description": "L'account per cui salvare il valore. Necessario quando nessun account conosce ancora il codice."
         }
       }
     }
@@ -236,6 +258,11 @@
       "parcel": {
         "name": "Pacco {barcode}"
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Nessun account conosce questo codice. Scegli l'account per cui salvarlo."
     }
   }
 }

@@ -287,6 +287,7 @@ def normalize_parcel_ca(
         "barcode": barcode,
         "sender": _party_label(shipment.get("sender")),
         "receiver": _party_label(shipment.get("consignee")),
+        "contents": None,
         "status": status,
         "raw_status": status_name,
         "delivered": status == ParcelStatus.DELIVERED,
