@@ -288,7 +288,7 @@ event-driven automations.
 
 | Service | Description |
 |---|---|
-| `gls.track_parcel` | Start tracking a parcel — `tracking_code` (required) and `postal_code` (optional, defaults to the hub postal code). |
+| `gls.track_parcel` | Start tracking a parcel — `tracking_code` (required) and `postal_code` (optional, defaults to the hub postal code), plus an optional `contents`. |
 | `gls.untrack_parcel` | Stop tracking a parcel — `tracking_code`. |
 | `gls.update_contents` | Set what is in a parcel, in your own words — `tracking_code`, `contents` (empty clears it) and optional `config_entry_id` to pick the hub or account. |
 
