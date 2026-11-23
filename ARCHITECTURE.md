@@ -189,7 +189,10 @@ is retried on the next poll.
 
 The account coordinator validates a complete, owned list before publishing it.
 A failed or incomplete response leaves the previous coordinator snapshot intact;
-it cannot become an empty account. Both modes share sorting, delivered retention
+it cannot become an empty account. Denmark's `totalCount` is a ceiling, not an
+exact count: the backend has counted a parcel it never sends (`totalCount` 1,
+no items), so fewer items than the count are accepted and more are refused.
+Poland's `totalElements` must match exactly. Both modes share sorting, delivered retention
 and canonical events. Account discovery retains the normal mid-tier schedule
 when no active parcels remain, rather than stopping as manual tracking does.
 A parcel disappearing from a successful complete list is removed without

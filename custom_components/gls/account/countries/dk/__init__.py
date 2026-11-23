@@ -140,13 +140,16 @@ def normalize_email_dk(value: str) -> str | None:
 def parse_feed_dk(feed: Any, uid: str | None) -> list[tuple[str, dict]]:
     """Return ``(number, raw)`` pairs from a complete, owned feed — or raise.
 
-    ``totalCount`` must equal the items actually returned, and every item must
-    belong to the signed-in identity: a partial or foreign list is rejected
-    before anything is published, so it can never become an empty account.
+    ``totalCount`` may exceed the items returned but never fall short of them,
+    and every item must belong to the signed-in identity: a foreign list is
+    rejected before anything is published.
     """
     entries: list[tuple[str, dict]] = []
     seen: set[str] = set()
-    for item in complete_items(feed, "totalCount"):
+    # tome has answered totalCount 1 with no items, and the archived feed
+    # returns all of an account's parcels in one reply, so a shortfall is a
+    # parcel tome counts but leaves out, not a missing page.
+    for item in complete_items(feed, "totalCount", count_is_ceiling=True):
         number = item.get("parcelNumber")
         if (
             not isinstance(number, str)

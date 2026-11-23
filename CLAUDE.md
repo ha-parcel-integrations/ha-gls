@@ -65,7 +65,9 @@ email and must verify the same identity (`_abort_if_unique_id_mismatch`). Use
 a rejection that survives it is an ordinary retryable `UpdateFailed`. Account polling never stops just because
 the incoming list is empty or all parcels are delivered. Complete-list
 validation (the shared `account/feed.py` gate) happens before publishing; a
-failed fetch is not zero parcels. Ownership is re-checked per row only where
+failed fetch is not zero parcels. DK's `totalCount` is a **ceiling**
+(`count_is_ceiling`): the backend counts parcels it never sends (ha-gls#27),
+so a shortfall is accepted and a surplus refused; PL stays exact. Ownership is re-checked per row only where
 the feed carries an owner (DK's `userId`, and a repeated number fails the whole
 DK poll); **PL rows carry none** — the feed is scoped to the bearer — so PL
 skips that check and keeps the first row of a repeated `shipmentNo` instead.

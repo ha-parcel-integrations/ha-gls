@@ -35,6 +35,19 @@ def test_invalid_or_incomplete_feed_is_refused(feed):
         complete_items(feed, "total")
 
 
+def test_a_ceiling_count_accepts_a_shortfall_but_not_a_surplus(caplog):
+    with caplog.at_level(logging.DEBUG, logger="custom_components.gls.account.feed"):
+        assert (
+            complete_items({"items": [], "total": 1}, "total", count_is_ceiling=True)
+            == []
+        )
+    assert "total is 1, items has 0 entries" in caplog.text
+    with pytest.raises(GlsAccountFeedError):
+        complete_items({"items": [{}, {}], "total": 1}, "total", count_is_ceiling=True)
+    with pytest.raises(GlsAccountFeedError):
+        complete_items({"items": [], "total": 1}, "total")
+
+
 def test_a_rejected_list_logs_only_the_counts(caplog):
     feed = {"items": [{"parcelNumber": "secret"}], "total": 3}
     with (

@@ -96,6 +96,13 @@ async def test_delivered_account_keeps_discovery_and_removed_parcel_disappears(h
     assert coordinator.delivered == []
 
 
+async def test_account_counting_a_parcel_it_does_not_send_still_loads(hass):
+    coordinator, session = account(hass)
+    session.async_get_parcels.return_value = {"totalCount": 1, "items": []}
+    assert await coordinator._async_update_data() == []
+    assert coordinator.last_success_time is not None
+
+
 @pytest.mark.parametrize(
     "feed",
     [
@@ -104,7 +111,7 @@ async def test_delivered_account_keeps_discovery_and_removed_parcel_disappears(h
         {},
         {"totalCount": -1, "items": []},
         {"totalCount": True, "items": []},
-        {"totalCount": 2, "items": []},
+        {"totalCount": 0, "items": [raw_parcel()]},
         {"totalCount": 0, "items": None},
         {"totalCount": 1, "items": [None]},
         {

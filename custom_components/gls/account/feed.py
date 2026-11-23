@@ -14,11 +14,14 @@ from .errors import GlsAccountFeedError
 _LOGGER = logging.getLogger(__name__)
 
 
-def complete_items(feed: Any, count_key: str) -> list[dict]:
+def complete_items(
+    feed: Any, count_key: str, *, count_is_ceiling: bool = False
+) -> list[dict]:
     """Return the feed's item dicts, or raise unless all of them arrived.
 
     ``count_key`` names the backend's own total for the list; it must be a
-    non-negative int equal to the number of items returned.
+    non-negative int equal to the number of items returned. With
+    ``count_is_ceiling`` the total may exceed the items, never fall short.
     """
     if not isinstance(feed, dict):
         raise GlsAccountFeedError("GLS account returned an invalid parcel list")
@@ -27,7 +30,8 @@ def complete_items(feed: Any, count_key: str) -> list[dict]:
         not isinstance(items, list)
         or type(count) is not int
         or count < 0
-        or count != len(items)
+        or count < len(items)
+        or (count > len(items) and not count_is_ceiling)
     ):
         _LOGGER.debug(
             "GLS account list rejected: %s is %s %r, items is %s%s",
@@ -38,6 +42,13 @@ def complete_items(feed: Any, count_key: str) -> list[dict]:
             f" with {len(items)} entries" if isinstance(items, list) else "",
         )
         raise GlsAccountFeedError("GLS account returned an incomplete parcel list")
+    if count != len(items):
+        _LOGGER.debug(
+            "GLS account list accepted: %s is %d, items has %d entries",
+            count_key,
+            count,
+            len(items),
+        )
     if not all(isinstance(item, dict) for item in items):
         raise GlsAccountFeedError("GLS account returned an invalid parcel")
     return items
