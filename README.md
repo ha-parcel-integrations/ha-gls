@@ -231,6 +231,7 @@ sensor attribute uses the same carrier-agnostic shape regardless:
 | `barcode` | string | Parcel tracking number |
 | `sender` | string \| null | Sender name |
 | `receiver` | string \| null | Recipient name |
+| `contents` | string \| null | What is in the parcel, in your own words; set it with `gls.update_contents`. GLS never fills it; it titles the calendar event and shows on the next-delivery sensor |
 | `status` | `ParcelStatus` | Canonical status — see the [status reference](#parcel-status-reference) |
 | `raw_status` | string \| null | Original GLS status description |
 | `delivered` | bool | Whether the parcel has been delivered |
