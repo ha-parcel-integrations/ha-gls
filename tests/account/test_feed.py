@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from custom_components.gls.account.errors import GlsAccountFeedError
@@ -31,3 +33,23 @@ def test_complete_feed_returns_its_items():
 def test_invalid_or_incomplete_feed_is_refused(feed):
     with pytest.raises(GlsAccountFeedError):
         complete_items(feed, "total")
+
+
+def test_a_rejected_list_logs_only_the_counts(caplog):
+    feed = {"items": [{"parcelNumber": "secret"}], "total": 3}
+    with (
+        caplog.at_level(logging.DEBUG, logger="custom_components.gls.account.feed"),
+        pytest.raises(GlsAccountFeedError),
+    ):
+        complete_items(feed, "total")
+    assert "total is int 3, items is list with 1 entries" in caplog.text
+    assert "secret" not in caplog.text
+
+
+def test_a_rejected_list_without_items_logs_the_types(caplog):
+    with (
+        caplog.at_level(logging.DEBUG, logger="custom_components.gls.account.feed"),
+        pytest.raises(GlsAccountFeedError),
+    ):
+        complete_items({"items": None, "total": "1"}, "total")
+    assert "total is str '1', items is NoneType" in caplog.text

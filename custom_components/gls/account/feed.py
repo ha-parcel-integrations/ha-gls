@@ -6,9 +6,12 @@ feed is checked against the count the backend states before any row is read.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from .errors import GlsAccountFeedError
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def complete_items(feed: Any, count_key: str) -> list[dict]:
@@ -26,6 +29,14 @@ def complete_items(feed: Any, count_key: str) -> list[dict]:
         or count < 0
         or count != len(items)
     ):
+        _LOGGER.debug(
+            "GLS account list rejected: %s is %s %r, items is %s%s",
+            count_key,
+            type(count).__name__,
+            count,
+            type(items).__name__,
+            f" with {len(items)} entries" if isinstance(items, list) else "",
+        )
         raise GlsAccountFeedError("GLS account returned an incomplete parcel list")
     if not all(isinstance(item, dict) for item in items):
         raise GlsAccountFeedError("GLS account returned an invalid parcel")
