@@ -39,34 +39,34 @@ def parse_iso(value: str | None) -> datetime | None:
 # country missing from the map (or spanning several zones) falls back to the
 # user's Home Assistant zone, which is the best guess left.
 _COUNTRY_ZONES = {
-    "AT": "Europe/Vienna",
-    "BE": "Europe/Brussels",
-    "CH": "Europe/Zurich",
-    "CZ": "Europe/Prague",
-    "DE": "Europe/Berlin",
-    "DK": "Europe/Copenhagen",
-    "FI": "Europe/Helsinki",
-    "FR": "Europe/Paris",
-    "HR": "Europe/Zagreb",
-    "HU": "Europe/Budapest",
-    "IE": "Europe/Dublin",
-    "IT": "Europe/Rome",
-    "LI": "Europe/Vaduz",
-    "LU": "Europe/Luxembourg",
-    "NL": "Europe/Amsterdam",
-    "RO": "Europe/Bucharest",
-    "RS": "Europe/Belgrade",
-    "SE": "Europe/Stockholm",
-    "SI": "Europe/Ljubljana",
-    "SK": "Europe/Bratislava",
+    "AT": ZoneInfo("Europe/Vienna"),
+    "BE": ZoneInfo("Europe/Brussels"),
+    "CH": ZoneInfo("Europe/Zurich"),
+    "CZ": ZoneInfo("Europe/Prague"),
+    "DE": ZoneInfo("Europe/Berlin"),
+    "DK": ZoneInfo("Europe/Copenhagen"),
+    "FI": ZoneInfo("Europe/Helsinki"),
+    "FR": ZoneInfo("Europe/Paris"),
+    "HR": ZoneInfo("Europe/Zagreb"),
+    "HU": ZoneInfo("Europe/Budapest"),
+    "IE": ZoneInfo("Europe/Dublin"),
+    "IT": ZoneInfo("Europe/Rome"),
+    "LI": ZoneInfo("Europe/Vaduz"),
+    "LU": ZoneInfo("Europe/Luxembourg"),
+    "NL": ZoneInfo("Europe/Amsterdam"),
+    "RO": ZoneInfo("Europe/Bucharest"),
+    "RS": ZoneInfo("Europe/Belgrade"),
+    "SE": ZoneInfo("Europe/Stockholm"),
+    "SI": ZoneInfo("Europe/Ljubljana"),
+    "SK": ZoneInfo("Europe/Bratislava"),
 }
 
 
 def country_zone(country: str | None) -> tzinfo:
     """Return the zone a carrier's naive local times are written in."""
-    name = _COUNTRY_ZONES.get(country or "")
-    if name:
-        return ZoneInfo(name)
+    zone = _COUNTRY_ZONES.get(country or "")
+    if zone:
+        return zone
     return dt_util.get_default_time_zone()
 
 
