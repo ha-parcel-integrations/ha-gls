@@ -28,7 +28,7 @@ delivery as an exception. Because the sentence decides, the request pins
 vocabulary below are reconstructed, and the transport half (signing, and the
 not-found / bad-key / clock-skew branches) is the part that is confirmed on
 the wire. Every mapping decision is therefore one-shot-logged so real usage
-answers the open questions instead of a second research pass.
+answers the open questions.
 """
 
 from __future__ import annotations
@@ -172,12 +172,29 @@ def _normalise_sentence(value: object) -> str | None:
     return " ".join(value.split()).casefold()
 
 
+def _is_redirect(description: object) -> bool:
+    """Whether a sentence says the shipment was redirected to a GLS Point."""
+    sentence = _normalise_sentence(description)
+    return sentence is not None and sentence.startswith(_INCIDENCE_REDIRECT_PREFIX)
+
+
+def _redirected_to_point(state: dict, scans: list[dict]) -> bool:
+    """Whether the carrier has said the parcel goes to a GLS Point.
+
+    The sentence arrives under ``incidence`` or ``picked``, on the state or on
+    a scan, so every description is checked rather than one code.
+    """
+    return _is_redirect(state.get("description")) or any(
+        _is_redirect(row.get("description")) for row in scans
+    )
+
+
 def _map_incidence(description: object) -> ParcelStatus:
     """Map an ``incidence`` by its sentence, never by its code."""
     sentence = _normalise_sentence(description)
     if sentence is None:
         return ParcelStatus.PROBLEM
-    if sentence.startswith(_INCIDENCE_REDIRECT_PREFIX):
+    if _is_redirect(description):
         # Diverted to a GLS Point: the parcel is still moving, not in trouble.
         return ParcelStatus.IN_TRANSIT
     mapped = _INCIDENCE_MAP.get(sentence)
@@ -429,8 +446,8 @@ def _history(scans: list[dict]) -> list[dict]:
     return [row for _, row in parsed][-HISTORY_MAX_EVENTS:]
 
 
-def _pickup_point(found: dict, scans: list[dict]) -> str | None:
-    """Return the GLS Point's name only when a scan actually names it.
+def _pickup_point(found: dict, scans: list[dict], redirected: bool) -> str | None:
+    """Return the GLS Point's name only when a scan or a redirect names it.
 
     ``found.agency`` is the destination depot and is present on every
     shipment; ``found.parcelShop`` is present on more than just collections.
@@ -440,7 +457,9 @@ def _pickup_point(found: dict, scans: list[dict]) -> str | None:
     shop = found.get("parcelShop")
     if not isinstance(shop, dict):
         return None
-    if not any(row.get("code") in _PICKUP_SCAN_CODES for row in scans):
+    if not redirected and not any(
+        row.get("code") in _PICKUP_SCAN_CODES for row in scans
+    ):
         global _orphan_parcel_shop_warned  # noqa: PLW0603 - module-level one-shot flag, reset by tests
         if not _orphan_parcel_shop_warned:
             _orphan_parcel_shop_warned = True
@@ -548,6 +567,8 @@ def normalize_parcel_es(
             ]
         delivered_at = max(moments).isoformat() if moments else None
 
+    redirected = _redirected_to_point(state, scans)
+
     if not delivered and state.get("deliveryDate"):
         _warn_delivery_date_in_flight_once()
 
@@ -599,10 +620,13 @@ def normalize_parcel_es(
         # ``state.deliveryDate`` is an estimate or an actual.
         "planned_from": None,
         "planned_to": None,
+        # A redirect to a GLS Point is the route flag from the moment the
+        # carrier says so, while the status stays in_transit until a scan.
         "pickup": is_pickup(
-            any(row.get("code") in _PICKUP_SCAN_CODES for row in scans), status
+            redirected or any(row.get("code") in _PICKUP_SCAN_CODES for row in scans),
+            status,
         ),
-        "pickup_point": _pickup_point(raw, scans),
+        "pickup_point": _pickup_point(raw, scans, redirected),
         "url": url,
         "weight": _weight(raw),
         # No dimensions field on this surface.

@@ -11,7 +11,6 @@ Three places hold the knowledge, and they do not overlap:
 | What | Where |
 |---|---|
 | How this integration is built, and why it is built that way | [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it before touching `tracking/api.py`'s dispatch, a `tracking/countries/` package, or the DE session |
-| Endpoint mechanics, status vocabularies | `carrier-research/gls/api/` (private repo). **Never** duplicated into this repo |
 | Suite-wide conventions | [`.github/CONVENTIONS.md`](https://github.com/ha-parcel-integrations/.github/blob/main/CONVENTIONS.md) |
 
 This file is the short list of things an agent must not get wrong.
@@ -87,12 +86,11 @@ step's form text by step id, so a new account country needs one — a
 registry-parity test enforces it. The reauth form passes a generic
 `{identifier}` placeholder (email for DK, phone for PL), not `{email}`.
 
-**Poland is Azure AD B2C, not Firebase, and ships no extracted secret.**
+**Poland is Azure AD B2C, not Firebase.**
 `account/countries/pl/session.py` runs the app's sign-in headlessly. Its odd
 bits (the throwaway cookie-isolated `ClientSession`, the literal `=` in `tx`/
 `csrf_token`, the double-encoded redirect URI, `sessionId` as the JSON key) are
-confirmed on the wire: **don't "simplify" them.** Mechanics are in
-`carrier-research/gls/api/gls-pl-account.md`. Decisions that hold here:
+confirmed on the wire: **don't "simplify" them.** Decisions that hold here:
 
 - **Token calls never carry the shared jar.** Every token-endpoint request
   (refresh and code exchange) goes through `_token_client`, a cookieless
@@ -110,8 +108,9 @@ confirmed on the wire: **don't "simplify" them.** Mechanics are in
   maps, with the same newest-mapped-event fallback. Don't duplicate them.
 - **`delivered_at`** is set only on a delivered parcel.
 - **`pickup_point`** stays `None` until a populated `parcelShop` is seen.
-- **Never published:** the locker `pin` and `courierPhoneNumber` never reach
-  `raw`, attributes or events (allowlist).
+- **`raw`** is the full feed row with the details payload under `_gls_details`.
+  Left out: the locker `pin` and every key ending in `Url`/`Uri`/`Link`.
+  Diagnostics redact the recipient, courier and identifier fields.
 - **Device and phone.** The device is named `GLS Poland`. The stored phone is
   the 9-digit national form, never the token's `+48…` claim.
 - **Entry data** holds only `uid`, `refresh_token` and the row's
@@ -227,8 +226,9 @@ own code is missing.
 **Three real parcels confirmed the surface (2026-10-12)**, Portugal's among
 them — so PT is a confirmed contract, not just a shared host. `pickup_point`
 and `weight` graduated out of `PENDING_CAPABILITIES_BY_VARIANT` on them;
-`delivery_window` is still pending, because all three were delivered and
-`state.deliveryDate` has only ever been seen agreeing with the actual. Still
+`delivery_window` is neither claimed nor pending: no code path reads
+`state.deliveryDate`, which has only been seen agreeing with the actual
+delivery date. Still
 unconfirmed: a *moving* parcel, and eleven of the eighteen state codes.
 
 **`incidence` is read by its sentence because the code genuinely does not
@@ -355,17 +355,53 @@ data, unrecorded) — don't surface them elsewhere.
   `planned_for_status`, `is_pickup`); never copy them into a country.
 - `planned_*` are emptied at `at_pickup_point`, `returning` and `delivered`. NL
   is the only country with a delivery window; a single moment runs to 23:59:59
-  of the day in its own offset. US dates stay unmapped (zone unknown).
+  of the Amsterdam day, also for a `Z` moment (22:30Z ends the next day), and a
+  naive ETA is Amsterdam time. US `estimatedDeliveryDate` is a date only: it
+  maps to 00:00:00-23:59:59 of that day in the Home Assistant zone, through the
+  usual emptying at `at_pickup_point`, `returning` and `delivered`.
 - `pickup` is the carrier's own field where there is one (NL, DE shop block,
-  group `DELIVEREDPS`, ES scan codes), else a status or history entry that
+  group `DELIVEREDPS`, DK `parcelShopNumber`/`parcelShopId`, ES scan codes and a
+  "redirected to GLS Point" sentence, which sets `pickup` while the status stays
+  `in_transit`), else a status or history entry that
   reached `at_pickup_point`, so it stays true once collected. US and Canada
   publish a constant `False`.
 - `delivered` is `status is DELIVERED`; NL's `isDelivered` is folded into the
-  state before the mapping. The group source keeps its `retourFlag` return with
-  `statusInfo == DELIVERED` as `returning` with `delivered: true`.
-- Denmark's `pickup_point` is the parcel shop number only, never an address.
-- Germany reads naive timestamps as UTC; confirm against a real parcel before
-  moving them to Berlin time.
+  state before the mapping. A group `retourFlag` return stays `returning` with
+  `delivered: false` even when `statusInfo` says `DELIVERED`: nothing shows that
+  word means back at the sender. It counts once a real return confirms it.
+- Group `delivered_at` is the newest `history[]` event whose `evtNo` maps to
+  `DELIVERED`, else `None`; never the newest event of any kind.
+- An unmapped status (NL `state`, group `statusInfo`) falls back to the newest
+  mappable history event, then `unknown` with a one-shot warning.
+- DK account: a `parcelShopId` of 0 or less is no shop (a home delivery may send
+  0), and `isDelivered` never overrides `returning` (code 100): a return is
+  delivered only with evidence it is back at the sender, none seen yet.
+- US `delivery_window` is in `PENDING_CAPABILITIES_BY_VARIANT`: the mapping
+  fills it from `estimatedDeliveryDate`, but no in-flight parcel has shown one.
+- Denmark's `pickup_point` is the parcel shop number only, never an address,
+  and only when `pickup` is true.
+- Canada and US name no zone, so their naive times are read in the Home
+  Assistant zone. A Canadian `sender`/`receiver` is the party's name or `None`,
+  never its city/province.
+- Naive carrier times get the carrier's zone and an offset: NL (`scans[]`,
+  `deliveryScanInfo`) Amsterdam, DE Berlin, DK account events Copenhagen, CA and
+  US the Home Assistant zone,
+  group the parcel country's zone
+  (`timeutils.country_zone`; a country without one falls back to the Home
+  Assistant zone). Confirm against a real parcel.
+
+### Open evidence (no code change until a real parcel shows it)
+
+- **NL pickup**: there is no `AT_PICKUP_POINT` state, and `isDelivered` sits in
+  the same `deliveryScanInfo` block as `parcelShop`, so it may also fire on a
+  drop-off at the shop. Unknown whether a collected parcel looks different.
+- **Group pickup after collection**: only the locker event (`evtNo 3.896`) is
+  mapped, so a parcel collected at a ParcelShop loses `pickup`; the `rstt029`
+  fallback has no history to recover it from either.
+- **DE pickup after collection** depends on `shopInformation` still being sent.
+  `is_pickup` also marks a DE parcel pickup when its status is `at_pickup_point`
+  (a `DELIVERED_TO_*SHOP*` enum), but the live payload carries no status enum,
+  so that path is not reached on a real parcel yet.
 - `next_delivery` skips a parcel whose window has ended; the calendar shows a
   00:00:00–23:59:59 window as an all-day event.
 
@@ -385,4 +421,4 @@ python -m pytest tests/ --cov=custom_components.gls
 Coverage must stay **above 95%** (silver `test-coverage` rule). Run before
 committing. README stays lean/installer-first (device triggers folded into
 **Events**); a code change updates the README, `ARCHITECTURE.md` and this file
-in the same commit; API mechanics go to `carrier-research/gls/api/`, never here.
+in the same commit.

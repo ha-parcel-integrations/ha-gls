@@ -8,8 +8,8 @@ transcribed in the mechanics doc (only "identical shape to rstt029's" is
 recorded) — the fixture uses the top-level ``status: "Delivered"`` string
 already captured as a reasonable stand-in; it is not itself wire-verified.
 
-The bottom section covers AT/IE/FR/SI/HR/IT — every one of those rows
-shipped past its research gate, so their fixtures are honestly the CZ-shaped body wearing that
+The bottom section covers AT/IE/FR/SI/HR/IT — none of those rows
+has a real capture, so their fixtures are honestly the CZ-shaped body wearing that
 country's own host/locale/AWB, **not** a real capture — see each test's
 docstring.
 """
@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import json as _json
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
+from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.gls.const import COUNTRIES, GlsApiError, ParcelStatus
@@ -290,7 +292,7 @@ def test_normalize_captured_delivered_parcel():
     assert parcel["raw_status"] == "The parcel has been delivered."
     assert parcel["delivered"] is True
     # Newest history entry, NOT the top-level "date" (consignment date trap).
-    assert parcel["delivered_at"] == "2026-06-25T13:38:31"
+    assert parcel["delivered_at"] == "2026-06-25T13:38:31+02:00"
     assert parcel["planned_from"] is None
     assert parcel["planned_to"] is None
     assert parcel["sender"] is None
@@ -326,8 +328,8 @@ def test_normalize_history_opt_in_is_reversed_to_oldest_first():
     )
     history = parcel["history"]
     assert len(history) == 8
-    assert history[0]["timestamp"] == "2026-06-24T10:39:34"
-    assert history[-1]["timestamp"] == "2026-06-25T13:38:31"
+    assert history[0]["timestamp"] == "2026-06-24T10:39:34+02:00"
+    assert history[-1]["timestamp"] == "2026-06-25T13:38:31+02:00"
     assert "entered into the GLS IT system" in history[0]["raw_status"]
     assert history[-1]["raw_status"] == "The parcel has been delivered."
     # Per-event status, mapped from evtNo (oldest -> newest, matching the
@@ -373,9 +375,10 @@ def test_normalize_retour_flag_overrides_status():
         captured_sample_cz(status_info="DELIVERED", retour_flag=True), parcel_no=AWB
     )
     assert parcel["status"] == ParcelStatus.RETURNING
-    # retourFlag overriding the *status* must not fabricate a delivered_at —
-    # "delivered" itself is still driven by the exact statusInfo match.
-    assert parcel["delivered"] is True
+    # Nothing shows that DELIVERED means "back at the sender", so the parcel
+    # stays active and is polled on.
+    assert parcel["delivered"] is False
+    assert parcel["delivered_at"] is None
 
 
 def test_normalize_weight_parses_unit_suffixed_string():
@@ -500,7 +503,7 @@ def test_yy_mm_dd_date_variant_is_accepted():
     raw = captured_sample_cz()
     raw["history"][0]["date"] = "26-06-25"  # YY-MM-DD, the ambiguous case
     parcel = normalize_parcel_group(raw, parcel_no=AWB)
-    assert parcel["delivered_at"] == "2026-06-25T13:38:31"
+    assert parcel["delivered_at"] == "2026-06-25T13:38:31+02:00"
 
 
 def test_history_event_missing_time_has_no_timestamp():
@@ -1049,8 +1052,7 @@ async def test_type_retry_both_fail_e206_returns_none():
 
 
 # ---------------------------------------------------------------------------
-# The Group-leaf countries added past their research gate
-# . Every fixture below is synthetic: it uses
+# The Group-leaf countries without a real capture. Every fixture below is synthetic: it uses
 # the country-specific host/locale and a fake AWB, while the response remains
 # the CZ-shaped rstt028 stand-in described below.
 # ---------------------------------------------------------------------------
@@ -1157,3 +1159,82 @@ async def test_italy_group_leaf_end_to_end_needs_type_nat():
     # tuNo carries GLS's inserted space; barcode must still be what the user typed.
     assert parcel["barcode"] == awb
     assert parcel["url"] == COUNTRIES["IT"]["tracking_url"].format(parcel_no=awb)
+
+
+# ---------------------------------------------------------------------------
+# Zones, delivered_at and the status fallback
+# ---------------------------------------------------------------------------
+
+_EVENTS = [
+    {"date": "2099-01-06", "time": "09:00:00", "evtNo": "11.0", "evtDscr": "out"},
+    {"date": "2099-01-05", "time": "14:00:00", "evtNo": "3.0", "evtDscr": "done"},
+    {"date": "2099-01-05", "time": "08:00:00", "evtNo": "2.0", "evtDscr": "hub"},
+]
+
+
+def _body(status_info="DELIVERED", history=_EVENTS, retour=False):
+    return {
+        "progressBar": {"statusInfo": status_info, "retourFlag": retour},
+        "history": list(history),
+    }
+
+
+def test_delivered_at_is_the_delivery_event_not_the_newest_event():
+    parcel = normalize_parcel_group(_body(), parcel_no=AWB, country="AT")
+    assert parcel["delivered"] is True
+    assert parcel["delivered_at"] == "2099-01-05T14:00:00+01:00"
+
+
+def test_delivered_at_is_none_without_a_delivery_event():
+    parcel = normalize_parcel_group(
+        _body(history=_EVENTS[::2]), parcel_no=AWB, country="AT"
+    )
+    assert parcel["delivered"] is True
+    assert parcel["delivered_at"] is None
+
+
+def test_returning_delivered_is_not_finished():
+    parcel = normalize_parcel_group(_body(retour=True), parcel_no=AWB, country="AT")
+    assert parcel["status"] == ParcelStatus.RETURNING
+    assert parcel["delivered"] is False
+    assert parcel["delivered_at"] is None
+
+
+def test_history_timestamps_use_the_country_zone():
+    parcel = normalize_parcel_group(
+        _body(), parcel_no=AWB, country="IE", include_history=True
+    )
+    # Dublin is on GMT in January, Vienna one hour ahead.
+    assert parcel["history"][0]["timestamp"] == "2099-01-05T08:00:00+00:00"
+    parcel = normalize_parcel_group(
+        _body(), parcel_no=AWB, country="AT", include_history=True
+    )
+    assert parcel["history"][0]["timestamp"] == "2099-01-05T08:00:00+01:00"
+
+
+def test_unknown_country_uses_the_home_assistant_zone():
+    original = dt_util.get_default_time_zone()
+    dt_util.set_default_time_zone(ZoneInfo("Asia/Tokyo"))
+    try:
+        parcel = normalize_parcel_group(_body(), parcel_no=AWB, country="XX")
+    finally:
+        dt_util.set_default_time_zone(original)
+    assert parcel["delivered_at"] == "2099-01-05T14:00:00+09:00"
+
+
+def test_unmapped_status_falls_back_to_the_newest_mappable_event(caplog):
+    with caplog.at_level("WARNING"):
+        parcel = normalize_parcel_group(
+            _body(status_info="WEIRD"), parcel_no=AWB, country="AT"
+        )
+    assert parcel["status"] == ParcelStatus.OUT_FOR_DELIVERY
+    assert not [m for m in caplog.messages if "WEIRD" in m]
+
+
+def test_unmapped_status_without_a_mappable_event_is_unknown_and_warns(caplog):
+    with caplog.at_level("WARNING"):
+        parcel = normalize_parcel_group(
+            _body(status_info="WEIRD", history=[]), parcel_no=AWB, country="AT"
+        )
+    assert parcel["status"] == ParcelStatus.UNKNOWN
+    assert any("WEIRD" in m for m in caplog.messages)

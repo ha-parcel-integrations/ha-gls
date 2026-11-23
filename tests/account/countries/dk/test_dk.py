@@ -40,7 +40,6 @@ def _parcel(events=None, **values):
         "receiverZipCode": "9999",
         "receiverCity": "Example City",
         "actualWeight": 3.0,
-        "parcelShopNumber": "123",
         "scheduledReturnDate": "2026-10-15T12:00:00Z",
         "isDelivered": False,
         "parcelStatusDtoList": events if events is not None else [_event(35, 5)],
@@ -160,7 +159,7 @@ def test_pickup_evidence_survives_collection_history(state, reason):
     events = [_event(state, reason)]
     if state == 70:
         events.append(_event(60, 54, when="2026-10-01T08:00:00Z"))
-    parcel = normalize_parcel_dk(_parcel(events))
+    parcel = normalize_parcel_dk(_parcel(events, parcelShopNumber="123"))
     assert parcel["pickup"] is True
     assert parcel["pickup_point"] == "123"
 
@@ -168,7 +167,11 @@ def test_pickup_evidence_survives_collection_history(state, reason):
 def test_pickup_falls_back_to_shop_number_without_address():
     parcel = normalize_parcel_dk(
         _parcel(
-            [_event(60)], receiverAddress=None, receiverZipCode=None, receiverCity=None
+            [_event(60)],
+            parcelShopNumber="123",
+            receiverAddress=None,
+            receiverZipCode=None,
+            receiverCity=None,
         )
     )
     assert parcel["pickup_point"] == "123"
@@ -276,3 +279,60 @@ def test_nonfinite_measurements_never_enter_attributes_or_raw(weight):
     parcel = normalize_parcel_dk(_parcel(actualWeight=weight))
     assert parcel["weight"] is None
     assert "actualWeight" not in parcel["raw"]
+
+
+def test_a_shop_number_makes_the_parcel_pickup_before_it_arrives():
+    parcel = normalize_parcel_dk(
+        _parcel([_event(35, 5)], parcelShopNumber="123", parcelShopId=77)
+    )
+    assert parcel["status"] == ParcelStatus.IN_TRANSIT
+    assert parcel["pickup"] is True
+    assert parcel["pickup_point"] == "123"
+
+
+def test_a_shop_id_alone_marks_pickup_without_naming_a_point():
+    parcel = normalize_parcel_dk(_parcel([_event(35, 5)], parcelShopId=77))
+    assert parcel["pickup"] is True
+    assert parcel["pickup_point"] is None
+
+
+@pytest.mark.parametrize("shop_id", [None, "", True, 0, -1, "0"])
+def test_no_shop_fields_is_a_home_delivery(shop_id):
+    parcel = normalize_parcel_dk(
+        _parcel([_event(60, 54)], parcelShopNumber=None, parcelShopId=shop_id)
+    )
+    # Arrival at a point is still pickup evidence on its own.
+    assert parcel["pickup"] is True
+    assert parcel["pickup_point"] is None
+    home = normalize_parcel_dk(_parcel([_event(35, 5)], parcelShopId=shop_id))
+    assert home["pickup"] is False
+    assert home["pickup_point"] is None
+
+
+def test_event_times_without_an_offset_are_danish_time():
+    parcel = normalize_parcel_dk(
+        _parcel(
+            [
+                _event(10, when="2099-07-01T08:00:00"),
+                _event(50, when="2099-07-01T12:00:00"),
+                _event(35, when="2099-07-01T09:30:00Z"),
+            ]
+        ),
+        include_history=True,
+    )
+    assert parcel["delivered_at"] == "2099-07-01T12:00:00+02:00"
+    assert [e["timestamp"] for e in parcel["history"]] == [
+        "2099-07-01T08:00:00+02:00",
+        "2099-07-01T09:30:00+00:00",
+        "2099-07-01T12:00:00+02:00",
+    ]
+    assert parcel["status"] == ParcelStatus.DELIVERED
+
+
+def test_delivered_flag_does_not_override_a_return():
+    parcel = normalize_parcel_dk(
+        _parcel([_event(100, 132, when="2099-07-01T12:00:00Z")], isDelivered=True)
+    )
+    assert parcel["status"] == ParcelStatus.RETURNING
+    assert parcel["delivered"] is False
+    assert parcel["delivered_at"] is None

@@ -75,9 +75,11 @@ KNOWN_CAPABILITIES = frozenset(
 #                  confirmed *unreachable* with the code off the label: that
 #                  form answers E800 there, so an RO parcel added that way
 #                  shows status without weight or history.
-#   United States — the public summary response has no weight, dimensions,
-#                  pickup-point or ETA-window field, so only url (the generic
-#                  fallback link) and history (transitDetails[]) populate.
+#   United States — the public summary response has no weight, dimensions or
+#                  pickup-point field; url (the generic fallback link) and
+#                  history (transitDetails[]) populate. A delivery window is
+#                  filled when the payload carries estimatedDeliveryDate, but
+#                  no in-flight parcel has shown one yet, so it is pending.
 #   Poland       — the keyless national route carries status and a full
 #                  eventReasons[] history, but no weight, dimensions or ETA;
 #                  a ParcelShop's identity is not in the payload either, only
@@ -108,18 +110,17 @@ CAPABILITIES_BY_VARIANT = {
 PENDING_CAPABILITIES_BY_VARIANT = {
     "Germany": frozenset({"delivery_window"}),
     "Canada": frozenset({"delivery_window"}),
+    "United States": frozenset({"delivery_window"}),
     # ``pickup_point`` graduated on a real parcel (2026-10-12) that was
     # diverted to a GLS Point and collected there, with a second parcel
     # delivered to the door confirming the negative. ``delivery_window`` is
-    # still waiting: both captures are delivered, so ``state.deliveryDate``
-    # has only ever been seen agreeing with the actual delivery date, and
-    # whether it is an estimate *before* delivery is still unknown.
-    "Spain and Portugal": frozenset({"delivery_window"}),
+    # not pending: no code path reads ``state.deliveryDate`` (it has only been
+    # seen agreeing with the actual delivery date), so it is not claimed.
     "Denmark (account)": frozenset({"weight", "pickup_point"}),
     # ``pickup_point`` is not parsed: the details payload's ``parcelShop`` has
     # not been seen populated on a real account parcel, so its shape is
-    # unknown. ``delivery_window`` the feed never carries.
-    "Poland (account)": frozenset({"pickup_point", "delivery_window"}),
+    # unknown.
+    "Poland (account)": frozenset({"pickup_point"}),
 }
 
 
@@ -346,8 +347,8 @@ DEFAULT_COUNTRY = "NL"
 # empty value). Only Italy sets it; every other row is unaffected by its
 # absence, since the fallback always tries both values regardless.
 #
-# The original group-country batch shipped past the research gate on
-# 2026-08-24. The later additions use the same confirmed keyless overview
+# The original group-country batch shipped on 2026-08-24 without a real
+# parcel for every country. The later additions use the same confirmed keyless overview
 # route; their detail leaf remains a real-parcel follow-up. ``rstt028`` — the
 # call that actually carries history/weight/references — is unverified for all
 # group countries except CZ. See the release notes for the per-country detail.
@@ -674,7 +675,7 @@ GROUP_LEAF_COUNTRIES = frozenset(
 # carrying history/weight/references — has actually been seen answering 200.
 # Everything else in GROUP_LEAF_COUNTRIES ships on the confirmed overview leaf
 # with its detail half unproven: the call needs the recipient's own postcode,
-# which research cannot supply and only a real user has.
+# which only a real user has.
 #
 # So ``tracking/countries/group/`` warns once per country when a detail leaf answers for
 # a country that is *not* in here, asking the user to report it. Add the

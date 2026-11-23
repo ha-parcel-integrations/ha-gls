@@ -16,7 +16,7 @@ lifecycle submodule of its own (keyless, no session), same as NL.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, tzinfo
 import html
 import itertools
 import json
@@ -39,6 +39,7 @@ from ....const import (
     ParcelStatus,
 )
 from ....delivery_window import is_pickup
+from ....timeutils import country_zone
 from ..it import async_get_history_it
 
 _LOGGER = logging.getLogger(__name__)
@@ -108,9 +109,8 @@ _history_order_warned = False
 _unparseable_timestamp_warned = False
 _weight_format_logged: set[str] = set()
 _unexpected_info_type_logged: set[str] = set()
-# The three additions for the six countries shipped past their research gate
-# — country-agnostic, same as the ones
-# above, so CZ gets them for free too.
+# These three apply to every group country, same as the ones above, so CZ
+# gets them too.
 _e800_warned: set[str] = set()
 _type_retry_warned: set[str] = set()
 _unexpected_5xx_warned = False
@@ -600,7 +600,10 @@ _STATUS_MAP: dict[str, ParcelStatus] = {
 
 
 def map_parcel_status_group(
-    status_info: str | None, *, retour_flag: bool = False
+    status_info: str | None,
+    *,
+    retour_flag: bool = False,
+    fallback: ParcelStatus | None = None,
 ) -> ParcelStatus:
     """Map ``progressBar.statusInfo`` to a canonical status — this package's own function.
 
@@ -616,6 +619,9 @@ def map_parcel_status_group(
     ``DELIVEREDPS`` contains the substring ``DELIVERED``; the dict lookup
     below is an exact match, never ``in``/``startswith``, so a ParcelShop
     arrival is never silently reported as delivered.
+
+    An unmapped ``status_info`` reports ``fallback`` (the newest mappable
+    history event) when there is one, else ``unknown`` with a one-shot warning.
     """
     if retour_flag:
         return ParcelStatus.RETURNING
@@ -624,6 +630,8 @@ def map_parcel_status_group(
     mapped = _STATUS_MAP.get(status_info)
     if mapped is not None:
         return mapped
+    if fallback is not None:
+        return fallback
     _warn_unmapped_status_once(status_info)
     return ParcelStatus.UNKNOWN
 
@@ -711,8 +719,11 @@ _IGNORED_INFO_TYPES = frozenset({"PRODUCT", "SERVICES"})
 _WEIGHT_RE = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s*([A-Za-z]+)\s*$")
 
 
-def _parse_group_datetime(date_value: Any, time_value: Any) -> str | None:
-    """Parse a ``date`` + ``time`` pair into a canonical (naive) ISO string.
+def _parse_group_datetime(date_value: Any, time_value: Any, zone: tzinfo) -> str | None:
+    """Parse a ``date`` + ``time`` pair into an ISO string in ``zone``.
+
+    The pair is the destination country's wall-clock time, so it gets that
+    country's offset (see ``timeutils.country_zone``).
 
     Defensive against an unconfirmed ``YY-MM-DD`` variant existing alongside
     the ``YYYY-MM-DD`` seen on the captured CZ parcel —
@@ -727,7 +738,7 @@ def _parse_group_datetime(date_value: Any, time_value: Any) -> str | None:
             )
         except ValueError:
             continue
-        return parsed.isoformat()
+        return parsed.replace(tzinfo=zone).isoformat()
     _warn_unparseable_timestamp_once(date_value, time_value)
     return None
 
@@ -741,7 +752,7 @@ def _check_history_order(parsed_timestamps: list[str]) -> None:
 
 
 def _build_history_group(
-    raw_history: list[dict], *, max_events: int = HISTORY_MAX_EVENTS
+    raw_history: list[dict], zone: tzinfo, *, max_events: int = HISTORY_MAX_EVENTS
 ) -> list[dict]:
     """Build the canonical ``history`` from ``history[]`` (wire newest-first).
 
@@ -754,7 +765,7 @@ def _build_history_group(
     parsed_timestamps: list[str] = []
     canonical: list[dict] = []
     for event in raw_history:
-        timestamp = _parse_group_datetime(event.get("date"), event.get("time"))
+        timestamp = _parse_group_datetime(event.get("date"), event.get("time"), zone)
         if timestamp is not None:
             parsed_timestamps.append(timestamp)
         raw_status = event.get("evtDscr")
@@ -833,21 +844,34 @@ def normalize_parcel_group(
     ``dimensions`` are always ``None`` — neither group leaf carries them.
     ``weight`` is populated (unlike DE) from ``infos[]``. Top-level ``date``
     is the consignment date, never used for ``delivered_at`` — that comes
-    from the newest ``history[]`` entry instead.
+    from the newest ``history[]`` entry that maps to delivered.
     """
     _warn_unexpected_top_level_keys(raw)
 
     progress = raw.get("progressBar") or {}
     status_info = progress.get("statusInfo")
     retour_flag = bool(progress.get("retourFlag"))
-    status = map_parcel_status_group(status_info, retour_flag=retour_flag)
-
-    # DELIVEREDPS contains the substring DELIVERED — exact match only.
-    delivered = status is ParcelStatus.DELIVERED or (
-        status is ParcelStatus.RETURNING and status_info == "DELIVERED"
+    raw_history = raw.get("history") or []
+    zone = country_zone(country)
+    status = map_parcel_status_group(
+        status_info,
+        retour_flag=retour_flag,
+        fallback=next(
+            (
+                mapped
+                for mapped in (
+                    _EVENT_STATUS_MAP.get(event.get("evtNo")) for event in raw_history
+                )
+                if mapped is not None
+            ),
+            None,
+        ),
     )
 
-    raw_history = raw.get("history") or []
+    # DELIVEREDPS contains the substring DELIVERED — exact match only. A
+    # returning parcel never counts: nothing shows what DELIVERED means once
+    # the return flag is up.
+    delivered = status is ParcelStatus.DELIVERED
     pickup = is_pickup(
         status_info == "DELIVEREDPS",
         status,
@@ -855,12 +879,21 @@ def normalize_parcel_group(
     )
     newest_event = raw_history[0] if raw_history else None
     delivered_at = None
-    if delivered and newest_event:
-        delivered_at = _parse_group_datetime(
-            newest_event.get("date"), newest_event.get("time")
+    if delivered:
+        delivery_event = next(
+            (
+                event
+                for event in raw_history
+                if _EVENT_STATUS_MAP.get(event.get("evtNo")) is ParcelStatus.DELIVERED
+            ),
+            None,
         )
+        if delivery_event:
+            delivered_at = _parse_group_datetime(
+                delivery_event.get("date"), delivery_event.get("time"), zone
+            )
 
-    history = _build_history_group(raw_history) if include_history else None
+    history = _build_history_group(raw_history, zone) if include_history else None
 
     # progressBar.statusText is the progress bar's heading ("Delivered"),
     # not a description of the latest event — it stays "Delivered" once a

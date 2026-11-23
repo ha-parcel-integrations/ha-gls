@@ -2,7 +2,9 @@
 
 import logging
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
+from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.gls.const import GlsApiError, ParcelStatus
@@ -38,6 +40,7 @@ def delivered_sample() -> dict:
             {
                 "trackingNumber": TRACKING_NO,
                 "sender": {
+                    "name": "Example Shipper Inc",
                     "city": "Exampleville",
                     "provinceCode": "ON",
                     "countryCode": "CA",
@@ -99,15 +102,15 @@ def test_normalizer_preserves_full_raw_envelope_and_builds_history():
 
     assert parcel["barcode"] == TRACKING_NO
     assert parcel["status"] == ParcelStatus.DELIVERED
-    assert parcel["delivered_at"] == "2026-08-28T14:52:32+00:00"
+    assert parcel["delivered_at"].startswith("2026-08-28T14:52:32")
     assert parcel["weight"] == 4.54
     assert parcel["dimensions"]["text"] == "20.32 x 10.16 x 10.16 cm"
     assert [event["status"] for event in parcel["history"]] == [
         ParcelStatus.OUT_FOR_DELIVERY,
         ParcelStatus.DELIVERED,
     ]
-    assert parcel["sender"] == "Exampleville, ON, CA"
-    assert parcel["receiver"] == "Receiver City, ON"
+    assert parcel["sender"] == "Example Shipper Inc"
+    assert parcel["receiver"] is None
     assert parcel["url"] == (
         "https://gls-group.com/CA/en/send-and-receive/track-a-shipment/"
         f"?match={TRACKING_NO}"
@@ -191,8 +194,8 @@ def test_unparseable_timestamps_are_dropped_and_warned_once(caplog):
     with caplog.at_level(logging.WARNING):
         parcel = normalize_parcel_ca(raw, parcel_no=TRACKING_NO, include_history=True)
 
-    assert [event["timestamp"] for event in parcel["history"]] == [
-        "2026-08-28T08:12:48+00:00"
+    assert [event["timestamp"][:19] for event in parcel["history"]] == [
+        "2026-08-28T08:12:48"
     ]
     assert parcel["delivered_at"] is None
     assert sum("unparseable timestamp" in r.message for r in caplog.records) == 1
@@ -268,7 +271,8 @@ def test_partial_dimensions_keep_the_numbers_but_drop_the_label():
         ("Acme Ltd", "Acme Ltd"),
         ("", None),
         ({"name": "Acme Ltd", "city": "Exampleville"}, "Acme Ltd"),
-        ({"city": "Exampleville", "countryCode": "CA"}, "Exampleville, CA"),
+        ({"city": "Exampleville", "countryCode": "CA"}, None),
+        ({"name": "", "city": "Exampleville"}, None),
         ({}, None),
         (None, None),
     ],
@@ -320,3 +324,19 @@ async def test_transport_returns_none_when_no_shipment_matches_the_code():
         (200, {"shipments": [{"trackingNumber": "SOMEONEELSE"}]})
     )
     assert await async_get_parcel_ca(session, TRACKING_NO, "K1A0B1") is None
+
+
+def test_naive_times_are_read_in_the_home_assistant_zone():
+    original = dt_util.get_default_time_zone()
+    dt_util.set_default_time_zone(ZoneInfo("Asia/Tokyo"))
+    try:
+        raw = delivered_sample()
+        raw["shipments"][0]["currentStatus"]["date"] = "2099-08-28 14:52:32"
+        raw["shipments"][0]["parcels"][0]["activities"][1]["activityDate"] = (
+            "2099-08-28 14:52:32"
+        )
+        parcel = normalize_parcel_ca(raw, parcel_no=TRACKING_NO, include_history=True)
+    finally:
+        dt_util.set_default_time_zone(original)
+    assert parcel["delivered_at"] == "2099-08-28T14:52:32+09:00"
+    assert parcel["history"][-1]["timestamp"] == "2099-08-28T14:52:32+09:00"

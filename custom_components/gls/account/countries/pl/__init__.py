@@ -9,9 +9,9 @@ transport, an unrecognised shipment code falls back to the newest event's
 status. ``pickup_point`` stays ``None``: the details payload's ``parcelShop``
 has not been seen populated on a real account parcel, so its shape is unknown.
 
-The locker ``pin`` and the courier's phone number never reach the published
-``raw`` attribute, the sensor state or the bus events — only an allowlist of
-safe fields does.
+The published ``raw`` is the full feed row and details payload, minus the
+locker ``pin`` and every link-valued field; diagnostics redact the recipient
+and courier fields.
 """
 
 from __future__ import annotations
@@ -29,35 +29,17 @@ from ....timeutils import parse_iso
 from ....tracking.countries.pl import map_event_status_pl, map_parcel_status_pl
 from ...errors import GlsAccountFeedError
 from ...feed import complete_items
-from ...normalize import pick, text as _text
+from ...normalize import text as _text
 from .session import DETAILS_KEY
 
 _LOGGER = logging.getLogger(__name__)
 _TRACKING_URL = COUNTRIES["PL"]["tracking_url"]
 
-# Safe, scalar feed/details fields that may enter the published ``raw``. Every
-# one was seen on a real captured feed row / details payload (2026-11-17); the
-# locker ``pin``, ``courierPhoneNumber``, URLs and every identity UUID are
-# deliberately excluded. Add a field here only after seeing it on the wire.
-_RAW_FEED_FIELDS = frozenset(
-    {
-        "shipmentNo",
-        "trackingId",
-        "stateDate",
-        "packageAmount",
-        "progressBar",
-        "progressBarIdent",
-        "receiverPostalCode",
-        "senderName",
-        "receiverName",
-        "customName",
-        "isManual",
-        "deliveryCountryCode",
-    }
-)
-_RAW_DETAILS_FIELDS = frozenset(
-    {"weight", "reference", "deliveryMethod", "deliveryCountryCode"}
-)
+# ``raw`` is the full feed row with its details payload under ``DETAILS_KEY``.
+# Left out: the locker ``pin`` and any key that holds a link (name ending in
+# ``Url``/``Uri``/``Link``), since those open or sign in to something.
+_WITHHELD_KEYS = frozenset({"pin"})
+_LINK_KEY = re.compile(r"(url|uri|link)$", re.IGNORECASE)
 
 
 _PHONE_SEPARATORS = re.compile(r"[\s\-().]")
@@ -120,12 +102,24 @@ def _shipment(raw: dict) -> dict:
     return shipment if isinstance(shipment, dict) else {}
 
 
+def _scrub(value: Any) -> Any:
+    """Copy a payload without the withheld keys, at every depth."""
+    if isinstance(value, dict):
+        return {
+            key: _scrub(item)
+            for key, item in value.items()
+            if key not in _WITHHELD_KEYS
+            and not (isinstance(key, str) and _LINK_KEY.search(key))
+            and not (isinstance(item, float) and not math.isfinite(item))
+        }
+    if isinstance(value, list):
+        return [_scrub(item) for item in value]
+    return value
+
+
 def _safe_raw(raw: dict) -> dict:
-    """Drop access material before the payload can enter attributes or events."""
-    return {
-        **pick(raw, _RAW_FEED_FIELDS),
-        **pick(_shipment(raw), _RAW_DETAILS_FIELDS),
-    }
+    """Return the full record minus pins and links."""
+    return _scrub(raw)
 
 
 def _package_events(raw: dict) -> list[dict]:

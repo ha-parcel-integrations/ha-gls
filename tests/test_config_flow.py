@@ -217,7 +217,7 @@ async def test_same_postcode_different_country_hub_allowed(hass):
 
 
 # ---------------------------------------------------------------------------
-# The Group-leaf countries added past their research gate
+# The Group-leaf countries without a real capture
 # — postcode validation only; the transport
 # itself is covered in tests/countries/test_group.py.
 # ---------------------------------------------------------------------------

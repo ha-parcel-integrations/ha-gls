@@ -1,8 +1,7 @@
 """GLS Germany: bearer ``POST`` transport, payload mapping and status map.
 
-Built **past** the research gate — a deliberate, maintainer-approved
-decision. The gate asked for one *in-transit* parcel to resolve; only two
-*delivered* AWBs have ever been captured, and both came back with
+Built before any *in-transit* parcel was seen: only two *delivered* AWBs
+have ever been captured, and both came back with
 ``latestStatusText: ""`` and no status field at all. So the
 status map below is **derivation-first**, not enum-first: the enum table
 has never been seen on the wire and is wired in only as a fallback layer, not
@@ -17,10 +16,11 @@ equivalent — see :mod:`.session`.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 import json
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import aiohttp
 
@@ -36,6 +36,8 @@ from ....delivery_window import is_pickup
 from .session import GlsDeSession
 
 _LOGGER = logging.getLogger(__name__)
+
+_BERLIN = ZoneInfo("Europe/Berlin")
 
 _NEW_ISSUE_URL = (
     "https://github.com/ha-parcel-integrations/ha-gls/issues/new"
@@ -453,8 +455,7 @@ def map_parcel_status_de(
 ) -> ParcelStatus:
     """Map a DE parcel to a canonical status — **derivation-first, not enum-first**.
 
-    This is the maintainer's explicit decision to build past the research
-    gate: two real delivered parcels carried no status field at all and an
+    Two real delivered parcels carried no status field at all and an
     empty ``latestStatusText``, so the enum table has never been corroborated
     on the wire. The derivation always decides
     ``delivered``/``problem`` first; ``enum_value`` is only consulted — as an
@@ -490,16 +491,15 @@ def map_parcel_status_de(
 def _parse_de_timestamp(value: str | None) -> str | None:
     """Parse a DE ``"%Y-%m-%d %H:%M:%S"`` timestamp into a canonical ISO string.
 
-    DE timestamps carry no timezone (a space, not a ``T``) —
-    treated as UTC, the same convention NL's naive scan timestamps use, so
-    the generic list helpers (``sort_parcels_by_ts``, the delivered-retention
-    filter) can parse the result. Never hand the raw string to a naive ISO
-    parser — it isn't one.
+    DE timestamps carry no timezone (a space, not a ``T``); they are German
+    wall-clock time, so the result gets Berlin's offset and the generic list
+    helpers (``sort_parcels_by_ts``, the delivered-retention filter) sort it
+    correctly. Never hand the raw string to a naive ISO parser — it isn't one.
     """
     if not value:
         return None
     try:
-        dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+        dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=_BERLIN)
     except ValueError:
         return None
     return dt.isoformat()

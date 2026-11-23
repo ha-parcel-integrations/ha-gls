@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 import logging
 from typing import Any
 
@@ -17,6 +17,7 @@ from ....const import (
     GlsApiError,
     ParcelStatus,
 )
+from ....timeutils import country_zone, localize_naive
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,19 +99,15 @@ def _warn_shape(path: str, value: object) -> None:
 def _parse_timestamp(value: object) -> str | None:
     """Return a canonical ISO timestamp for GLS Canada's offset-free values.
 
-    The carrier currently supplies ``YYYY-MM-DD HH:MM:SS`` without an offset.
-    GLS's existing DE transport treats the same format as UTC so the shared
-    retention and sorting helpers can operate on it; CA follows that established
-    integration convention until the carrier publishes a timezone field.
+    The carrier supplies ``YYYY-MM-DD HH:MM:SS`` without an offset. Canada
+    spans several zones and the payload names none, so the time is read in the
+    Home Assistant zone (``timeutils.country_zone`` has no single zone for it).
     """
     if not isinstance(value, str) or not value:
         return None
     try:
-        return (
-            datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-            .replace(tzinfo=UTC)
-            .isoformat()
-        )
+        parsed = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+        return localize_naive(parsed, country_zone("CA")).isoformat()
     except ValueError:
         if value not in _unparseable_timestamps_logged:
             _unparseable_timestamps_logged.add(value)
@@ -222,19 +219,16 @@ def _dimensions(shipment: dict) -> dict | None:
 
 
 def _party_label(value: object) -> str | None:
-    """Return the sender/consignee name, or its available location label."""
+    """Return the sender/consignee name, else ``None``.
+
+    A party block without a name only carries a location, which is never a
+    sender or receiver.
+    """
     if isinstance(value, str):
         return value or None
-    if not isinstance(value, dict):
-        return None
-    if isinstance(value.get("name"), str) and value["name"]:
-        return value["name"]
-    parts = [
-        value.get("city"),
-        value.get("provinceCode"),
-        value.get("countryCode"),
-    ]
-    return ", ".join(str(part) for part in parts if part) or None
+    if isinstance(value, dict) and isinstance(value.get("name"), str):
+        return value["name"] or None
+    return None
 
 
 def _history(shipment: dict) -> list[dict]:

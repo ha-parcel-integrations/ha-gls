@@ -238,7 +238,7 @@ sensor attribute uses the same carrier-agnostic shape regardless:
 | `planned_from` | ISO 8601 \| null | Expected delivery window start |
 | `planned_to` | ISO 8601 \| null | Expected delivery window end; a single delivery time runs to the end of that day. Both planned values are empty once the parcel is at a ParcelShop, returning or delivered |
 | `pickup` | bool | Destined for a ParcelShop rather than a home address; stays true after collection |
-| `pickup_point` | string \| null | ParcelShop name when `pickup` is true |
+| `pickup_point` | string \| null | ParcelShop name when `pickup` is true (Denmark: the shop number) |
 | `url` | string \| null | Deep link to the parcel's tracking page |
 | `weight` | float \| null | Parcel weight in kilograms |
 | `dimensions` | dict \| null | `{length, width, height, text}` in centimeters |

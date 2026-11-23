@@ -1,9 +1,7 @@
 # Architecture
 
 How `ha-gls` is built and why it is built that way. `CLAUDE.md` is the short
-list of things not to get wrong; this file is the reasoning behind it. API
-mechanics — endpoints, parameters, status vocabularies — live in the private
-`carrier-research/gls/api/` and are never copied here.
+list of things not to get wrong; this file is the reasoning behind it.
 
 Two things drive everything else. Manual tracking has **no consumer account or
 parcel feed**, so the user enters tracking codes and a hub is keyed by postcode
@@ -140,8 +138,7 @@ email/password login. **Poland** is Azure AD B2C: `account/countries/pl/session.
 runs the app's OAuth authorization-code + PKCE sign-in headlessly, on a
 throwaway cookie-isolated client session, then registers a server-side device
 session once before the bearer is accepted. The API needs no app key and no
-request signature. The endpoints and their quirks are in
-`carrier-research/gls/api/gls-pl-account.md`.
+request signature.
 
 Every token-endpoint call, refresh and code exchange alike, also runs on a
 cookieless client (on the shared connection pool), because the app sends no
@@ -398,8 +395,7 @@ fill returns immediately unless `country == "IT"`.
 
 **A detail leaf answering for an unconfirmed country is itself a finding.**
 `rstt028` is captured for `CZ` alone (`GROUP_RSTT028_CONFIRMED`), because the
-call needs the recipient's own postcode — research cannot supply one, only a
-real user has it. So a `200` from a country outside that set warns once per
+call needs the recipient's own postcode, which only a real user has. So a `200` from a country outside that set warns once per
 country, with a summary of what the body carried (`history=n events`,
 `weight=yes|no`, `references=yes|no`) and a **pre-filled**
 `country_coverage.yml` issue link. It is a WARNING despite being good news:

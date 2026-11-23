@@ -119,15 +119,31 @@ def test_history_is_built_only_when_requested_and_sorted():
     assert history[0]["raw_status"] == "W doręczeniu"
 
 
-def test_pin_and_courier_phone_never_reach_raw():
-    parcel = normalize_parcel_pl_account(feed_item(), include_history=True)
+def test_raw_is_the_full_record_minus_pin_and_links():
+    item = feed_item()
+    item["trackingLink"] = "https://example.invalid/track"
+    item[DETAILS_KEY]["trackingShipment"]["podImageUrl"] = "https://example.invalid/p"
+    parcel = normalize_parcel_pl_account(item, include_history=True)
     raw = parcel["raw"]
-    assert "pin" not in raw
-    assert "courierPhoneNumber" not in raw
-    assert "trackingUid" not in raw
-    # The safe fields do survive.
+    shipment = raw[DETAILS_KEY]["trackingShipment"]
+    assert "pin" not in shipment
+    assert "podImageUrl" not in shipment
+    assert "trackingLink" not in raw
+    # Everything else survives, nested values and identifiers included.
     assert raw["shipmentNo"] == "490000000001"
-    assert raw["weight"] == 2.69
+    assert raw["trackingUid"] == item["trackingUid"]
+    assert raw["receiverPostalCode"] == "00-001"
+    assert shipment["weight"] == 2.69
+    assert shipment["courierPhoneNumber"] == "+48000000000"
+    assert shipment["proofOfDelivery"]["receiverName"] == "Example"
+    assert raw[DETAILS_KEY]["trackingShipmentPackages"][0]["packageStatuses"]
+    # The input is not mutated.
+    assert item[DETAILS_KEY]["trackingShipment"]["pin"] == "9999"
+
+
+def test_non_finite_number_is_dropped_from_raw():
+    parcel = normalize_parcel_pl_account(feed_item(packageAmount=float("inf")))
+    assert "packageAmount" not in parcel["raw"]
 
 
 def test_unknown_status_without_history_is_unknown_not_an_error():
@@ -232,11 +248,6 @@ def test_registry_restores_a_pl_session_without_its_phone():
 def test_parse_feed_rejects_non_dict_item():
     with pytest.raises(GlsAccountFeedError):
         parse_feed_pl({"items": ["nope"], "totalElements": 1}, None)
-
-
-def test_non_finite_scalar_is_dropped_from_raw():
-    parcel = normalize_parcel_pl_account(feed_item(packageAmount=float("inf")))
-    assert "packageAmount" not in parcel["raw"]
 
 
 def test_malformed_details_degrade_gracefully():

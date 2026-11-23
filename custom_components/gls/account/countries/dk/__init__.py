@@ -9,7 +9,8 @@ from typing import Any
 from urllib.parse import quote
 
 from ....const import HISTORY_MAX_EVENTS, TRACKING_URL, ParcelStatus
-from ....timeutils import parse_iso
+from ....delivery_window import is_pickup
+from ....timeutils import country_zone, localize_naive
 from ...errors import GlsAccountFeedError
 from ...feed import complete_items
 from ...normalize import pick, text as _text
@@ -102,13 +103,25 @@ def map_event_status_dk(event: dict) -> ParcelStatus | None:
     return status
 
 
+def _moment(value: Any, zone: Any) -> datetime | None:
+    """Parse an event time; one without an offset is Danish wall-clock time."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    return localize_naive(parsed, zone)
+
+
 def _events(raw: dict) -> list[tuple[datetime | None, dict]]:
     """Sort events by their own timestamps, keeping ties in carrier order."""
     events = raw.get("parcelStatusDtoList")
     if not isinstance(events, list):
         return []
+    zone = country_zone("DK")
     parsed = [
-        (parse_iso(event.get("eventDateTime")), event)
+        (_moment(event.get("eventDateTime"), zone), event)
         for event in events
         if isinstance(event, dict)
     ]
@@ -149,6 +162,18 @@ def parse_feed_dk(feed: Any, uid: str | None) -> list[tuple[str, dict]]:
     return entries
 
 
+def _has_shop_id(value: Any) -> bool:
+    """A positive id names a shop; 0 or less is what a home delivery may send."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return value > 0
+    text = _text(value)
+    if text is None:
+        return False
+    return not (text.lstrip("-").isdigit() and int(text) <= 0)
+
+
 def normalize_parcel_dk(raw: dict, *, include_history: bool = False) -> dict:
     """Normalize an account parcel, publishing only a credential-free raw copy."""
     safe_raw = _safe_raw(raw)
@@ -157,7 +182,9 @@ def normalize_parcel_dk(raw: dict, *, include_history: bool = False) -> dict:
     status = next(
         (state for _, _, state in mapped if state is not None), ParcelStatus.UNKNOWN
     )
-    if raw.get("isDelivered") is True:
+    # A return is only delivered once it is back at the sender; nothing here
+    # shows that, so isDelivered does not override it.
+    if raw.get("isDelivered") is True and status is not ParcelStatus.RETURNING:
         status = ParcelStatus.DELIVERED
     delivered = status == ParcelStatus.DELIVERED
     latest = events[0][1] if events else {}
@@ -173,17 +200,19 @@ def normalize_parcel_dk(raw: dict, *, include_history: bool = False) -> dict:
         if delivered
         else None
     )
-    pickup = any(
-        state == ParcelStatus.AT_PICKUP_POINT
-        or (
+    shop_number = _text(safe_raw.get("parcelShopNumber"))
+    # The shop fields name the route's end, so they count before any arrival.
+    route_flag = (
+        shop_number is not None
+        or _has_shop_id(safe_raw.get("parcelShopId"))
+        or any(
             event.get("parcelState") == 40
             and event.get("eventReasonCombination") == 1586
+            for _, event, _ in mapped
         )
-        for _, event, state in mapped
     )
-    pickup_point = None
-    if pickup:
-        pickup_point = _text(safe_raw.get("parcelShopNumber"))
+    pickup = is_pickup(route_flag, status, (state for _, _, state in mapped))
+    pickup_point = shop_number if pickup else None
     barcode = _text(safe_raw.get("parcelNumber"))
     history = None
     if include_history:

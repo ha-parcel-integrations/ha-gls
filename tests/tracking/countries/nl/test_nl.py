@@ -103,7 +103,7 @@ def test_normalize_delivered_parcel():
     assert parcel["status"] == ParcelStatus.DELIVERED
     assert parcel["raw_status"] == "Afgeleverd"
     assert parcel["delivered"] is True
-    assert parcel["delivered_at"] == "2026-04-29T13:12:42"
+    assert parcel["delivered_at"] == "2026-04-29T13:12:42+02:00"
     assert parcel["planned_from"] is None
     assert parcel["planned_to"] is None
     assert parcel["weight"] == 0.1
@@ -174,3 +174,84 @@ def test_normalize_parcel_no_dimensions_at_all():
     sample["length"] = sample["width"] = sample["height"] = None
     parcel = normalize_parcel_nl(sample)
     assert parcel["dimensions"] is None
+
+
+# ---------------------------------------------------------------------------
+# Amsterdam wall-clock handling
+# ---------------------------------------------------------------------------
+
+
+def _nl_raw(**extra):
+    return {"parcelNo": "1", "state": 3, **extra}
+
+
+def test_utc_eta_ends_on_the_amsterdam_day():
+    # 22:30Z is 00:30 the next day in Amsterdam, so the day ends 24 hours later.
+    parcel = normalize_parcel_nl(
+        _nl_raw(deliveryStatus={"etaTimestampMin": "2099-07-01T22:30:00Z"})
+    )
+    assert parcel["planned_from"] == "2099-07-01T22:30:00Z"
+    assert parcel["planned_to"] == "2099-07-02T23:59:59+02:00"
+
+
+def test_naive_eta_is_amsterdam_time():
+    parcel = normalize_parcel_nl(
+        _nl_raw(
+            deliveryStatus={
+                "etaTimestampMin": "2099-01-05T13:00:00",
+                "etaTimestampMax": "2099-01-05T15:00:00",
+            }
+        )
+    )
+    assert parcel["planned_from"] == "2099-01-05T13:00:00+01:00"
+    assert parcel["planned_to"] == "2099-01-05T15:00:00+01:00"
+
+
+def test_naive_scan_and_delivery_times_get_the_amsterdam_offset():
+    parcel = normalize_parcel_nl(
+        _nl_raw(
+            deliveryScanInfo={"isDelivered": True, "dateTime": "2099-07-01T10:00:00"},
+            scans=[
+                {"dateTime": "2099-07-01T09:00:00", "state": 3},
+                {"dateTime": "2099-06-30T08:00:00Z", "state": 1},
+            ],
+        ),
+        include_history=True,
+    )
+    assert parcel["delivered_at"] == "2099-07-01T10:00:00+02:00"
+    assert [e["timestamp"] for e in parcel["history"]] == [
+        "2099-06-30T08:00:00+00:00",
+        "2099-07-01T09:00:00+02:00",
+    ]
+
+
+def test_unparseable_delivery_time_is_none():
+    parcel = normalize_parcel_nl(
+        _nl_raw(deliveryScanInfo={"isDelivered": True, "dateTime": "soon"})
+    )
+    assert parcel["delivered"] is True
+    assert parcel["delivered_at"] is None
+
+
+def test_unmapped_state_falls_back_to_the_newest_mappable_scan(caplog):
+    raw = _nl_raw(
+        state=99,
+        scans=[
+            {"dateTime": "2099-07-01T08:00:00", "state": 2},
+            {"dateTime": "2099-07-01T09:00:00", "state": 3},
+            {"dateTime": "2099-07-01T10:00:00", "state": 98},
+            {"dateTime": "2099-07-01T11:00:00", "state": 3, "x": "no time trouble"},
+            {"dateTime": "broken", "state": 4},
+        ],
+    )
+    with caplog.at_level("WARNING"):
+        parcel = normalize_parcel_nl(raw)
+    assert parcel["status"] == ParcelStatus.OUT_FOR_DELIVERY
+    assert not [m for m in caplog.messages if "Unrecognised GLS state" in m]
+
+
+def test_unmapped_state_without_a_mappable_scan_is_unknown_and_warns(caplog):
+    with caplog.at_level("WARNING"):
+        parcel = normalize_parcel_nl(_nl_raw(state=97, scans=[]))
+    assert parcel["status"] == ParcelStatus.UNKNOWN
+    assert any("Unrecognised GLS state" in m for m in caplog.messages)

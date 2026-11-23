@@ -70,8 +70,8 @@ def _group(status_info, history=(), retour=False):
     )
 
 
-_LOCKER = {"date": "2099-05-22", "time": "10:00", "evtNo": "3.896", "evtDscr": "x"}
-_HANDED = {"date": "2099-05-23", "time": "10:00", "evtNo": "3.0", "evtDscr": "x"}
+_LOCKER = {"date": "2099-05-22", "time": "10:00:00", "evtNo": "3.896", "evtDscr": "x"}
+_HANDED = {"date": "2099-05-23", "time": "10:00:00", "evtNo": "3.0", "evtDscr": "x"}
 
 
 def _pl(ident, *names):
@@ -106,7 +106,81 @@ def _account_pl(ident, *names):
     )
 
 
+def _us(status, **fields):
+    return lambda: normalize_parcel_us(
+        {
+            "shipments": [
+                {
+                    "trackingNumber": "1",
+                    "status": status,
+                    "shipDate": "2099-09-07T00:00:00",
+                    "estimatedDeliveryDate": "2099-09-09T00:00:00",
+                    **fields,
+                }
+            ]
+        },
+        parcel_no="1",
+    )
+
+
+def _ca(status, **fields):
+    return lambda: normalize_parcel_ca(
+        {
+            "shipments": [
+                {
+                    "trackingNumber": "1",
+                    "sender": {"name": "Example Shipper", "city": "Exampleville"},
+                    "consignee": {"city": "Receiver City", "provinceCode": "ON"},
+                    "currentStatus": {"name": status, "date": "2099-08-28 14:52:32"},
+                    **fields,
+                }
+            ]
+        },
+        parcel_no="1",
+    )
+
+
+def _dk(*states, **fields):
+    return lambda: normalize_parcel_dk(
+        {
+            "parcelNumber": "1",
+            "parcelStatusDtoList": [
+                {
+                    "parcelState": state,
+                    "eventReasonCombination": 0,
+                    "eventDateTime": f"2099-10-0{i + 1}T10:00:00Z",
+                    "parcelStateText": "Synthetic event",
+                }
+                for i, state in reversed(list(enumerate(states)))
+            ],
+            **fields,
+        }
+    )
+
+
+def _es_redirect():
+    raw = es_delivered()
+    raw["state"] = {"code": "onTransit", "description": "In transit"}
+    raw["tracking"] = [
+        {
+            "code": "picked",
+            "description": "Shipment redirected to GLS Point Example Shop",
+            "at": "2099-10-09T09:12:00Z",
+        }
+    ]
+    raw["parcelShop"] = {"name": "Example Shop"}
+    return normalize_parcel_es(raw, parcel_no="1")
+
+
 SAMPLES = {
+    "nl_moment_z": _nl(deliveryStatus={"etaTimestampMin": "2099-05-22T22:30:00Z"}),
+    "us_estimate": _us("LABEL CREATED"),
+    "us_estimate_delivered": _us(
+        "SHIPMENT DELIVERED", deliveryDate="2099-09-09T11:04:00"
+    ),
+    "ca_named": _ca("In Transit"),
+    "dk_pickup_in_transit": _dk(35, parcelShopNumber="123"),
+    "es_redirect": _es_redirect,
     "pl_account_collected": _account_pl("DELIVERED", "Gotowa do odbioru", "Doręczona"),
     "pl_account_home": _account_pl("DELIVERED", "W doręczeniu", "Doręczona"),
     "nl_active": _nl(),
@@ -191,6 +265,11 @@ def test_a_home_delivery_is_not_pickup(name):
     assert SAMPLES[name]()["pickup"] is False
 
 
+def test_group_delivered_at_is_the_delivery_event():
+    parcel = SAMPLES["group_collected"]()
+    assert parcel["delivered_at"] == "2099-05-23T10:00:00+02:00"
+
+
 def test_nl_window_keeps_both_ends():
     parcel = SAMPLES["nl_active"]()
     assert parcel["planned_from"] == "2099-05-22T13:00:00+02:00"
@@ -208,10 +287,11 @@ def test_nl_delivered_flag_decides_the_status():
     assert parcel["delivered"] is True
 
 
-def test_group_return_the_carrier_calls_delivered_stays_returning_and_finished():
+def test_group_return_the_carrier_calls_delivered_stays_returning_and_active():
     parcel = SAMPLES["group_returned"]()
     assert parcel["status"] is ParcelStatus.RETURNING
-    assert parcel["delivered"] is True
+    assert parcel["delivered"] is False
+    assert parcel["delivered_at"] is None
 
 
 @pytest.mark.parametrize(
@@ -301,3 +381,40 @@ def test_is_pickup_sources():
     assert is_pickup(None, ParcelStatus.DELIVERED, [None, ParcelStatus.AT_PICKUP_POINT])
     assert is_pickup(False, ParcelStatus.IN_TRANSIT, [ParcelStatus.IN_TRANSIT]) is False
     assert is_pickup(None, ParcelStatus.DELIVERED) is False
+
+
+def test_nl_z_moment_ends_on_the_amsterdam_day():
+    parcel = SAMPLES["nl_moment_z"]()
+    assert parcel["planned_from"] == "2099-05-22T22:30:00Z"
+    assert parcel["planned_to"] == "2099-05-23T23:59:59+02:00"
+
+
+def test_us_estimate_covers_its_whole_day_and_empties_once_delivered():
+    active = SAMPLES["us_estimate"]()
+    assert active["status"] is ParcelStatus.REGISTERED
+    assert datetime.fromisoformat(active["planned_from"]).replace(
+        tzinfo=None
+    ) == datetime(2099, 9, 9, 0, 0, 0)
+    assert datetime.fromisoformat(active["planned_to"]).replace(
+        tzinfo=None
+    ) == datetime(2099, 9, 9, 23, 59, 59)
+    done = SAMPLES["us_estimate_delivered"]()
+    assert (done["planned_from"], done["planned_to"]) == (None, None)
+
+
+def test_ca_party_is_a_name_or_none_never_a_location():
+    parcel = SAMPLES["ca_named"]()
+    assert parcel["sender"] == "Example Shipper"
+    assert parcel["receiver"] is None
+
+
+def test_dk_shop_number_is_pickup_before_arrival():
+    parcel = SAMPLES["dk_pickup_in_transit"]()
+    assert parcel["status"] is ParcelStatus.IN_TRANSIT
+    assert (parcel["pickup"], parcel["pickup_point"]) == (True, "123")
+
+
+def test_es_redirect_is_pickup_while_in_transit():
+    parcel = SAMPLES["es_redirect"]()
+    assert parcel["status"] is ParcelStatus.IN_TRANSIT
+    assert (parcel["pickup"], parcel["pickup_point"]) == (True, "Example Shop")

@@ -101,8 +101,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GlsConfigEntry) -> bool:
     # The endpoint host + culture come from the hub country; entries created
     # before the country option default to the Netherlands. NL is keyless
     # (the HA-managed session is enough); DE needs its own anonymous
-    # guest-account session — self-minted, not shared,
-    # so it still clears the shared-secret refusal.
+    # guest-account session, created per install.
     country_cfg = COUNTRIES.get(country, COUNTRIES[DEFAULT_COUNTRY])
 
     de_session: GlsDeSession | None = None

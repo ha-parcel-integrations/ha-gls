@@ -33,6 +33,11 @@ TO_REDACT = {
     "trackingId",
     "phone",
     "receiverCity",
+    "courierPhoneNumber",
+    "trackingUid",
+    "packageUid",
+    "packageNo",
+    "customName",
     "receiverEmail",
     "shareParcelLink",
     "trustPilotLink",
@@ -85,9 +90,8 @@ TO_REDACT = {
     "receiver",
     "pickup_point",
     "url",
-    # GLS Germany's guest-account identity. Not a
-    # secret in the credential sense (anyone can mint one), but it's a
-    # stable per-install identifier — redact it anyway. It lives in
+    # GLS Germany's guest-account identity: a stable per-install
+    # identifier, so it is redacted. It lives in
     # entry.data (de_app_instance_id) and, defensively, under any of these
     # key spellings in case a token or the id ever rides along in a raw
     # payload. The session's live bearer token is never persisted to

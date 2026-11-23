@@ -10,10 +10,11 @@ own — unlike DE, NL has no lifecycle module (no ``session.py`` here).
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 import json
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import aiohttp
 
@@ -27,9 +28,13 @@ from ....const import (
     ParcelStatus,
 )
 from ....delivery_window import is_pickup, planned_for_status, planned_window
-from ....timeutils import parse_iso as _parse_iso
+from ....timeutils import localize_naive, parse_iso as _parse_iso
 
 _LOGGER = logging.getLogger(__name__)
+
+# NL is the only country on this normaliser: its wall-clock times and the day
+# a delivery window ends on are Amsterdam's.
+_AMSTERDAM = ZoneInfo("Europe/Amsterdam")
 
 
 # ---------------------------------------------------------------------------
@@ -116,17 +121,22 @@ def _warn_unmapped_state(state: int) -> None:
     )
 
 
-def map_parcel_status_nl(state: int | None) -> ParcelStatus:
+def map_parcel_status_nl(
+    state: int | None, *, fallback: ParcelStatus | None = None
+) -> ParcelStatus:
     """Map a GLS numeric ``state`` to a canonical :class:`ParcelStatus`.
 
-    ``None`` (a not-yet-scanned parcel) reports ``unknown`` silently; an
-    unmapped non-null state reports ``unknown`` with a one-shot warning.
+    ``None`` (a not-yet-scanned parcel) reports ``unknown`` silently. An
+    unmapped non-null state reports ``fallback`` (the newest mappable scan)
+    when there is one, else ``unknown`` with a one-shot warning.
     """
     if state is None:
         return ParcelStatus.UNKNOWN
     mapped = _STATE_MAP.get(state)
     if mapped is not None:
         return mapped
+    if fallback is not None:
+        return fallback
     _warn_unmapped_state(state)
     return ParcelStatus.UNKNOWN
 
@@ -151,6 +161,33 @@ def map_event_status(state: int | None) -> ParcelStatus | None:
 # ---------------------------------------------------------------------------
 
 
+def _stamp(value: Any) -> str | None:
+    """Return an ISO time with an offset; a naive one is Amsterdam wall-clock.
+
+    ``None`` when the value is not a parseable time.
+    """
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    return localize_naive(parsed, _AMSTERDAM).isoformat()
+
+
+def _newest_mappable_scan(scans: list | None) -> ParcelStatus | None:
+    """Return the status of the newest scan whose ``state`` is mapped."""
+    best: tuple[datetime, ParcelStatus] | None = None
+    for scan in scans or []:
+        status = _STATE_MAP.get(scan.get("state"))
+        moment = _parse_iso(_stamp(scan.get("dateTime")))
+        if status is None or moment is None:
+            continue
+        if best is None or moment >= best[0]:
+            best = (moment, status)
+    return best[1] if best else None
+
+
 def build_history(
     scans: list | None, *, max_events: int = HISTORY_MAX_EVENTS
 ) -> list[dict]:
@@ -165,9 +202,10 @@ def build_history(
     parseable: list[tuple[datetime, dict]] = []
     unparseable: list[dict] = []
     for scan in scans or []:
-        timestamp = scan.get("dateTime")
-        if not timestamp:
+        raw_timestamp = scan.get("dateTime")
+        if not raw_timestamp:
             continue
+        timestamp = _stamp(raw_timestamp) or raw_timestamp
         entry = {
             "timestamp": timestamp,
             "status": map_event_status(scan.get("state")),
@@ -246,7 +284,8 @@ def normalize_parcel_nl(
 
     GLS provides more than DHL: ``weight`` and ``dimensions`` are populated.
     The expected delivery window is ``deliveryStatus.etaTimestampMin/Max``
-    (only while the parcel is still on its way).
+    (only while the parcel is still on its way); a delivery day ends in
+    Amsterdam time.
 
     ``history`` is the optional per-parcel status timeline — opt-in, default
     off (``None``), kept identical to the other suite carriers. GLS returns
@@ -258,7 +297,10 @@ def normalize_parcel_nl(
 
     scan_info = raw.get("deliveryScanInfo") or {}
     state = raw.get("state")
-    status = map_parcel_status_nl(4 if scan_info.get("isDelivered") else state)
+    status = map_parcel_status_nl(
+        4 if scan_info.get("isDelivered") else state,
+        fallback=_newest_mappable_scan(raw.get("scans")),
+    )
     delivered = status is ParcelStatus.DELIVERED
 
     delivery_status = raw.get("deliveryStatus") or {}
@@ -273,12 +315,8 @@ def normalize_parcel_nl(
         or bool((raw.get("deliveryListInfo") or {}).get("isParcelShop")),
         status,
     )
-    first = _parse_iso(eta_min) or _parse_iso(eta_max)
     planned_from, planned_to = planned_for_status(
-        status,
-        *planned_window(
-            eta_min, eta_max, zone=first.tzinfo if first and first.tzinfo else UTC
-        ),
+        status, *planned_window(eta_min, eta_max, zone=_AMSTERDAM)
     )
 
     weight = raw.get("weighedWeight")
@@ -293,7 +331,7 @@ def normalize_parcel_nl(
         "status": status,
         "raw_status": raw_status,
         "delivered": delivered,
-        "delivered_at": scan_info.get("dateTime") if delivered else None,
+        "delivered_at": _stamp(scan_info.get("dateTime")) if delivered else None,
         "planned_from": planned_from,
         "planned_to": planned_to,
         "pickup": pickup,

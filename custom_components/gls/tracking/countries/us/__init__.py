@@ -34,6 +34,8 @@ from ....const import (
     GlsApiError,
     ParcelStatus,
 )
+from ....delivery_window import planned_for_status, planned_window
+from ....timeutils import country_zone, localize_naive
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,10 +150,9 @@ def _warn_shape(path: str, value: object) -> None:
 def _parse_datetime(value: object) -> datetime | None:
     """Parse a US timestamp, treating the .NET sentinel dates as absent.
 
-    The backend sends ISO-8601 without an offset. GLS's existing DE and CA
-    transports treat the same offset-free shape as UTC so the shared retention
-    and sorting helpers can operate on it; US follows that convention until the
-    carrier publishes a timezone field.
+    The backend sends ISO-8601 without an offset. The US spans several zones
+    and the payload names none, so the time is read in the Home Assistant zone
+    (``timeutils.country_zone`` has no single zone for it).
     """
     if not isinstance(value, str) or not value.strip():
         return None
@@ -164,7 +165,7 @@ def _parse_datetime(value: object) -> datetime | None:
         return None
     if parsed.year in _SENTINEL_YEARS:
         return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    return localize_naive(parsed, country_zone("US"))
 
 
 def _parse_timestamp(value: object) -> str | None:
@@ -336,6 +337,14 @@ def normalize_parcel_us(
     status = map_parcel_status_us(status_name)
     if status == ParcelStatus.UNKNOWN:
         status = _derive_status(shipment)
+    # estimatedDeliveryDate is a date only: it covers that whole day.
+    estimate = _parse_datetime(shipment.get("estimatedDeliveryDate"))
+    planned_from, planned_to = planned_for_status(
+        status,
+        *planned_window(
+            estimate.date() if estimate else None, None, zone=country_zone(country)
+        ),
+    )
     barcode = shipment.get("trackingNumber") or parcel_no
     template = COUNTRIES.get(country, {}).get("tracking_url") or TRACKING_URL
     url = template.format(parcel_no=barcode) if barcode else None
@@ -354,10 +363,8 @@ def normalize_parcel_us(
         "delivered_at": (
             _delivered_at(shipment) if status == ParcelStatus.DELIVERED else None
         ),
-        # estimatedDeliveryDate is a date, not the ETA *window* the contract's
-        # planned_from/planned_to describe — see CAPABILITIES_BY_VARIANT.
-        "planned_from": None,
-        "planned_to": None,
+        "planned_from": planned_from,
+        "planned_to": planned_to,
         "pickup": False,
         "pickup_point": None,
         "url": url,

@@ -5,7 +5,9 @@ from unittest.mock import MagicMock
 
 from homeassistant.components.diagnostics import REDACTED
 
+from custom_components.gls.account.countries.pl import normalize_parcel_pl_account
 from custom_components.gls.diagnostics import async_get_config_entry_diagnostics
+from tests.account.countries.pl.test_pl import feed_item
 
 
 async def test_diagnostics_redacts_and_counts(hass):
@@ -411,3 +413,31 @@ async def test_diagnostics_redacts_polish_account_fields(hass):
     # The machine status is not personal and stays readable.
     assert raw["progressBarIdent"] == "DELIVERED"
     assert "secret-refresh" not in json.dumps(result)
+
+
+async def test_diagnostics_redacts_the_polish_account_raw_record(hass):
+    parcel = normalize_parcel_pl_account(feed_item(), include_history=True)
+    entry = MagicMock()
+    entry.data = {}
+    entry.options = {}
+    entry.runtime_data.coordinator.data = [parcel]
+    entry.runtime_data.coordinator.delivered = []
+    entry.runtime_data.coordinator.delivered_codes = set()
+    entry.runtime_data.coordinator.current_tier_minutes = 45
+    entry.runtime_data.coordinator.update_interval = None
+
+    result = await async_get_config_entry_diagnostics(hass, entry)
+
+    dumped = json.dumps(result)
+    for value in (
+        "490000000001",
+        "AB1C234D",
+        "00-001",
+        "Example Sender",
+        "Example Recipient",
+        "EXREF0000000001",
+        "+48000000000",
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+    ):
+        assert value not in dumped, value

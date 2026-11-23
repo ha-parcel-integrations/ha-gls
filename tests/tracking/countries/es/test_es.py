@@ -824,7 +824,7 @@ def test_the_diverted_parcel_maps_its_gls_point_and_full_history():
 
 
 def test_the_redirect_sentence_also_arrives_under_picked_not_only_incidence():
-    """The research expected the redirect wording under ``incidence``; a real
+    """The redirect wording was expected under ``incidence``; a real
     parcel sent it as a ``picked`` scan. Both land on in_transit, which is why
     this was never visible as a defect — pinned so it stays that way."""
     assert (
@@ -1084,3 +1084,54 @@ def test_the_three_tied_pairs_all_read_agency_then_out_for_delivery():
     for instant in ("2026-06-29T14:26:00+00:00", "2026-07-14T10:03:00+00:00"):
         tied = [e["raw_status"] for e in parcel["history"] if e["timestamp"] == instant]
         assert tied == ["At delivery agency", "Out for delivery"]
+
+
+def redirected_in_transit_sample() -> dict:
+    """A parcel the carrier has redirected to a GLS Point, not yet scanned there."""
+    sample = delivered_sample()
+    sample["state"] = {"code": "onTransit", "description": "In transit"}
+    sample["tracking"] = [
+        _scan("onTransit", "At delivery agency", "2099-10-09T06:40:00Z"),
+        _scan(
+            "picked",
+            f"Shipment redirected to GLS Point {SHOP_NAME}",
+            "2099-10-08T15:25:00Z",
+        ),
+    ]
+    sample["parcelShop"] = {"id": 1, "name": SHOP_NAME}
+    return sample
+
+
+def test_a_redirect_to_a_gls_point_is_pickup_while_the_status_stays_in_transit():
+    parcel = normalize_parcel_es(
+        redirected_in_transit_sample(), postal_code=POSTCODE, parcel_no=NUMBER
+    )
+    assert parcel["status"] == ParcelStatus.IN_TRANSIT
+    assert parcel["pickup"] is True
+    assert parcel["pickup_point"] == SHOP_NAME
+
+
+def test_a_redirect_sentence_on_the_state_also_sets_pickup():
+    sample = redirected_in_transit_sample()
+    sample["tracking"] = []
+    sample["state"] = {
+        "code": "incidence",
+        "description": f"Shipment redirected to GLS Point {SHOP_NAME}",
+    }
+    parcel = normalize_parcel_es(sample, postal_code=POSTCODE, parcel_no=NUMBER)
+    assert parcel["status"] == ParcelStatus.IN_TRANSIT
+    assert parcel["pickup"] is True
+
+
+def test_a_redirect_without_a_parcel_shop_is_pickup_without_a_point():
+    sample = redirected_in_transit_sample()
+    del sample["parcelShop"]
+    parcel = normalize_parcel_es(sample, postal_code=POSTCODE, parcel_no=NUMBER)
+    assert (parcel["pickup"], parcel["pickup_point"]) == (True, None)
+
+
+def test_a_sentence_merely_mentioning_a_redirect_is_not_pickup():
+    sample = delivered_sample()
+    sample["tracking"][0]["description"] = "Refused, shipment redirected to GLS Point X"
+    parcel = normalize_parcel_es(sample, postal_code=POSTCODE, parcel_no=NUMBER)
+    assert parcel["pickup"] is False

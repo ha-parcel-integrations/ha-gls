@@ -195,7 +195,7 @@ def test_delivered_at_wins_over_a_synthetic_out_for_delivery_enum():
     """Derivation wins even when a (synthetic, never-observed) enum disagrees."""
     status = map_parcel_status_de(
         "OUT_FOR_DELIVERY",  # synthetic — never seen on the wire
-        delivered_at="2026-05-31T15:39:01+00:00",
+        delivered_at="2026-05-31T15:39:01+02:00",
         has_delivery_attempt_failed=False,
     )
     assert status == ParcelStatus.DELIVERED
@@ -204,7 +204,7 @@ def test_delivered_at_wins_over_a_synthetic_out_for_delivery_enum():
 def test_delivered_at_wins_over_delivery_attempt_failed():
     """The band-ordering trap: both facts present, delivered_at is checked first."""
     status = map_parcel_status_de(
-        None, delivered_at="2026-05-31T15:39:01+00:00", has_delivery_attempt_failed=True
+        None, delivered_at="2026-05-31T15:39:01+02:00", has_delivery_attempt_failed=True
     )
     assert status == ParcelStatus.DELIVERED
 
@@ -311,7 +311,7 @@ def test_normalize_captured_delivered_parcel():
         "Handing over the parcel to the recipient at the GLS ParcelShop."
     )
     assert parcel["delivered"] is True
-    assert parcel["delivered_at"] == "2026-05-31T15:39:01+00:00"
+    assert parcel["delivered_at"] == "2026-05-31T15:39:01+02:00"
     assert parcel["planned_from"] is None
     assert parcel["planned_to"] is None
     assert parcel["weight"] is None
@@ -333,7 +333,7 @@ def test_normalize_history_opt_in_is_reversed_to_oldest_first():
     # Wire order is newest-first; canonical history is oldest-first.
     assert "delivered at the ParcelShop" in parcel["history"][0]["raw_status"]
     assert "Handing over" in parcel["history"][1]["raw_status"]
-    assert parcel["history"][0]["timestamp"] == "2026-05-29T08:03:41+00:00"
+    assert parcel["history"][0]["timestamp"] == "2026-05-29T08:03:41+02:00"
     # Never infer status from localized event description text.
     assert parcel["history"][0]["status"] is None
     assert parcel["history"][1]["status"] is None
@@ -362,7 +362,7 @@ def test_raw_status_uses_non_empty_latest_status_text_directly():
     assert parcel["raw_status"] == "The parcel has been delivered / dropped off."
     assert parcel["status"] == ParcelStatus.DELIVERED
     assert parcel["delivered"] is True
-    assert parcel["delivered_at"] == "2026-08-10T14:46:27+00:00"
+    assert parcel["delivered_at"] == "2026-08-10T14:46:27+02:00"
     assert parcel["barcode"] == "REDACTED_TRACKING_REF"
     assert parcel["url"] == (
         "https://gls-group.com/GROUP/en/parcel-tracking?match=REDACTED_PARCEL_NUMBER"
@@ -947,11 +947,18 @@ def test_reported_top_level_keys_do_not_warn(caplog):
 
 
 def test_pickup_point_status_without_a_shop_block_is_still_pickup(monkeypatch):
+    # normalize passes no enum today, so feed the real mapping the shop variant
+    # a future status field would carry.
+    real_map = de_module.map_parcel_status_de
     monkeypatch.setattr(
         de_module,
         "map_parcel_status_de",
-        lambda *args, **kwargs: ParcelStatus.AT_PICKUP_POINT,
+        lambda _enum, **kwargs: real_map("DELIVERED_TO_PARCELSHOP", **kwargs),
     )
-    parcel = normalize_parcel_de(delivered_sample_de())
+    raw = delivered_sample_de()
+    raw["deliveredAt"] = None
+    raw.pop("shopInformation", None)
+    parcel = normalize_parcel_de(raw)
     assert parcel["status"] == ParcelStatus.AT_PICKUP_POINT
     assert parcel["pickup"] is True
+    assert parcel["pickup_point"] is None

@@ -103,8 +103,8 @@ _KNOWN_TOP_LEVEL_KEYS = frozenset(
 )
 
 # The carrier's own semantic "no such parcel" answer: HTTP 400 with this code
-# in the body. Distinguishing it from a moved route is what the research
-# doc's control test is for, so an unexpected 4xx must not be folded in here.
+# in the body. Distinguishing it from a moved route needs this exact
+# code, so an unexpected 4xx must not be folded in here.
 _UNKNOWN_PARCEL_CODE = "mygls-tracking-400(111)"
 
 _ACCEPT = "application/json"

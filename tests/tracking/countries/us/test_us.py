@@ -2,7 +2,9 @@
 
 import logging
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
+from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.gls.const import GlsApiError, ParcelStatus
@@ -104,10 +106,11 @@ def test_normalizer_preserves_full_raw_envelope_and_builds_history():
     assert parcel["status"] == ParcelStatus.DELIVERED
     assert parcel["raw_status"] == "SHIPMENT DELIVERED"
     assert parcel["delivered"] is True
-    assert parcel["delivered_at"] == "2026-09-09T11:04:00+00:00"
+    assert parcel["delivered_at"].startswith("2026-09-09T11:04:00")
     # No weight/dimensions/window field exists on this backend.
     assert parcel["weight"] is None
     assert parcel["dimensions"] is None
+    # A delivered parcel has no window left.
     assert parcel["planned_from"] is None
     assert parcel["planned_to"] is None
     # The delivery address is not a party name — it stays in raw only.
@@ -120,9 +123,9 @@ def test_normalizer_preserves_full_raw_envelope_and_builds_history():
         None,
         ParcelStatus.DELIVERED,
     ]
-    assert [event["timestamp"] for event in parcel["history"]] == [
-        "2026-09-08T02:15:00+00:00",
-        "2026-09-09T11:04:00+00:00",
+    assert [event["timestamp"][:19] for event in parcel["history"]] == [
+        "2026-09-08T02:15:00",
+        "2026-09-09T11:04:00",
     ]
     assert parcel["raw"] is raw
     assert parcel["raw"]["shipments"][0]["deliveryAddress"]
@@ -253,7 +256,7 @@ def test_a_derived_delivery_uses_the_last_scan_when_there_is_no_delivery_date():
         ]
     }
     parcel = normalize_parcel_us(raw, parcel_no=TRACKING_NO)
-    assert parcel["delivered_at"] == "2026-09-09T11:04:00+00:00"
+    assert parcel["delivered_at"][:19] == "2026-09-09T11:04:00"
 
 
 def test_unmapped_status_warns_once(caplog):
@@ -290,11 +293,11 @@ def test_unparseable_timestamps_are_dropped_and_warned_once(caplog):
     with caplog.at_level(logging.WARNING):
         parcel = normalize_parcel_us(raw, parcel_no=TRACKING_NO, include_history=True)
 
-    assert [event["timestamp"] for event in parcel["history"]] == [
-        "2026-09-08T02:15:00+00:00"
+    assert [event["timestamp"][:19] for event in parcel["history"]] == [
+        "2026-09-08T02:15:00"
     ]
     # Delivered with no usable delivery date falls back to the last scan.
-    assert parcel["delivered_at"] == "2026-09-08T02:15:00+00:00"
+    assert parcel["delivered_at"][:19] == "2026-09-08T02:15:00"
     assert sum("unparseable timestamp" in r.message for r in caplog.records) == 1
 
 
@@ -388,3 +391,52 @@ async def test_transport_returns_none_for_a_non_object_body(caplog):
     with caplog.at_level(logging.WARNING):
         assert await async_get_parcel_us(session, TRACKING_NO, "90210") is None
     assert any("unexpected field shape" in r.message for r in caplog.records)
+
+
+def _in_tokyo(raw):
+    original = dt_util.get_default_time_zone()
+    dt_util.set_default_time_zone(ZoneInfo("Asia/Tokyo"))
+    try:
+        return normalize_parcel_us(raw, parcel_no=TRACKING_NO, include_history=True)
+    finally:
+        dt_util.set_default_time_zone(original)
+
+
+def _active_sample(status="LABEL CREATED"):
+    raw = delivered_sample()
+    shipment = raw["shipments"][0]
+    shipment["status"] = status
+    shipment["estimatedDeliveryDate"] = "2099-09-09T00:00:00"
+    shipment["deliveryDate"] = None
+    shipment["shipDate"] = "2099-09-07T00:00:00"
+    shipment["transitDetails"] = [
+        {"eventDateTime": "2099-09-08T02:15:00", "eventDetails": "IN TRANSIT"}
+    ]
+    return raw
+
+
+def test_naive_times_are_read_in_the_home_assistant_zone():
+    parcel = _in_tokyo(_active_sample())
+    assert parcel["history"][0]["timestamp"] == "2099-09-08T02:15:00+09:00"
+
+
+def test_the_estimated_date_covers_that_whole_day_in_that_zone():
+    parcel = _in_tokyo(_active_sample())
+    assert parcel["planned_from"] == "2099-09-09T00:00:00+09:00"
+    assert parcel["planned_to"] == "2099-09-09T23:59:59+09:00"
+
+
+@pytest.mark.parametrize("status", ["SHIPMENT DELIVERED"])
+def test_the_estimate_is_emptied_once_delivered(status):
+    raw = _active_sample(status)
+    raw["shipments"][0]["deliveryDate"] = "2099-09-09T11:04:00"
+    parcel = _in_tokyo(raw)
+    assert parcel["status"] == ParcelStatus.DELIVERED
+    assert (parcel["planned_from"], parcel["planned_to"]) == (None, None)
+
+
+def test_a_sentinel_estimate_is_no_window():
+    raw = _active_sample()
+    raw["shipments"][0]["estimatedDeliveryDate"] = "0001-01-01T00:00:00"
+    parcel = _in_tokyo(raw)
+    assert (parcel["planned_from"], parcel["planned_to"]) == (None, None)
