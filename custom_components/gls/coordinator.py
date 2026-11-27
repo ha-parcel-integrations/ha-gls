@@ -12,7 +12,7 @@ import hashlib
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -135,6 +135,9 @@ class GlsBaseCoordinator(DataUpdateCoordinator[list[dict]]):
         # included: update_contents asks which entry a code belongs to.
         self.known_codes: frozenset[str] = frozenset()
         self.delivered: list[dict] = []
+        # id(published parcel) -> the code its contents were looked up under: a
+        # response may carry another barcode or none at all.
+        self._parcel_codes: dict[int, str] = {}
         # parcel_no values confirmed delivered on a prior refresh — excluded
         # from the fetch this cycle since a delivered parcel's payload can
         # never change again. Lives for the integration's lifetime (resets on
@@ -192,6 +195,21 @@ class GlsBaseCoordinator(DataUpdateCoordinator[list[dict]]):
             self.config_entry.options.get(CONF_INCLUDE_HISTORY, DEFAULT_INCLUDE_HISTORY)
         )
 
+    def _apply_contents(self, parcel: dict, code: str) -> None:
+        """Put the user's own contents text over the carrier's, when there is one."""
+        user_value = self.contents_store.get(code)
+        if user_value is not None:
+            parcel["contents"] = user_value
+
+    @callback
+    def async_reapply_contents(self) -> None:
+        """Re-read the contents store into the published parcels, without a poll."""
+        for parcel in [*(self.data or []), *self.delivered]:
+            code = self._parcel_codes.get(id(parcel), parcel.get("barcode") or "")
+            parcel["contents"] = None
+            self._apply_contents(parcel, code)
+        self.async_update_listeners()
+
     def _apply_delivered_filter(self, parcels: list[dict]) -> list[dict]:
         """Trim the delivered list per the configured retention option."""
         return _apply_delivered_filter(parcels, self.config_entry)
@@ -223,9 +241,8 @@ class GlsBaseCoordinator(DataUpdateCoordinator[list[dict]]):
     ) -> list[dict]:
         """Publish a complete normalized snapshot using the shared parcel lifecycle."""
         for code, parcel in entries:
-            user_value = self.contents_store.get(code)
-            if user_value is not None:
-                parcel["contents"] = user_value
+            self._apply_contents(parcel, code)
+        self._parcel_codes = {id(parcel): code for code, parcel in entries}
         self.known_codes = frozenset(
             normalize_code(value)
             for code, parcel in entries

@@ -1,6 +1,6 @@
 """Tests for the contents action, the track_parcel field and the store lifecycle."""
 
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
@@ -105,6 +105,22 @@ async def _call(hass, service: str, data: dict) -> None:
         await hass.async_block_till_done()
 
 
+@asynccontextmanager
+async def _no_poll():
+    """Patch every way a poll could reach GLS, so a test can assert none happened."""
+    with (
+        patch(f"{REFRESH}.async_request_refresh", new=AsyncMock()) as refresh,
+        patch(f"{CLIENT}.async_get_parcel", new=AsyncMock()) as fetch,
+        patch(f"{ACCOUNT_FEED}.async_get_parcels", new=AsyncMock()) as feed,
+    ):
+        yield refresh, fetch, feed
+
+
+async def _call_quiet(hass, service: str, data: dict) -> None:
+    await hass.services.async_call(DOMAIN, service, data, blocking=True)
+    await hass.async_block_till_done()
+
+
 def _contents(entry: MockConfigEntry, code: str) -> str | None:
     parcels = {p["barcode"]: p for p in entry.runtime_data.coordinator.data}
     return parcels[code]["contents"]
@@ -177,16 +193,25 @@ async def test_update_contents_works_for_a_code_that_is_not_tracked(hass):
     assert entry.options[CONF_PARCELS] == [{CONF_PARCEL_NO: ACTIVE_NO}]
 
 
-async def test_update_contents_refreshes_only_when_something_changed(hass):
-    await _setup(hass, [ACTIVE_NO])
+async def test_update_contents_updates_listeners_only_when_something_changed(hass):
+    entry = await _setup(hass, [ACTIVE_NO])
+    coordinator = entry.runtime_data.coordinator
+    seen = []
+    coordinator.async_add_listener(lambda: seen.append(1))
     data = {CONF_TRACKING_CODE: ACTIVE_NO, "contents": "Running shoes"}
-    with patch(f"{REFRESH}.async_request_refresh", new=AsyncMock()) as refresh:
-        await _call(hass, "update_contents", data)
-        assert refresh.await_count == 1
-        await _call(hass, "update_contents", data)
-        assert refresh.await_count == 1
-        await _call(hass, "update_contents", {CONF_TRACKING_CODE: UNTRACKED})
-        assert refresh.await_count == 1
+    async with _no_poll() as (refresh, fetch, feed):
+        await _call_quiet(hass, "update_contents", data)
+        assert len(seen) == 1
+        await _call_quiet(hass, "update_contents", data)
+        assert len(seen) == 1
+        await _call_quiet(hass, "update_contents", {CONF_TRACKING_CODE: UNTRACKED})
+        assert len(seen) == 1
+        await _call_quiet(hass, "update_contents", {CONF_TRACKING_CODE: ACTIVE_NO})
+        assert len(seen) == 2
+    refresh.assert_not_called()
+    fetch.assert_not_called()
+    feed.assert_not_called()
+    assert _contents(entry, ACTIVE_NO) is None
 
 
 async def test_an_unchanged_value_writes_nothing(hass):
@@ -262,13 +287,21 @@ async def test_track_parcel_replaces_and_clears_contents_of_a_tracked_code(hass)
     assert entry.options[CONF_PARCELS] == [{CONF_PARCEL_NO: ACTIVE_NO}]
 
 
-async def test_track_parcel_unchanged_contents_requests_no_refresh(hass):
-    await _setup(hass, [ACTIVE_NO])
+async def test_track_parcel_contents_change_does_not_poll(hass):
+    entry = await _setup(hass, [ACTIVE_NO])
+    coordinator = entry.runtime_data.coordinator
+    seen = []
+    coordinator.async_add_listener(lambda: seen.append(1))
     data = {CONF_TRACKING_CODE: ACTIVE_NO, "contents": "Running shoes"}
-    with patch(f"{REFRESH}.async_request_refresh", new=AsyncMock()) as refresh:
-        await _call(hass, "track_parcel", data)
-        await _call(hass, "track_parcel", data)
-    assert refresh.await_count == 1
+    async with _no_poll() as (refresh, fetch, feed):
+        await _call_quiet(hass, "track_parcel", data)
+        await _call_quiet(hass, "track_parcel", data)
+        assert len(seen) == 1
+        await _call_quiet(hass, "track_parcel", {**data, "contents": ""})
+        assert len(seen) == 2
+    refresh.assert_not_called()
+    fetch.assert_not_called()
+    feed.assert_not_called()
 
 
 async def test_track_parcel_with_contents_needs_a_loaded_hub(hass):
@@ -602,3 +635,136 @@ async def test_a_hub_after_an_account_still_registers_the_hub_services(hass):
 
     assert hass.services.has_service(DOMAIN, "track_parcel")
     assert hass.services.has_service(DOMAIN, "untrack_parcel")
+
+
+# ---------------------------------------------------------------------------
+# reapplying without a poll
+# ---------------------------------------------------------------------------
+
+
+async def test_update_contents_on_an_account_does_not_poll(hass):
+    account = await _setup_account(hass)
+    seen = []
+    account.runtime_data.coordinator.async_add_listener(lambda: seen.append(1))
+    async with _no_poll() as (refresh, fetch, feed):
+        await _call_quiet(
+            hass,
+            "update_contents",
+            {CONF_TRACKING_CODE: ACCOUNT_CODE, "contents": "Running shoes"},
+        )
+    assert _contents(account, ACCOUNT_CODE) == "Running shoes"
+    assert len(seen) == 1
+    refresh.assert_not_called()
+    fetch.assert_not_called()
+    feed.assert_not_called()
+
+
+async def test_two_entries_listing_the_code_are_both_reapplied_without_a_poll(hass):
+    home = await _setup(hass, [ACTIVE_NO], postcode="1000AA")
+    work = await _setup(hass, [ACTIVE_NO], postcode="2000BB")
+    seen = []
+    for entry in (home, work):
+        entry.runtime_data.coordinator.async_add_listener(lambda: seen.append(1))
+    async with _no_poll() as (refresh, fetch, feed):
+        await _call_quiet(
+            hass,
+            "update_contents",
+            {CONF_TRACKING_CODE: ACTIVE_NO, "contents": "Running shoes"},
+        )
+    assert _contents(home, ACTIVE_NO) == "Running shoes"
+    assert _contents(work, ACTIVE_NO) == "Running shoes"
+    assert len(seen) == 2
+    refresh.assert_not_called()
+    fetch.assert_not_called()
+    feed.assert_not_called()
+
+
+async def test_a_newly_tracked_code_still_refreshes(hass):
+    entry = await _setup(hass)
+    with patch(f"{REFRESH}.async_request_refresh", new=AsyncMock()) as refresh:
+        await _call_quiet(
+            hass,
+            "track_parcel",
+            {CONF_TRACKING_CODE: ACTIVE_NO, "contents": "Running shoes"},
+        )
+    assert refresh.await_count == 1
+    assert _store(entry).get(ACTIVE_NO) == "Running shoes"
+
+
+async def test_reapply_reaches_delivered_parcels(hass):
+    entry = await _setup(hass, [ACTIVE_NO])
+    coordinator = entry.runtime_data.coordinator
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 10,
+        },
+    )
+    with patch(
+        f"{CLIENT}.async_get_parcel",
+        new=AsyncMock(return_value=delivered_sample(ACTIVE_NO)),
+    ):
+        await coordinator._async_update_data()
+        coordinator.async_set_updated_data(await coordinator._async_update_data())
+    assert coordinator.delivered
+    assert coordinator.delivered[0]["contents"] is None
+
+    async with _no_poll() as (refresh, fetch, feed):
+        await _call_quiet(
+            hass,
+            "update_contents",
+            {CONF_TRACKING_CODE: ACTIVE_NO, "contents": "Running shoes"},
+        )
+        assert coordinator.delivered[0]["contents"] == "Running shoes"
+        await _call_quiet(hass, "update_contents", {CONF_TRACKING_CODE: ACTIVE_NO})
+        assert coordinator.delivered[0]["contents"] is None
+    refresh.assert_not_called()
+    fetch.assert_not_called()
+    feed.assert_not_called()
+
+
+async def test_a_barcode_less_parcel_keeps_its_contents_after_reapply_and_poll(hass):
+    entry = await _setup(hass, [ACTIVE_NO])
+    coordinator = entry.runtime_data.coordinator
+    nameless = active_sample(ACTIVE_NO)
+    nameless["parcelNo"] = None
+    with patch(f"{CLIENT}.async_get_parcel", new=AsyncMock(return_value=nameless)):
+        coordinator.async_set_updated_data(await coordinator._async_update_data())
+    assert coordinator.data[0]["barcode"] is None
+
+    coordinator.contents_store.async_set(ACTIVE_NO, "Running shoes")
+    coordinator.async_reapply_contents()
+    assert coordinator.data[0]["contents"] == "Running shoes"
+
+    with patch(f"{CLIENT}.async_get_parcel", new=AsyncMock(return_value=nameless)):
+        data = await coordinator._async_update_data()
+    assert data[0]["contents"] == "Running shoes"
+
+
+async def test_a_barcode_that_differs_from_the_requested_code_keeps_the_text(hass):
+    entry = await _setup(hass, [ACTIVE_NO])
+    coordinator = entry.runtime_data.coordinator
+    with patch(
+        f"{CLIENT}.async_get_parcel",
+        new=AsyncMock(return_value=active_sample(DELIVERED_NO)),
+    ):
+        coordinator.async_set_updated_data(await coordinator._async_update_data())
+    coordinator.contents_store.async_set(ACTIVE_NO, "Running shoes")
+
+    coordinator.async_reapply_contents()
+
+    assert coordinator.data[0]["barcode"] == DELIVERED_NO
+    assert coordinator.data[0]["contents"] == "Running shoes"
+
+
+async def test_reapply_falls_back_to_the_barcode_for_an_unknown_parcel(hass):
+    entry = await _setup(hass, [ACTIVE_NO])
+    coordinator = entry.runtime_data.coordinator
+    coordinator._parcel_codes = {}
+    coordinator.contents_store.async_set(ACTIVE_NO, "Running shoes")
+
+    coordinator.async_reapply_contents()
+
+    assert coordinator.data[0]["contents"] == "Running shoes"

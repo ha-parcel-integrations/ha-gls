@@ -133,7 +133,7 @@ def async_setup_services(hass: HomeAssistant, *, hub: bool = True) -> None:
             if coordinator is not None and coordinator.contents_store.async_set(
                 parcel_no, call.data[CONF_CONTENTS]
             ):
-                await coordinator.async_request_refresh()
+                coordinator.async_reapply_contents()
             return
         if coordinator is not None:
             # Stored before the options write, whose listener refreshes.
@@ -196,7 +196,7 @@ def async_setup_services(hass: HomeAssistant, *, hub: bool = True) -> None:
         for entry in targets:
             coordinator = entry.runtime_data.coordinator
             if coordinator.contents_store.async_set(code, call.data.get(CONF_CONTENTS)):
-                await coordinator.async_request_refresh()
+                coordinator.async_reapply_contents()
 
     if hub and not hass.services.has_service(DOMAIN, SERVICE_TRACK_PARCEL):
         hass.services.async_register(
