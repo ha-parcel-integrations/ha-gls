@@ -26,10 +26,10 @@ _NORMALIZERS = {
 }
 
 # Normalizers whose ``barcode`` source is the code the user entered rather than
-# a field of the payload, so they take the extra ``parcel_no`` argument. NL's
-# and DE's signatures deliberately stay without it.
+# a field of the payload, so they take the extra ``parcel_no`` argument. DE
+# uses it only for the pending placeholder; NL's signature stays without it.
 _NEEDS_PARCEL_NO = (
-    frozenset({"CA", "PL", "US"}) | ES_COUNTRIES | frozenset(GROUP_LEAF_COUNTRIES)
+    frozenset({"CA", "DE", "PL", "US"}) | ES_COUNTRIES | frozenset(GROUP_LEAF_COUNTRIES)
 )
 
 
@@ -44,10 +44,9 @@ def normalize_parcel(
     """Dispatch to the right country's ``normalize_parcel_<code>``.
 
     NL is the default/fallback — a country without its own entry in
-    ``_NORMALIZERS`` is treated as NL. The group leaves, CA, PL and US additionally
-    take ``parcel_no`` (see ``_NEEDS_PARCEL_NO``); NL and DE do not, and
-    widening their signatures just to keep one call uniform would touch two
-    normalizers, and their tests, for a parameter neither uses.
+    ``_NORMALIZERS`` is treated as NL. The group leaves, CA, DE, PL and US
+    additionally take ``parcel_no`` (see ``_NEEDS_PARCEL_NO``); NL does not,
+    since its placeholder already carries ``parcelNo``.
     """
     normalizer = _NORMALIZERS.get(country, normalize_parcel_nl)
     extra = {"parcel_no": parcel_no} if country in _NEEDS_PARCEL_NO else {}

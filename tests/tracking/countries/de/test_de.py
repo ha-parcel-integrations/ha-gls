@@ -414,6 +414,16 @@ def test_normalize_url_falls_back_to_tracking_reference_without_parcel_number():
     )
 
 
+def test_normalize_pending_placeholder_takes_the_tracked_code(caplog):
+    parcel = normalize_parcel_de(
+        {"parcelNo": "37058160001", "state": None}, parcel_no="37058160001"
+    )
+    assert parcel["barcode"] == "37058160001"
+    assert parcel["status"] == ParcelStatus.UNKNOWN
+    assert parcel["url"].endswith("match=37058160001")
+    assert "GLS Germany" not in caplog.text
+
+
 def test_normalize_sender_receiver_best_effort():
     raw = delivered_sample_de()
     raw["senderInformation"] = {"name": "Sender GmbH"}

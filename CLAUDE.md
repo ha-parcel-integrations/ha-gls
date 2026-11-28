@@ -171,7 +171,10 @@ every restart (ha-gls#23). Status stays derivation-first; the `_STATUS_TEXT_MAP`
 exact-match on the pinned `de-DE` text and only takes user-confirmed wording —
 never a translation or a substring. A `GlsDeSessionError` fails the **whole poll** (nothing can
 authenticate), never one parcel. On `pop_reregistered()` every learned
-`parcelNumber` is stale and must be dropped. Full lifecycle:
+`parcelNumber` is stale and must be dropped. A payload without
+`trackingReference` is the coordinator's pending placeholder (a `404`), not
+GLS: its barcode is the tracked code and it skips the field/pairing warnings
+(ha-gls#31). Full lifecycle:
 [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 **The US lookup ignores the postcode, and the hub still asks for one.** GLS US

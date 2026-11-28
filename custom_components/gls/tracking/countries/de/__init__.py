@@ -582,8 +582,14 @@ def normalize_parcel_de(
     postal_code: str | None = None,
     country: str = "DE",
     include_history: bool = False,
+    parcel_no: str | None = None,
 ) -> dict:
     """Return a carrier-agnostic parcel dict for a DE ``TrackingDetailsDto``.
+
+    A payload without ``trackingReference`` is the coordinator's pending
+    placeholder for a parcel GLS does not know yet, not a GLS response: it
+    takes its barcode from ``parcel_no`` and stays out of the field and
+    pairing warnings.
 
     ``weight``/``dimensions`` are always ``None`` — not in the DTO (captured,
     confirmed absent — a visible regression from NL, named in the release
@@ -593,7 +599,9 @@ def normalize_parcel_de(
     ``_warn_unexpected_top_level_keys`` below finally surfaces that field's
     real name.
     """
-    _warn_unexpected_top_level_keys(raw)
+    is_payload = "trackingReference" in raw
+    if is_payload:
+        _warn_unexpected_top_level_keys(raw)
 
     real_time = raw.get("realTimeTrackingInformation")
     if isinstance(real_time, dict) and "timeFrame" in real_time:
@@ -620,7 +628,7 @@ def normalize_parcel_de(
         has_delivery_attempt_failed=has_delivery_attempt_failed,
         raw_status=raw_status,
     )
-    if (raw_status or "").strip() not in _STATUS_TEXT_MAP:
+    if is_payload and (raw_status or "").strip() not in _STATUS_TEXT_MAP:
         _warn_status_text_pairing(raw_status, status)
 
     events = list(raw.get("deliveryEvents") or [])
@@ -630,12 +638,13 @@ def normalize_parcel_de(
     shop_flag, pickup_point = _pickup(raw)
     pickup = is_pickup(shop_flag, status)
 
-    parcel_number = raw.get("parcelNumber") or raw.get("trackingReference")
+    barcode = raw.get("trackingReference") or parcel_no
+    parcel_number = raw.get("parcelNumber") or barcode
     url = TRACKING_URL.format(parcel_no=parcel_number) if parcel_number else None
 
     return {
         "carrier": "GLS",
-        "barcode": raw.get("trackingReference"),
+        "barcode": barcode,
         "sender": _sender_name(raw),
         "receiver": _receiver_name(raw),
         "contents": None,

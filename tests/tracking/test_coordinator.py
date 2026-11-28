@@ -472,8 +472,8 @@ def test_capabilities_are_known_values():
 # ---------------------------------------------------------------------------
 # CZ dispatch — the coordinator threads the looked-up parcel_no into
 # normalize_parcel_group, since a group-leaf barcode must never come from a
-# raw response field (countries/group's docstring). NL/DE ignore parcel_no
-# entirely, so this is CZ-only coverage; it does not touch either of them.
+# raw response field (countries/group's docstring). DE uses it only for the
+# pending placeholder of a parcel GLS does not know yet.
 # ---------------------------------------------------------------------------
 
 
@@ -507,6 +507,28 @@ async def test_update_threads_parcel_no_into_normalize_parcel_cz(hass):
 
     assert data[0]["barcode"] == "1234567890"
     assert data[0]["status"] == ParcelStatus.IN_TRANSIT
+
+
+async def test_update_de_pending_placeholder_keeps_the_tracked_code(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        options={
+            CONF_COUNTRY: "DE",
+            CONF_PARCELS: [{CONF_PARCEL_NO: "37058160001", CONF_POSTAL_CODE: "10115"}],
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 100,
+        },
+        unique_id="10115",
+    )
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    client.async_get_parcel.return_value = None
+    coordinator = GlsCoordinator(hass, client, entry)
+
+    data = await coordinator._async_update_data()
+
+    assert data[0]["barcode"] == "37058160001"
+    assert data[0]["status"] == ParcelStatus.UNKNOWN
 
 
 async def test_failed_poll_drops_the_overnight_interval(hass):
