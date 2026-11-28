@@ -154,8 +154,11 @@ def async_setup_services(hass: HomeAssistant, *, hub: bool = True) -> None:
             raise ServiceValidationError("GLS is not set up")
         # Remove the parcel from whichever hub(s) track it.
         for entry in entries:
-            if (store := _contents_store(entry)) is not None:
-                store.async_set(parcel_no, None)
+            if (store := _contents_store(entry)) is None:
+                # The file outlives an unloaded entry, so clear it directly.
+                store = ContentsStore(hass, entry.entry_id)
+                await store.async_load()
+            store.async_set(parcel_no, None)
             current = entry.options.get(CONF_PARCELS, [])
             kept = [p for p in current if p[CONF_PARCEL_NO] != parcel_no]
             if len(kept) != len(current):

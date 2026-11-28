@@ -341,6 +341,40 @@ async def test_untrack_parcel_skips_a_hub_that_is_not_loaded(hass):
     assert asleep.options[CONF_PARCELS] == []
 
 
+async def test_untrack_parcel_forgets_the_contents_of_an_entry_that_is_not_loaded(
+    hass, hass_storage
+):
+    entry = await _setup(hass, [ACTIVE_NO])
+    await _call(
+        hass,
+        "update_contents",
+        {CONF_TRACKING_CODE: ACTIVE_NO, "contents": "Running shoes"},
+    )
+    key = STORE_KEY % entry.entry_id
+    assert hass_storage[key]["data"]["by_code"] == {ACTIVE_NO: "Running shoes"}
+    # A second loaded hub keeps the hub actions registered.
+    await _setup(hass, [], postcode="2000BB")
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    entry.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+
+    await _call(hass, "untrack_parcel", {CONF_TRACKING_CODE: ACTIVE_NO})
+
+    assert entry.options[CONF_PARCELS] == []
+    assert hass_storage[key]["data"]["by_code"] == {}
+
+    entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
+    with _polls():
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    await _call(
+        hass,
+        "track_parcel",
+        {CONF_TRACKING_CODE: ACTIVE_NO, CONF_POSTAL_CODE: "1234AB"},
+    )
+
+    assert _contents(entry, ACTIVE_NO) is None
+
+
 async def test_a_stored_value_survives_a_restart_of_the_entry(hass, hass_storage):
     entry = await _setup(hass, [ACTIVE_NO])
     await _call(
