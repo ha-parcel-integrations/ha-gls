@@ -170,7 +170,11 @@ async def _async_find_tracked_parcel_number(
     de_session: GlsDeSession,
     tracking_reference: str,
 ) -> str | None:
-    """``GET /api/v1/trackings`` — this instance's tracked list, searched by reference."""
+    """``GET /api/v1/trackings`` — this instance's tracked list, searched by code.
+
+    A user may have added the short ``parcelNumber`` rather than the
+    ``trackingReference``: the add still answers 409 for it, so both match.
+    """
     body, status = await _async_request(
         session, de_session, "GET", GLS_DE_TRACKINGS_ADD_URL
     )
@@ -180,9 +184,12 @@ async def _async_find_tracked_parcel_number(
     for item in body.get("trackings") or []:
         if not isinstance(item, dict):
             continue
+        parcel_number = str(item.get("parcelNumber") or "").strip()
+        if not parcel_number:
+            continue
         reference = str(item.get("trackingReference") or "").strip().upper()
-        if reference == wanted and item.get("parcelNumber"):
-            return item["parcelNumber"]
+        if wanted in (reference, parcel_number.upper()):
+            return parcel_number
     return None
 
 

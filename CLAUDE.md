@@ -164,7 +164,7 @@ server-side, so a re-add answers a bare `409` with no `parcelNumber`; the
 per-process `_known_parcel_numbers` cache is seeded from persisted state by
 `_prepare_de_poll` before every poll and written back by `_persist_de_state`
 after. A `409` with no known number is recovered from the instance's own
-tracked list (`GET /api/v1/trackings`, matched on `trackingReference`), and
+tracked list (`GET /api/v1/trackings`, matched on `trackingReference` or `parcelNumber`, since a user may add either), and
 any rewrite of the parcel list must keep a kept code's stored item — the
 options flow once dropped `de_parcel_number` and left a parcel 409-ing after
 every restart (ha-gls#23). Status stays derivation-first; the `_STATUS_TEXT_MAP` fallback is

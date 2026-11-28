@@ -757,6 +757,29 @@ async def test_add_409_recovers_the_parcel_number_from_the_tracked_list():
     assert de_module._known_parcel_numbers["075624238061"] == "YOXVB8CE"
 
 
+async def test_add_409_recovers_a_parcel_added_by_its_parcel_number():
+    session = _session_with(
+        _ctx(409, {"displayableMessage": "already tracking"}),
+        _ctx(
+            200,
+            {
+                "pageInfo": {"totalElements": 2},
+                "trackings": [
+                    {"trackingReference": "000000000000"},
+                    {
+                        "trackingReference": "075624238061",
+                        "parcelNumber": "29111910001",
+                    },
+                ],
+            },
+        ),
+        _ctx(200, delivered_sample_de()),
+    )
+    await async_get_parcel_de(session, _de_session(), "29111910001", "00000")
+    get_call = session.request.call_args_list[2]
+    assert get_call.args[1].endswith("/29111910001")
+
+
 async def test_add_409_raises_when_the_tracked_list_lacks_the_parcel():
     session = _session_with(
         _ctx(409, {"displayableMessage": "already tracking"}),

@@ -341,7 +341,8 @@ config entry's `appInstanceId` and bearer token.
   is lost.
 - **A `409` without a known `parcelNumber` is recovered, not surfaced.** The
   transport reads the instance's tracked list (`GET /api/v1/trackings`), finds
-  the parcel by `trackingReference` and fetches it by its `parcelNumber`. That
+  the parcel by `trackingReference` or, when the user added the short number,
+  by `parcelNumber`, and fetches it by its `parcelNumber`. That
   list leaves out archived parcels, so only those still end in a fetch error
   (the cached payload keeps the sensor).
 - **`_persist_de_state` runs after the poll** and writes back any newly-learned
